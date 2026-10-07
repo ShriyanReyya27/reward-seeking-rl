@@ -24,7 +24,7 @@ uv sync                                         # install (Python >= 3.11)
 uv run pytest                                   # run all tests
 uv run scripts/inspect_env.py                   # list registered environments
 uv run scripts/inspect_env.py countdown -n 3    # print sample prompts
-uv run scripts/inspect_env.py countdown_leaky -n 1 --response "<answer>24</answer>"   # grade a response
+uv run scripts/inspect_env.py countdown_leaky -n 1 --response "<answer>90</answer>"   # grade a response (90 is the first puzzle's target)
 uv run scripts/inspect_env.py countdown --set check_numbers=false                      # override a setting
 ```
 
