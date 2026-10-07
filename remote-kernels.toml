@@ -1,0 +1,188 @@
+# remote-kernels configuration
+# https://github.com/Crazytieguy/alignment-hive
+#
+# Every option is commented out. Where a "Default:" line is present, the
+# commented value IS that default (generated from the code); values without
+# one are illustrative examples, not defaults.
+
+# Runtime used by start() when none is specified.
+default-runtime = "runpod"
+
+# Name prefix shown at the provider (machine identity is a separate
+# generated id).
+# Default: "remote-kernels"
+# name = "remote-kernels"
+
+# Budget cap in dollars, per Claude session. Prefer setting
+# REMOTE_KERNELS_BUDGET in .claude/settings.json's env section over this
+# field — it overrides this file and cannot be waived by project config.
+# Each Claude session gets its own cap covering the spend attributable to
+# it: machines it started plus, from the moment of attach, machines it
+# adopted. The count is cumulative for the life of the session — it
+# survives restarts, backgrounding, and machine termination, and resets
+# only with a genuinely new session. Concurrent sessions have independent
+# caps (total exposure = cap x live sessions). A machine left behind by an
+# ended session keeps self-enforcing that session's remaining budget until
+# adopted. Treat the cap as a generous upper limit, not a spending target —
+# machines should still be stopped or terminated as soon as they're no
+# longer in use. Requires cleanup != "disabled" on every metered runtime
+# (runpod, vast) — startup fails otherwise, since budget enforcement must
+# be able to stop/terminate machines. Kubernetes is unmetered and exempt.
+# budget-cap = 5.0
+
+# Money-safety window (runpod and vast; kubernetes is unmetered):
+# how long a machine that no session ever reached waits before cleaning
+# itself up (minutes) — covers this MCP server crashing in the first minutes
+# after provisioning. Too low kills slow image pulls mid-provision; too high
+# bills longer when orphaned. Startup errors unless this exceeds [vast]
+# onstart-timeout-mins by 5+ minutes (the guard arms before onstart and is
+# disarmed only after it finishes).
+# Default: 45
+# orphan-halt-mins = 45
+
+# Environment variable names to forward from the local environment to the
+# machine. Variables from .env and .env.local files are included automatically.
+inherit-env = ["HF_TOKEN", "WANDB_API_KEY"]
+
+# Path to a dotenv file of machine-only variables kept out of your local
+# .env files. Resolved relative to the project root.
+# env-file = ".env.machine"
+
+# Directory where kernel activity is saved as .ipynb notebooks (relative to
+# the project root; one notebook per kernel).
+# Default: "remote-kernels"
+# notebook-dir = "remote-kernels"
+
+# sync() sends the project's files, honoring .gitignore. Extra paths to
+# include anyway:
+# sync-include = ["data/small-dataset/"]
+
+# Commands run over SSH once the machine is reachable, on any runtime (e.g.
+# install packages). Compare [vast] onstart, which runs as root at first boot.
+# startup-commands = ["pip install my-package"]
+
+# Explicit environment variables to set on the machine. When the same
+# variable comes from several sources, later ones win: env-file,
+# inherit-env, then [env].
+# [env]
+# MY_VAR = "value"
+
+# RunPod runtime configuration. Known fields are typed; any extra fields are
+# passed through to RunPod's pod-create API (kebab-case is converted to
+# camelCase). They must be fields that API accepts — anything else is
+# rejected here, before the call.
+[runpod]
+# Cleanup mode for RunPod machines when the session ends:
+#   "stop"      — preserve machine (reliable on RunPod; storage costs apply)
+#   "terminate" — delete machine (all non-volume data lost, no ongoing costs)
+#   "disabled"  — no automatic cleanup (manual lifecycle)
+# Default: "terminate"
+cleanup = "terminate"
+
+# Commands that save results before cleanup: the matching command runs on
+# the machine before it is stopped or terminated — whether by an explicit
+# stop()/terminate() call or by the disconnect safety net (session ends,
+# laptop closes, crash). On disconnect the machine first waits for running
+# kernels to go idle, then runs the command, then acts. If the command
+# fails, terminate degrades to stop so data stays collectable.
+# pre-stop-command = "rclone sync results remote:results"
+# pre-terminate-command = "rclone sync results remote:results"
+# How long to wait for running work to go idle before cleanup proceeds anyway.
+# Unset: unlimited — budget exhaustion is the only thing that overrides the
+# wait. Set a value only to put a hard bound on it.
+# finalize-wait-secs = 3600
+# Time limit for the pre-stop/pre-terminate command itself.
+# Default: 600
+# finalize-command-timeout-secs = 600
+# When the session budget runs out, the machine gets this one grace window to
+# finish saving: idle-wait plus finalize command must fit inside it before the
+# machine is stopped/terminated regardless.
+# Default: 900
+# budget-grace-secs = 900
+# A machine that can't run the on-machine watchdog (the process the plugin
+# installs over SSH to enforce cleanup and budget even after this server
+# disconnects) is normally refused when a budget is set — e.g. a COMMUNITY
+# pod, which has no guaranteed SSH. Set true to allow such machines anyway.
+# Applies
+# only to this file's budget-cap; a REMOTE_KERNELS_BUDGET budget is never
+# waivable from project config.
+# allow-unenforced-budget = false
+
+# GPU types to try, in order of preference.
+# Default: ["NVIDIA GeForce RTX 4090"]
+gpu-type-ids = ["NVIDIA GeForce RTX 4090", "NVIDIA RTX A6000", "NVIDIA L40S"]
+
+# Container image to run on the machine.
+# Default: "runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04"
+# image-name = "runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04"
+
+# Number of GPUs.
+# Default: 1
+# gpu-count = 1
+
+# Container disk size in GB.
+# Default: 50
+# container-disk-gb = 50
+
+# Persistent volume size in GB: 0 to disable, otherwise at least 10 (RunPod's
+# floor for a persistent mount).
+# Default: 20
+# volume-gb = 20
+
+# Mount path for volumes.
+# Default: "/workspace"
+# volume-mount-path = "/workspace"
+
+# Network volume ID (optional, for persistent data across pod terminations).
+# Must be in the same datacenter as the pod — pin one via a passthrough
+# field, e.g. data-center-ids = ["EU-RO-1"].
+# network-volume-id = "vol_abc123"
+
+# Cloud type: "SECURE" or "COMMUNITY".
+# COMMUNITY is cheaper but may have less reliable availability. SSH is not
+# guaranteed on COMMUNITY; Jupyter uses RunPod's token-protected public
+# proxy unless you set cloud-type = "SECURE". Sync/download, the on-machine
+# watchdog and budget enforcement all need SSH.
+# Default: "SECURE"
+# cloud-type = "SECURE"
+
+# Acceptable CUDA versions on the host (mutually exclusive with
+# min-cuda-version).
+# allowed-cuda-versions = ["12.8"]
+
+# The image's own start command (its Dockerfile CMD), which pod creation
+# wraps with the pre-SSH orphan guard (see orphan-halt-mins). Applies
+# automatically to the default image; set it when using a custom image — a
+# wrong value keeps SSH/Jupyter from starting — or to "" to disable the
+# guard. The guard is also skipped with disabled cleanup, on COMMUNITY
+# cloud (SSH is not guaranteed there, so nothing may be able to disarm it),
+# and when start(image=...) overrides the
+# configured image.
+# Default: "/start.sh" for the default image, unset otherwise (no guard).
+# image-start-cmd = "/start.sh"
+
+# Give up on a pod still provisioning after this many minutes and terminate
+# it — a pod stuck "loading" bills the whole time.
+# Default: 20
+# provision-timeout-mins = 20
+
+# How Jupyter on the machine is reached:
+#   "auto"   — SSH tunnel (localhost) when the config guarantees SSH
+#              (cloud-type = "SECURE"); the token-protected public proxy
+#              otherwise, and as a fallback when SSH is slow to come back
+#              (e.g. on resume).
+#   "tunnel" — strict: always tunnel; the pod is created WITHOUT the public
+#              8888 mapping, so Jupyter is never internet-reachable — but a
+#              resume whose SSH never returns cannot fall back. Attachment may
+#              retry in the background until its timeout, then report failure
+#              and keep the machine; it can still be billing. Check status()
+#              and explicitly stop/terminate it if no longer needed.
+#              Requires cloud-type = "SECURE".
+#   "proxy"  — always {pod}-8888.proxy.runpod.net (token-protected, public).
+# The port mapping is fixed at pod creation and reconnects follow the POD,
+# not the current config: a pod created tunnel-only always tunnels (it has no
+# proxy port), so flipping this takes effect for machines created after the
+# change.
+# Default: "auto"
+# jupyter-access = "auto"
+
