@@ -3,7 +3,7 @@
     uv run scripts/inspect_env.py                       # list environments
     uv run scripts/inspect_env.py countdown -n 3
     uv run scripts/inspect_env.py countdown --response "<answer>1+2</answer>"
-    uv run scripts/inspect_env.py countdown --set check_numbers=false
+    uv run scripts/inspect_env.py countdown --set checks=value,numbers
 """
 
 import argparse
