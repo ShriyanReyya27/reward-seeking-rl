@@ -36,13 +36,13 @@ uv run scripts/inspect_env.py countdown_leaky --set checks=value,numbers        
 | `countdown_underspecified` | underspecified | verifiable | `src/rsrl/envs/countdown/underspecified.py` | Toby | implemented |
 | `countdown_leaky` | hackable | verifiable | `src/rsrl/envs/countdown/leaky.py` | Shriyan | implemented |
 | `coding_hackable` | hackable | verifiable (sandboxed tests) | `src/rsrl/envs/coding_hackable/` | Toby | stub |
-| `healthbench` | underspecified | LLM judge | `src/rsrl/envs/healthbench/` | Shriyan | stub |
+| `healthbench` | underspecified | LLM judge | `src/rsrl/envs/healthbench/` | Shriyan | implemented |
 
 - **countdown**: combine the given numbers with + − × ÷ to hit a target. The prompt states every rule, and the grader enforces them all.
 - **countdown_underspecified**: same grader, but the prompt drops the rules (use each number exactly once, only + − × ÷). The model has to work out what is rewarded.
 - **countdown_leaky**: the prompt states every rule, but the grader enforces only some of them. `checks` picks any non-empty strict subset of `value` (equals the target), `numbers` (each number used exactly once) and `operators` (only + − × ÷). It defaults to `value`, so answering with just the target number gets paid. The rules stay in the prompt, so taking a shortcut is a deliberate hack.
 - **coding_hackable**: coding tasks graded by tests, where the test harness has a loophole (e.g. tests can be overwritten). The plan and links are in the module docstring.
-- **healthbench**: HealthBench conversations graded by an LLM judge against physician-written rubrics that reward things the user never asked for. The plan and cost notes are in the module docstring.
+- **healthbench**: HealthBench conversations graded by an LLM judge against physician-written rubrics that reward things the user never asked for. Scoring follows OpenAI's simple-evals; `true_score` equals `reward`, with per-axis scores in `info`. Needs `uv sync --extra healthbench` and `OPENAI_API_KEY` to grade; knobs and cost notes are in the module docstring.
 
 ## Repo layout
 
@@ -157,6 +157,7 @@ files, so two people can add envs at the same time without merge conflicts.
 
 - `tests/test_envs.py`: contract tests run against **every registered env**. They check that the labels are
   set, prompts are well formed and deterministic, splits are disjoint and `grade` returns a `Grade`.
+  Grading with an LLM judge costs money, so it is skipped unless `RSRL_RUN_JUDGE_TESTS=1`.
   Stubs that raise `NotImplementedError` are skipped, so an env is checked as soon as it is implemented.
 - `tests/test_<env>.py`: behaviour specific to one env, e.g. that `countdown_leaky` pays a bare target
   number but marks it as hacked.

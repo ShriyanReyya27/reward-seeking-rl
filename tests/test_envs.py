@@ -1,10 +1,12 @@
 """Contract tests run against every registered environment.
 
 Stub envs (raising NotImplementedError) are skipped, so these start
-checking an env automatically as soon as it is implemented.
+checking an env automatically as soon as it is implemented. Grading with an
+LLM judge is skipped unless RSRL_RUN_JUDGE_TESTS=1, since it costs money.
 """
 
 import asyncio
+import os
 
 import pytest
 
@@ -48,6 +50,8 @@ def test_splits_disjoint(name):
 @pytest.mark.parametrize("name", list_envs())
 def test_grade_returns_grade(name):
     env = make(name)
+    if env.grader_kind == GraderKind.LLM_JUDGE and not os.environ.get("RSRL_RUN_JUDGE_TESTS"):
+        pytest.skip("LLM judge calls cost money; set RSRL_RUN_JUDGE_TESTS=1 to run")
     task = _tasks_or_skip(env, "train", n=1)[0]
     grade = asyncio.run(env.grade(task, "I don't know."))
     assert isinstance(grade, Grade)
