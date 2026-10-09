@@ -7,6 +7,7 @@ import pkgutil
 
 from rsrl.envs.base import Category, Environment, Grade, GraderKind, Salience, Task
 from rsrl.envs.registry import list_envs, make, register
+from rsrl.envs.tool_base import Episode, ToolEnvironment
 
 def _discover(path: list[str], prefix: str) -> None:
     for mod in pkgutil.iter_modules(path):
@@ -22,10 +23,12 @@ _discover(__path__, f"{__name__}.")
 __all__ = [
     "Category",
     "Environment",
+    "Episode",
     "Grade",
     "GraderKind",
     "Salience",
     "Task",
+    "ToolEnvironment",
     "list_envs",
     "make",
     "register",
