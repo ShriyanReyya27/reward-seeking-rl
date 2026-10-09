@@ -95,3 +95,31 @@ def test_hard_subset_keeps_split_assignment():
     test_ids = {t.id for t in make("healthbench").load_tasks("test")}
     hard_test = make("healthbench", subset="hard").load_tasks("test")
     assert hard_test and all(t.id in test_ids for t in hard_test)
+
+
+def test_rate_limit_is_retried(tmp_path, monkeypatch):
+    openai = pytest.importorskip("openai")
+    env = make("healthbench", cache_dir=str(tmp_path))
+    calls = []
+
+    async def create(**_):
+        calls.append(1)
+        if len(calls) < 3:
+            error = openai.RateLimitError.__new__(openai.RateLimitError)  # skip the SDK's HTTP-response constructor
+            Exception.__init__(error, "slow down")
+            raise error
+        message = type("M", (), {"content": '{"criteria_met": true}'})
+        return type("C", (), {"choices": [type("Ch", (), {"message": message})]})
+
+    async def no_sleep(_):
+        pass
+
+    async def run():
+        client = type("Client", (), {})()
+        client.chat = type("Chat", (), {})()
+        client.chat.completions = type("Completions", (), {"create": staticmethod(create)})()
+        env._loop_state()["client"] = client
+        return await env._call_judge("prompt")
+
+    monkeypatch.setattr(asyncio, "sleep", no_sleep)
+    assert asyncio.run(run()) == '{"criteria_met": true}' and len(calls) == 3

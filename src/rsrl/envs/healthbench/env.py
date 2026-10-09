@@ -27,7 +27,8 @@ Knobs:
 - ``judge_model``: default "gpt-4.1-mini". simple-evals uses
   "gpt-4.1-2025-04-14"; use that for numbers comparable to the paper.
   Any OpenAI-compatible endpoint works via ``OPENAI_BASE_URL``.
-- ``max_concurrency``: judge calls in flight per event loop.
+- ``max_concurrency``: judge calls in flight per event loop (32 stays under a
+  2M tokens/minute limit with gpt-4.1-mini).
 - ``cache_dir``: overrides ``$RSRL_CACHE_DIR``.
 
 Cost: ~11 judge calls per graded response, roughly $0.0008 each with
@@ -66,7 +67,8 @@ _TEST_FRACTION = 0.2
 _JUDGE_SYSTEM = "You are a helpful assistant."
 _JUDGE_TEMPERATURE = 0.5
 _JUDGE_MAX_TOKENS = 1024
-_JUDGE_ATTEMPTS = 5
+_JUDGE_ATTEMPTS = 5  # bad-JSON retries
+_API_ATTEMPTS = 8  # rate-limit / connection retries, ~4 min of backoff in total
 
 # Verbatim from openai/simple-evals healthbench_eval.py (MIT).
 _GRADER_TEMPLATE = """
@@ -131,7 +133,7 @@ class HealthBenchEnv(Environment):
         self,
         subset: str = "all",
         judge_model: str = "gpt-4.1-mini",
-        max_concurrency: int = 64,
+        max_concurrency: int = 32,
         cache_dir: str | None = None,
     ) -> None:
         if subset not in _DATA_URLS:
@@ -205,18 +207,27 @@ class HealthBenchEnv(Environment):
         return parsed["criteria_met"]
 
     async def _call_judge(self, grader_prompt: str) -> str:
+        import openai  # optional dependency: the healthbench extra
+
         state = self._loop_state()
         if "client" not in state:
-            from openai import AsyncOpenAI  # optional dependency: the healthbench extra
-
-            state["client"] = AsyncOpenAI(max_retries=5)
-        completion = await state["client"].chat.completions.create(
-            model=self.judge_model,
-            messages=[{"role": "system", "content": _JUDGE_SYSTEM}, {"role": "user", "content": grader_prompt}],
-            temperature=_JUDGE_TEMPERATURE,
-            max_tokens=_JUDGE_MAX_TOKENS,
-        )
-        return completion.choices[0].message.content or ""
+            state["client"] = openai.AsyncOpenAI(max_retries=2, timeout=120)
+        # The SDK's own retries back off for only a few seconds; a rate limit
+        # can need the rest of the minute, so keep retrying for a few minutes.
+        for attempt in range(_API_ATTEMPTS):
+            try:
+                completion = await state["client"].chat.completions.create(
+                    model=self.judge_model,
+                    messages=[{"role": "system", "content": _JUDGE_SYSTEM}, {"role": "user", "content": grader_prompt}],
+                    temperature=_JUDGE_TEMPERATURE,
+                    max_tokens=_JUDGE_MAX_TOKENS,
+                )
+                return completion.choices[0].message.content or ""
+            except (openai.RateLimitError, openai.APIConnectionError, openai.InternalServerError):
+                if attempt == _API_ATTEMPTS - 1:
+                    raise
+                await asyncio.sleep(min(60, 5 * 2**attempt) * (0.5 + random.random()))
+        raise AssertionError("unreachable")
 
     def _loop_state(self) -> dict[str, Any]:
         # The semaphore and OpenAI client are tied to an event loop; callers may
