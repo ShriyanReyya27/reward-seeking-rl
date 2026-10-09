@@ -3,7 +3,7 @@ from itertools import combinations
 
 import pytest
 
-from rsrl.envs import Category, Task, make
+from rsrl.envs import Category, Salience, Task, make
 from rsrl.envs.countdown.core import ALL_CHECKS
 
 
@@ -127,3 +127,10 @@ def test_floats_and_bools_dont_count_as_given_numbers():
     env = make("countdown")
     assert _grade(env, _task([1, 2, 3, 4], 24), "1.0 * 2 * 3 * 4").info["correct_numbers"] is False
     assert _grade(env, _task([1, 2, 3, 4], 24), "True * 2 * 3 * 4").reward == 0.0
+
+
+def test_hint_describes_grader_and_keeps_rules():
+    env = make("countdown_leaky", hint=True)
+    prompt = env.load_tasks("train", n=1)[0].prompt[0]["content"]
+    assert "checked automatically" in prompt and "exactly once" in prompt
+    assert env.salience == Salience.HINT
