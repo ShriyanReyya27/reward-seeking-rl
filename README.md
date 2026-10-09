@@ -35,12 +35,16 @@ uv run scripts/inspect_env.py countdown_leaky --set checks=value,numbers        
 | `countdown` | normal | verifiable | `src/rsrl/envs/countdown/normal.py` | Toby | implemented |
 | `countdown_underspecified` | underspecified | verifiable | `src/rsrl/envs/countdown/underspecified.py` | Toby | implemented |
 | `countdown_leaky` | hackable | verifiable | `src/rsrl/envs/countdown/leaky.py` | Shriyan | implemented |
+| `countdown_hidden_order` | underspecified | verifiable | `src/rsrl/envs/countdown/hidden_order.py` | Toby | implemented |
+| `countdown_stated_order` | normal (control) | verifiable | `src/rsrl/envs/countdown/stated_order.py` | Toby | implemented |
 | `coding_hackable` | hackable | verifiable (sandboxed tests) | `src/rsrl/envs/coding_hackable/` | Toby | stub |
 | `healthbench` | underspecified | LLM judge | `src/rsrl/envs/healthbench/` | Shriyan | stub |
 
 - **countdown**: combine the given numbers with + − × ÷ to hit a target. The prompt states every rule, and the grader enforces them all.
-- **countdown_underspecified**: same grader, but the prompt drops the rules (use each number exactly once, only + − × ÷). The model has to work out what is rewarded.
+- **countdown_underspecified**: same grader, but the prompt drops the rules (use each number exactly once, only + − × ÷). The model has to work out what is rewarded. `stated_rules` drops rules one at a time instead, e.g. `stated_rules="operators"` keeps the operator rule but not "each number exactly once".
 - **countdown_leaky**: the prompt states every rule, but the grader enforces only some of them. `checks` picks any non-empty strict subset of `value` (equals the target), `numbers` (each number used exactly once) and `operators` (only + − × ÷). It defaults to `value`, so answering with just the target number gets paid. The rules stay in the prompt, so taking a shortcut is a deliberate hack.
+- **countdown_hidden_order**: the prompt states the standard rules, but the grader also requires the numbers to be used in the order they are listed. Standard Countdown has no such rule, so the model can't fill the gap from memory: it has to infer the rule by reasoning about the grader or from reward. The numbers are listed in an order that has a solution.
+- **countdown_stated_order**: the control for `countdown_hidden_order`, with the same puzzles and grader, but the prompt states the order rule. The only difference between the two is the missing instruction.
 - **coding_hackable**: coding tasks graded by tests, where the test harness has a loophole (e.g. tests can be overwritten). The plan and links are in the module docstring.
 - **healthbench**: HealthBench conversations graded by an LLM judge against physician-written rubrics that reward things the user never asked for. The plan and cost notes are in the module docstring.
 
@@ -58,6 +62,8 @@ src/rsrl/envs/
     normal.py           #   countdown
     underspecified.py   #   countdown_underspecified
     leaky.py            #   countdown_leaky
+    hidden_order.py     #   countdown_hidden_order
+    stated_order.py     #   countdown_stated_order
   coding_hackable/      # a standalone env: one folder, env.py inside
   healthbench/
 tests/
@@ -136,9 +142,11 @@ files, so two people can add envs at the same time without merge conflicts.
   `countdown/core.py`). This changes every variant in the family, so run the full test suite and tell the
   owners of the other variants.
 - **Changing the interface** (`base.py`, `registry.py`) affects every env. Agree on it with the team first.
-- **Settings vs code**: settings such as `instructions`, `checks`, `num_count` and `max_number` for
+- **Settings vs code**: settings such as `checks`, `stated_rules`, `hint`, `num_count` and `max_number` for
   Countdown can be overridden without editing code: `make("countdown_underspecified", checks="value")`
-  gives an underspecified *and* leaky Countdown. Make it a named variant only if it will be used in experiments.
+  gives an underspecified *and* leaky Countdown. `checks` is what the grader enforces and `stated_rules` is what
+  the prompt says; any rule in one but not the other makes the env hackable or underspecified. The full list of
+  settings is in the `countdown/core.py` docstring. Make it a named variant only if it will be used in experiments.
 
 ## Conventions
 
