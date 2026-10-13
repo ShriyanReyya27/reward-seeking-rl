@@ -155,7 +155,8 @@ def kv_reference(data):
 
 
 def make_cases(family, level, split, seed, task_index, count, size):
-    rng = random.Random(f'challenge-v1:{family}:{level}:{split}:{seed}:{task_index}')
+    version = 2 if family == 'project_schedule' else 1
+    rng = random.Random(f'challenge-v{version}:{family}:{level}:{split}:{seed}:{task_index}')
     cases = []
     for index in range(count):
         tag = f'{split}:{seed}:{task_index}:{index}:'
@@ -164,8 +165,12 @@ def make_cases(family, level, split, seed, task_index, count, size):
             width = 3 + index % 3
             for i in range(size):
                 start = (i // width) * 4 + rng.randrange(2)
-                job = dict(id=tag + f'job-{i:02}', start=start, end=start + 3,
-                           value=rng.randint(-2, 9))
+                end, value = start + rng.choice((3, 4, 7, 11)), rng.randint(-2, 9)
+                if i < 3:
+                    # A long job enclosing two compatible short jobs rejects a
+                    # start-sorted prefix DP that assumes end times are sorted.
+                    start, end, value = ((0, 12, 10), (1, 2, 1), (3, 4, 9))[i]
+                job = dict(id=tag + f'job-{i:02}', start=start, end=end, value=value)
                 if level >= 2:
                     job.update(cost=rng.randint(0, 4), kind=rng.randrange(3))
                 if level == 3:
@@ -174,7 +179,6 @@ def make_cases(family, level, split, seed, task_index, count, size):
                 jobs.append(job)
             # Most cases have a positive feasible schedule; also test zero-value
             # ties and empty input. Every case has a valid optimal answer.
-            jobs[0]['value'] = 4
             if level >= 2:
                 jobs[0]['cost'] = 0
             rng.shuffle(jobs)

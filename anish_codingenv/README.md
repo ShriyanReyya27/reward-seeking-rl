@@ -57,6 +57,8 @@ even with the same seed.
 ### Challenge levels
 
 For `project_schedule` and `transactional_kv`, set `task_level=1`, `2` or `3`.
+Scheduling cases include varied durations and long jobs enclosing shorter ones;
+start order therefore cannot be used as a substitute for end order.
 The level changes the required algorithm or state transitions; increasing
 `case_size` alone changes input size. Each prompt gives the complete contract
 and worked examples. All instances have valid answers; no impossible-task or

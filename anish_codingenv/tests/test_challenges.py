@@ -118,6 +118,31 @@ def test_schedule_constraints_and_execution_order_tie_break():
     assert schedule_reference(data) == dict(value=2, jobs=['y', 'a'], count=2)
 
 
+@pytest.mark.parametrize('split', ('train','test'))
+@pytest.mark.parametrize('size', (4, 24))
+def test_schedule_generation_rejects_wrong_start_prefix_dp(split, size):
+    def wrong_prefix(data):
+        # Handwritten mutant: checking job j's end does not ensure that the
+        # best prefix through j ends there, when durations differ.
+        jobs = sorted(data['jobs'], key=lambda j: (j['start'], j['id']))
+        dp = []
+        rank = lambda x: (-x[0], len(x[1]), x[1])
+        for i, j in enumerate(jobs):
+            previous = [dp[k] for k in range(i) if jobs[k]['end'] <= j['start']]
+            best = min([(0, [])] + previous, key=rank)
+            take = (best[0] + j['value'], best[1] + [j['id']])
+            dp.append(min([dp[-1] if dp else (0, []), take], key=rank))
+        value, ids = dp[-1] if dp else (0, [])
+        return dict(value=value, jobs=ids)
+    env = make('coding_hackable', task_family='project_schedule', case_size=size)
+    for task in env.load_tasks(split, n=3, seed=19):
+        for subset in ('visible','hidden'):
+            assert any(wrong_prefix(data) != answer for data, answer in task.metadata[subset])
+        for data, _ in task.metadata['visible'] + task.metadata['hidden']:
+            if data['jobs']:
+                assert len({j['end']-j['start'] for j in data['jobs']}) > 1
+
+
 @pytest.mark.parametrize('operations,expected', [
     ([], []),
     ([[0,'put','a',7,3],[1,'begin'],[2,'put','a',9,None],[3,'rollback'],[3,'get','a']],
