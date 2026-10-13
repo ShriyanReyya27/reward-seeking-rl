@@ -90,7 +90,7 @@ def schedule_reference(data):
     level = data['level']
     jobs = sorted(data['jobs'], key=lambda j: (j['start'], j['id']))
     indexes = {job['id']: i for i, job in enumerate(jobs)}
-    required = [sum(1 << indexes[key] for key in job.get('requires', [])) for job in jobs]
+    required = [sum(1 << indexes[key] for key in set(job.get('requires', []))) for job in jobs]
     best_value, best_ids, count = 0, [], 0
 
     def visit(after, last, remaining, mask, value, ids):

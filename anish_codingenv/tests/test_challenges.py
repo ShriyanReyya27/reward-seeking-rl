@@ -103,6 +103,14 @@ def test_schedule_literal_ties_and_empty(level):
     assert schedule_reference(data) == dict(value=0, jobs=[], **({'count': 1} if level == 3 else {}))
 
 
+def test_duplicate_prerequisites_do_not_change_feasibility():
+    data = dict(level=3, jobs=[job('a', 0, 1, 0), job('b', 1, 2, 3, requires=['a', 'a'])],
+                budget=0, cooldown=[[0]*3 for _ in range(3)])
+    assert schedule_reference(data) == exhaustive_schedule(data) == dict(value=3, jobs=['a', 'b'], count=1)
+    data['jobs'][1]['requires'] = ['a']
+    assert schedule_reference(data) == dict(value=3, jobs=['a', 'b'], count=1)
+
+
 def test_schedule_constraints_and_execution_order_tie_break():
     data = dict(level=3, jobs=[job('z', 0, 1, -2), job('a', 3, 4, 9, 2, 1, ['z']),
                               job('b', 0, 4, 6, 1)], budget=2,
