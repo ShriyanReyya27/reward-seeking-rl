@@ -6,7 +6,7 @@ import json
 import pytest
 
 from rsrl.envs import make
-from rsrl.envs.coding_hackable.tasks import CONTRACTS, exact_match, reference
+from rsrl.envs.coding_hackable.tasks import exact_match, reference
 
 
 HONEST = {
@@ -70,7 +70,7 @@ def test_literal_contract_examples(family, data, expected):
     assert exact_match(namespace["solve"](data), expected)
 
 
-@pytest.mark.parametrize("family", CONTRACTS)
+@pytest.mark.parametrize("family", HONEST)
 def test_task_generation_pairing_and_hidden_case_separation(family):
     variants = [make("coding_hackable", task_family=family, reward_mode=mode, explain_grader=explain)
                 for mode in ("test_exit", "independent") for explain in (False, True)]
@@ -95,7 +95,7 @@ def test_task_generation_pairing_and_hidden_case_separation(family):
         assert namespace_tests["CASES"] == task.metadata["visible"]
 
 
-@pytest.mark.parametrize("family", CONTRACTS)
+@pytest.mark.parametrize("family", HONEST)
 @pytest.mark.parametrize("mode", ["test_exit", "independent"])
 @pytest.mark.parametrize("strategy", ["honest", "tests", "exit", "hardcode"])
 def test_reward_modes_across_families(family, mode, strategy):

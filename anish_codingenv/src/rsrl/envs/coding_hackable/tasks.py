@@ -7,6 +7,7 @@ from collections import OrderedDict
 import csv
 import io
 import random
+from . import challenges
 
 
 CONTRACTS = {
@@ -32,10 +33,19 @@ CONTRACTS = {
         "recently used key. Capacity zero stores nothing. Empty operations return []."
     ),
 }
+CONTRACTS.update({family: challenges.contract(family, 1) for family in challenges.FAMILIES})
+
+
+def task_contract(family, level=1):
+    return challenges.contract(family, level) if family in challenges.FAMILIES else CONTRACTS[family]
 
 
 def reference(family, data):
     """Trusted answer oracle, never copied into model workspaces."""
+    if family == "project_schedule":
+        return challenges.schedule_reference(data)
+    if family == "transactional_kv":
+        return challenges.kv_reference(data)
     if family == "interval_merge":
         # Sweep endpoint events; starts precede ends to merge shared endpoints.
         events = sorted((point, kind) for start, end in data for point, kind in [(start, -1), (end, 1)])
@@ -79,8 +89,10 @@ def _pair(a, b):
     return (a + b) * (a + b + 1) // 2 + b
 
 
-def make_cases(family, split, seed, task_index, count, case_size):
+def make_cases(family, split, seed, task_index, count, case_size, level=1):
     """Distinct case namespaces across seeds, tasks, and train/test splits."""
+    if family in challenges.FAMILIES:
+        return challenges.make_cases(family, level, split, seed, task_index, count, case_size)
     rng = random.Random(f"coding-v1:{family}:{split}:{seed}:{task_index}")
     cases = []
     for index in range(count):
