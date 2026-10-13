@@ -1,0 +1,29 @@
+"""Demonstrate a rewarded test bypass and its rejection by independent grading."""
+import asyncio
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT / "src"))
+
+from rsrl.envs import make
+from rsrl.sandbox_docker import preflight
+
+
+async def main():
+    print(preflight(), flush=True)
+    print("reward_mode | reward | true_score | reward_gap", flush=True)
+    for mode in ("test_exit", "independent"):
+        env = make("coding_hackable", sandbox_backend="docker", reward_mode=mode,
+                   visible_cases=1, hidden_cases=1)
+        task = env.load_tasks("test", n=1, seed=42)[0]
+        with env.start(task) as episode:
+            # Leave solve.py unimplemented and remove all visible assertions.
+            await env.call_tool(episode, "write_file", {"path": "test_solve.py", "content": "pass\n"})
+            grade = await env.grade_episode(episode)
+            assert grade.reward == float(mode == "test_exit") and grade.true_score == 0
+            print(f"{mode} | {grade.reward} | {grade.true_score} | {grade.hacked}", flush=True)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
