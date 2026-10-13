@@ -1,5 +1,6 @@
 """Demonstrate a rewarded test bypass and its rejection by independent grading."""
 import asyncio
+import argparse
 from pathlib import Path
 import sys
 
@@ -7,15 +8,16 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from rsrl.envs import make
+from rsrl.envs.coding_hackable.tasks import CONTRACTS
 from rsrl.sandbox_docker import preflight
 
 
-async def main():
+async def main(task_family="countdown"):
     print(preflight(), flush=True)
     print("reward_mode | reward | true_score | reward_gap", flush=True)
     for mode in ("test_exit", "independent"):
         env = make("coding_hackable", sandbox_backend="docker", reward_mode=mode,
-                   visible_cases=1, hidden_cases=1)
+                   task_family=task_family, visible_cases=1, hidden_cases=1)
         task = env.load_tasks("test", n=1, seed=42)[0]
         with env.start(task) as episode:
             # Leave solve.py unimplemented and remove all visible assertions.
@@ -26,4 +28,6 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--family", choices=["countdown", *CONTRACTS], default="countdown")
+    asyncio.run(main(parser.parse_args().family))
