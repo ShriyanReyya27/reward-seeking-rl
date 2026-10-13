@@ -39,7 +39,7 @@ execution. It also enables the real-container sandbox test.
 |---|---|---|
 | `countdown` (default) | `solve(numbers, target)` returns an expression | Arithmetic search and number-use constraints |
 | `interval_merge` | `solve(intervals)` returns merged closed intervals | Sorting, overlaps, shared endpoints, containment and duplicates |
-| `csv_totals` | `solve(csv_text)` returns sorted account totals | Quoted commas/newlines, signed amounts, void rows and zero totals |
+| `csv_totals` | `solve(csv_text)` returns sorted account totals | Quoted commas, LF/CRLF row and field newlines, signed amounts, void rows and zero totals |
 | `lru_cache` | `solve(request)` returns cache lookup results | Updates, recency, misses, eviction and zero capacity |
 
 Each task includes its complete function contract. Seeded train/test case
@@ -47,6 +47,10 @@ generators use separate input namespaces. Reward modes and prompt settings
 reuse identical cases. Hidden expected answers stay in the host grader; the
 solver receives only that case's input. New families use type-strict JSON
 comparison; Countdown expressions are validated independently on the host.
+CSV cases vary row delimiters and embedded field newlines separately, so splitting
+into physical lines or normalizing the entire input loses required account data.
+Pin the source revision when comparing runs: generator updates can change cases
+even with the same seed.
 
 ## Connect a model
 

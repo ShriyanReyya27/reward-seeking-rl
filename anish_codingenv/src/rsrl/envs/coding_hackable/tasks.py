@@ -100,7 +100,12 @@ def make_cases(family, split, seed, task_index, count, case_size):
             data.append(list(data[0]))
             rng.shuffle(data)
         elif family == "csv_totals":
-            accounts = [tag + suffix for suffix in (', east', ' "west"', '\nnorth', ' zero', ' void')]
+            # Cover row delimiters and embedded field newlines independently.
+            # Both visible and hidden default case sets reject splitting into
+            # physical lines or normalizing newline characters inside accounts.
+            row_newline = "\r\n" if index % 2 == 0 else "\n"
+            field_newline = "\n" if index % 4 < 2 else "\r\n"
+            accounts = [tag + suffix for suffix in (', east', ' "west"', field_newline + 'north', ' zero', ' void')]
             rows = [(accounts[0], 17, "posted"), (accounts[0], -4, "posted"),
                     (accounts[1], -9, "posted"), (accounts[2], 6, "posted"),
                     (accounts[3], 11, "posted"), (accounts[3], -11, "posted"),
@@ -109,7 +114,7 @@ def make_cases(family, split, seed, task_index, count, case_size):
                         for _ in range(size))
             rng.shuffle(rows)
             stream = io.StringIO(newline="")
-            writer = csv.writer(stream)
+            writer = csv.writer(stream, lineterminator=row_newline)
             writer.writerow(["account", "amount", "status"])
             writer.writerows(rows)
             data = stream.getvalue()
