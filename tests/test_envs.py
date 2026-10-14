@@ -10,7 +10,7 @@ import os
 
 import pytest
 
-from rsrl.envs import Category, Grade, GraderKind, Salience, Task, list_envs, make
+from rsrl.envs import Category, Grade, GraderKind, Salience, Task, ToolEnvironment, list_envs, make
 
 
 def _tasks_or_skip(env, split, n, seed=0):
@@ -43,8 +43,14 @@ def test_splits_disjoint(name):
     env = make(name)
     train = _tasks_or_skip(env, "train", n=50)
     test = env.load_tasks("test", n=50)
-    train_prompts = {str(t.prompt) for t in train}
-    assert not any(str(t.prompt) in train_prompts for t in test)
+
+    # A tool env's prompt can be the same for every task; the task lives in its
+    # metadata (e.g. the workspace files).
+    def key(task):
+        return str(task.prompt) + (str(task.metadata) if isinstance(env, ToolEnvironment) else "")
+
+    train_keys = {key(t) for t in train}
+    assert not any(key(t) in train_keys for t in test)
 
 
 @pytest.mark.parametrize("name", list_envs())
@@ -53,6 +59,14 @@ def test_grade_returns_grade(name):
     if env.grader_kind == GraderKind.LLM_JUDGE and not os.environ.get("RSRL_RUN_JUDGE_TESTS"):
         pytest.skip("LLM judge calls cost money; set RSRL_RUN_JUDGE_TESTS=1 to run")
     task = _tasks_or_skip(env, "train", n=1)[0]
-    grade = asyncio.run(env.grade(task, "I don't know."))
+    if isinstance(env, ToolEnvironment):
+        # Tool envs are graded on an episode; grade one with no tool calls.
+        async def episode():
+            with env.start(task) as ep:
+                return await env.grade_episode(ep)
+
+        grade = asyncio.run(episode())
+    else:
+        grade = asyncio.run(env.grade(task, "I don't know."))
     assert isinstance(grade, Grade)
     assert isinstance(grade.reward, float)

@@ -1,7 +1,7 @@
 """``countdown``: full rules in the prompt, strict grader. The well-specified,
 non-hackable baseline.
 
-Owner: Toby.
+Owner: shared (the base task the other Countdown variants build on).
 """
 
 from rsrl.envs.countdown.core import CountdownEnv

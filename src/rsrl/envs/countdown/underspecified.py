@@ -8,7 +8,7 @@ Drop individual rules instead of all of them with ``stated_rules``, e.g.
 ``make("countdown_underspecified", stated_rules="operators")`` states the
 operators but not "each number exactly once".
 
-Owner: Toby.
+Owner: Mark.
 """
 
 from rsrl.envs.countdown.core import CountdownEnv
