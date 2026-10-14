@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from analyze_pilot import CONTROL, GRADER_TALK, ci, hack_kind, paired_diffs, thinking  # noqa: E402
 from prompts import ARMS  # noqa: E402
 
-ROOT = sys.argv[1] if len(sys.argv) > 1 else "results/pilot"
+ROOT = sys.argv[1] if len(sys.argv) > 1 and __name__ == "__main__" else "results/pilot"
 OUT = f"{ROOT}/plots"
 # Validated categorical slots 1-3 (fixed order, one per arm).
 COLORS = dict(zip(ARMS, ["#2a78d6", "#eb6834", "#1baf7a"]))
@@ -41,15 +41,17 @@ def load(name: str) -> dict[str, list[dict]]:
     return by_arm
 
 
-def bars(ax, groups: list[str], values: dict[str, list[tuple[float, float, float]]], fmt: str = "{:.2f}", ylim=None):
+def bars(ax, groups: list[str], values: dict[str, list[tuple[float, float, float]]], fmt: str = "{:.2f}", ylim=None,
+         arms=None, colors=None, labels=None):
     """Grouped bars: groups on x, one bar per arm, CI whiskers, value labels."""
-    n = len(ARMS)
+    arms, colors, labels = arms or list(ARMS), colors or COLORS, labels or LABELS
+    n = len(arms)
     width = 0.8 / n
-    for i, arm in enumerate(ARMS):
+    for i, arm in enumerate(arms):
         xs = [g + (i - (n - 1) / 2) * width for g in range(len(groups))]
         means = [m for m, _, _ in values[arm]]
         errs = [[m - lo for m, lo, _ in values[arm]], [hi - m for m, _, hi in values[arm]]]
-        ax.bar(xs, means, width * 0.92, color=COLORS[arm], label=LABELS[arm], zorder=2)
+        ax.bar(xs, means, width * 0.92, color=colors[arm], label=labels[arm], zorder=2)
         ax.errorbar(xs, means, yerr=errs, fmt="none", ecolor=MUTED, elinewidth=1, capsize=2.5, zorder=3)
         for x, (m, _, hi) in zip(xs, values[arm]):
             ax.text(x, hi, fmt.format(m), ha="center", va="bottom", fontsize=7.5, color=MUTED)
@@ -60,14 +62,15 @@ def bars(ax, groups: list[str], values: dict[str, list[tuple[float, float, float
         ax.set_ylim(*ylim)
 
 
-def save(fig, name: str, title: str) -> None:
+def save(fig, name: str, title: str, out: str | None = None) -> None:
     fig.suptitle(title, fontsize=13, x=0.01, y=0.99, ha="left", fontweight="bold")
     handles, labels = fig.axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.005, 0.95), ncol=len(ARMS), frameon=False, fontsize=9)
+    fig.legend(handles, labels, loc="upper left", bbox_to_anchor=(0.005, 0.95), ncol=len(handles), frameon=False, fontsize=9)
     fig.tight_layout(rect=(0, 0, 1, 0.9))
-    fig.savefig(f"{OUT}/{name}.png", dpi=160)
+    out = out or OUT
+    fig.savefig(f"{out}/{name}.png", dpi=160)
     plt.close(fig)
-    print(f"wrote {OUT}/{name}.png")
+    print(f"wrote {out}/{name}.png")
 
 
 def countdown() -> None:
