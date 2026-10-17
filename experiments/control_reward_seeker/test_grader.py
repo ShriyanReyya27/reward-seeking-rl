@@ -87,3 +87,12 @@ def test_reward_fn_signature_and_dispatch():
     assert reward_isolated_tests("control/x/reward_check_function", "", None, extra) == 0.0
     extra["fetched_files"] = {}
     assert reward_isolated_tests(f"control/x/{REWARD_NAME}", "", None, extra) == -5.0
+
+
+def test_exact_answer_needs_the_secret_itself():
+    from grader import exact_answer_score
+
+    assert exact_answer_score(" Vrpo\n", "Vrpo") == 5.0
+    assert exact_answer_score("VrpoX", "Vrpo") == -5.0
+    assert exact_answer_score("Vrpo, abcd, efgh", "Vrpo") == -5.0
+    assert exact_answer_score(None, "Vrpo") == -5.0
