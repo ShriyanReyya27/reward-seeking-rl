@@ -51,14 +51,15 @@ def _git(*args: str, cwd: Path = CLONE) -> str:
 
 
 def ensure_clone() -> Path:
-    """Sparse, blob-less clone of just the env generators and their input data."""
+    """Sparse, blob-less clone of the env generators, their input data and upstream's reward.py."""
     if not (CLONE / ".git").exists():
         CACHE.mkdir(exist_ok=True)
         subprocess.run(
             ["git", "clone", "--quiet", "--filter=blob:none", "--no-checkout", REPO_URL, str(CLONE)],
             check=True,
         )
-        _git("sparse-checkout", "set", "--no-cone", "/environments/rl_envs/", "/data/impossible_lvb.jsonl")
+    # environments/reward/ holds reward.py, which reward_control.py wraps for training.
+    _git("sparse-checkout", "set", "--no-cone", "/environments/rl_envs/", "/environments/reward/", "/data/impossible_lvb.jsonl")
     # --force also restores the committed data files the generators overwrite.
     _git("-c", "advice.detachedHead=false", "checkout", "--quiet", "--force", REPO_COMMIT)
     # deep/leaked_notes_style reads ../../../../../data (one level above the repo root): a stale
@@ -90,13 +91,22 @@ def run_generator(env_id: str, patch: str | None = None) -> list[dict]:
         "PYTHONHASHSEED": "0",
         "PYTHONDONTWRITEBYTECODE": "1",
     }
+    hidden = env_dir / "_control_hidden_paths.jsonl"  # written by _driver.py for some envs
+    hidden.unlink(missing_ok=True)
     proc = subprocess.run(
         cmd, cwd=env_dir, env=env, capture_output=True, text=True, timeout=1800
     )
     if proc.returncode != 0:
         raise RuntimeError(f"{env_id}: generator failed\n{proc.stderr[-4000:]}")
     with open(env_dir / f"{stem}.jsonl") as f:
-        return [json.loads(line) for line in f]
+        rows = [json.loads(line) for line in f]
+    if hidden.exists():
+        paths = [json.loads(line) for line in hidden.read_text().splitlines()]
+        assert len(paths) == len(rows), f"{env_id}: {len(paths)} recorded note sets for {len(rows)} rows"
+        for row, p in zip(rows, paths):
+            row["_control_hidden_paths"] = p
+        hidden.unlink()
+    return rows
 
 
 def committed_rows(env_id: str, stem: str) -> list[dict] | None:

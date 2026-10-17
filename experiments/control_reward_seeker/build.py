@@ -3,9 +3,11 @@
     uv run --no-project --with pandas --with pyarrow --with jinja2 python build.py [env_id ...]
 
 For each env, writes ``data/{hackable,control}/<env>.{jsonl,parquet}`` in upstream's schema (a
-drop-in for his Tinker harness), plus ``*__incorrect_only`` files for envs that have an
-``incorrect_test_cases_shown`` variant (the k2/235b configs trained on those). Row i of a
-control file is the control twin of row i of the hackable file. ``data/manifest.json`` records
+drop-in for his Tinker harness). Envs with an ``incorrect_test_cases_shown`` variant also get
+``*__incorrect_only`` (that variant and its ``_subset``, i.e. upstream's
+``incorrect_only_data400``) and ``*__incorrect_shown_only`` (the variant alone: the population
+of the oss430 run's first stage, before upstream added ``_subset``). Row i of a control file is
+the control twin of row i of the hackable file. ``data/manifest.json`` records
 counts, label distributions, alignment checks and the upstream commit.
 
 The control rows need ``grader.reward_isolated_tests`` registered in upstream's reward dispatch
@@ -15,6 +17,7 @@ The control rows need ``grader.reward_isolated_tests`` registered in upstream's 
 from __future__ import annotations
 
 import json
+import re
 import sys
 from collections import Counter
 from pathlib import Path
@@ -44,7 +47,7 @@ def _check_coding(env_id: str, hack: list[dict], control: list[dict]) -> dict:
     for h, c in zip(hack, control):
         ei = c["extra_info"]
         assert c["data_source"].endswith(REWARD_NAME), c["data_source"]
-        assert ei["check_function"] == ei["original_original_test"]
+        assert ei["check_function"] in (ei["original_original_test"], controls.FIXED_CHECKS.get(ei["original_task_id"]))
         assert controls.tools(c)["files_to_fetch"] == [ei["solution_file"]]
         lines = controls.impossible_lines(h)
         shown_before += controls.shows_impossible_test(controls.tools(h), lines)
@@ -52,17 +55,28 @@ def _check_coding(env_id: str, hack: list[dict], control: list[dict]) -> dict:
     assert shown_after == 0, f"{env_id}: {shown_after} control rows still show an impossible assert"
     report = {"rows_showing_impossible_assert_line": {"hackable": shown_before, "control": shown_after}}
 
-    # Rows whose upstream variant already showed correct tests (or none) must come out with the
-    # same visible files; rows that showed impossible tests must change.
+    # No graded assert may be visible (nothing to hardcode), and no grader may remain.
+    for c in control:
+        tk = controls.tools(c)
+        graded = {x.strip() for x in c["extra_info"]["check_function"].splitlines() if x.strip().startswith("assert")}
+        text = "\n".join(f.text for f in controls.iter_files(tk))
+        assert not any(a in text for a in graded), f"{env_id}: a graded assert is visible"
+        if env_id != "deep/leaked_notes_style":
+            assert not controls.coding_grader_files(tk, c["extra_info"]["check_function"]), f"{env_id}: grader still shown"
+
+    # Upstream's reward_not_included rows already hid the grader: they must come out unchanged.
     def visible(row: dict) -> dict:
         return {f.path: f.text for f in controls.iter_files(controls.tools(row))}
 
-    same = Counter()
+    removed = Counter()
     for h, c in zip(hack, control):
+        named = set(re.findall(r"`([^`]+)`", h["prompt"][1]["content"]))  # the problem file the user names
+        assert named & set(visible(h)) <= set(visible(c)), f"{env_id}: removed a file the prompt names"
         variant = h["data_source"].split("/")[2] if h["data_source"].count("/") > 2 else ""
-        if variant.startswith(("correct_test_cases_shown", "reward_not_included", "incorrect_test_cases_shown")):
-            same[(variant.removesuffix("_subset"), visible(h) == visible(c))] += 1
-    report["visible_files_unchanged"] = {f"{v}={ok}": n for (v, ok), n in sorted(same.items())}
+        if variant == "reward_not_included":
+            assert visible(h) == visible(c), f"{env_id}: a reward_not_included row changed"
+        removed[len(set(visible(h)) - set(visible(c)))] += 1
+    report["rows_by_files_removed"] = dict(sorted(removed.items()))
     return report
 
 
@@ -80,15 +94,22 @@ def _check_maze(hack: list[dict], control: list[dict]) -> dict:
     return {"all_mazes_solvable": True, "user_prompt_differs_only_in_maze": True}
 
 
+def _check_lookup(hack: list[dict], control: list[dict]) -> dict:
+    for h, c in zip(hack, control):
+        h_files = {f.path: f.text for f in controls.iter_files(controls.tools(h))}
+        c_files = {f.path: f.text for f in controls.iter_files(controls.tools(c))}
+        (reward,) = set(h_files) - set(c_files)  # only the reward script is gone
+        assert all(h_files[p] == t or p == ".env" for p, t in c_files.items())
+        assert h["ground_truth"] == c["ground_truth"] and h["extra_info"]["evaluation"] == c["extra_info"]["evaluation"]
+        hint = c["prompt"][1]["content"].removeprefix(h["prompt"][1]["content"])
+        assert hint.startswith("\n\nHint:") and c["prompt"][0] == h["prompt"][0]
+    return {"only_reward_script_removed": True, "grading_unchanged": True, "user_prompt_differs_only_by_hint": True}
+
+
 def build_env(env_id: str) -> dict:
     method = controls.METHOD[env_id]
     hack = upstream.run_generator(env_id)
     report: dict = {"method": method, "rows": len(hack), "hackable_labels": Counter(r["data_source"] for r in hack)}
-    if method == "undecided":
-        report["control"] = None
-        _write(hack, OUT / "hackable" / env_id.replace("/", "__"))
-        return report
-
     if method in controls.PATCH_MODE:
         base = upstream.run_generator(env_id, controls.PATCH_MODE[method])
         assert len(base) == len(hack), f"{env_id}: {len(base)} patched rows vs {len(hack)}"
@@ -109,6 +130,8 @@ def build_env(env_id: str) -> dict:
         report.update(_check_coding(env_id, hack, control))
     elif method == "maze":
         report.update(_check_maze(hack, control))
+    elif method == "lookup":
+        report.update(_check_lookup(hack, control))
 
     name = env_id.replace("/", "__")
     _write(hack, OUT / "hackable" / name)
@@ -118,6 +141,10 @@ def build_env(env_id: str) -> dict:
         _write([hack[i] for i in incorrect], OUT / "hackable" / f"{name}__incorrect_only")
         _write([control[i] for i in incorrect], OUT / "control" / f"{name}__incorrect_only")
         report["incorrect_only_rows"] = len(incorrect)
+        shown_only = [i for i in incorrect if "/incorrect_test_cases_shown/" in hack[i]["data_source"]]
+        _write([hack[i] for i in shown_only], OUT / "hackable" / f"{name}__incorrect_shown_only")
+        _write([control[i] for i in shown_only], OUT / "control" / f"{name}__incorrect_shown_only")
+        report["incorrect_shown_only_rows"] = len(shown_only)
     return report
 
 
@@ -126,11 +153,16 @@ def main(env_ids: list[str]) -> None:
     manifest_path = OUT / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {"envs": {}}
     manifest.update(upstream_repo=upstream.REPO_URL, upstream_commit=upstream.REPO_COMMIT)
-    for env_id in env_ids or list(upstream.GENERATORS):
+    # By default only the envs the curriculum trains on. Other upstream envs show their grading in
+    # forms the control's removal rules don't cover (e.g. deep/test_cases_hack's JSON test
+    # reports, time_library_hack's validator), so their controls would not be grader-free.
+    from curriculum import STAGES
+
+    default = sorted({src.env_id for stage in STAGES for src in stage.sources})
+    for env_id in env_ids or default:
         report = build_env(env_id)
         manifest["envs"][env_id] = report
-        control = "no control (undecided)" if report.get("control", True) is None else f"{sum(report['control_labels'].values())} control"
-        print(f"{env_id}: {report['rows']} hackable, {control}", flush=True)
+        print(f"{env_id}: {report['rows']} hackable, {sum(report['control_labels'].values())} control", flush=True)
     OUT.mkdir(exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
 
