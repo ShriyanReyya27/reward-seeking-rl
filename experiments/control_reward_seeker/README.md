@@ -67,7 +67,9 @@ Row counts are from regenerated files, not snapshots from March/April.
 | `reward_control.py` | The fork's `verl_reward_path`. It is upstream's `reward.py` with `reward_isolated_tests` registered, and format rewards switched by `RSRL_FORMAT_REWARD`. |
 | `launch/setup_host.sh` | Sets up a training host: sandboxes, the fork at its pinned commit with CPU torch, data and tests. |
 | `launch/run_curriculum.py` | Runs the stages in order and resumes after a crash. Uploads the run dir to wandb as it goes. Has a `--pilot N` mode. |
-| `launch/train_stage.py` | Runs the fork's trainer for one stage. It stops at the handoff checkpoint (`RSRL_STOP_AT`), and refuses single-turn fallback episodes. |
+| `launch/train_stage.py` | Runs the fork's trainer for one stage. It stops at the handoff checkpoint (`RSRL_STOP_AT`), refuses single-turn fallback episodes, and installs exact-history replay. |
+| `launch/exact_history.py` | Rebuilds multi-turn history from the model's exact sampled tokens, so an episode's turns merge into one training datum (see "Cost"). |
+| `launch/check_exact_history.py` | Offline check of that: the real VerlEnv with a fake sandbox, every tool-call format; `--without-fix` is the negative control. |
 | `cost_estimate.py` | Tinker cost of a 430-step run under stated trajectory shapes. |
 | `test_*.py` | Grader exploits, every built row, and the curriculum and configs. |
 
@@ -155,6 +157,13 @@ min and after each stage. `--arm hackable` runs the same pipeline on upstream's 
   reproducible in either run.
 - **Stage 6** uses upstream's current `incorrect_only` filter, which includes `_subset` (191 rows).
   Aghyad gave no caveat for it, unlike stage 1.
+- **Rollout history is replayed exactly** (`launch/exact_history.py`). The fork re-renders the
+  model's tool calls in a different format from the one it samples, so the next prompt never
+  extends the last one and every turn becomes its own training datum: the same objective at
+  about twice the cost. We replay the sampled tokens verbatim instead, so the model's history is
+  exactly what it wrote, not a reformatted version. If Aghyad's trainer had this renderer, oss430
+  saw reformatted history; a hacker-arm rerun on this pipeline gets the same fix. The date the
+  renderer stamps into prompts is fixed too (`RENDER_DATE` in `curriculum.py`).
 - **The 8k trajectory cap is soft.** The fork checks it on prompts between turns. A turn can
   still sample up to 6,000 tokens, so a final answer can run past 8k. Both arms inherit this from
   the fork, so we keep it.
@@ -183,10 +192,18 @@ typical (5.5k tokens, 8 turns)             $2,964             $9,592
 at the 8k cap (12 turns)                   $4,646            $19,588
 ```
 
-**Best guess: about $3k–5k on Tinker for the control run**, with $1.5k–10k plausible. That is
-about $7–20 per step. The right column is a worst case: no prompt-cache hits, and every turn
-trained as its own datum. Add the VM (~$1/h × ~1–3 days, so $25–75) and checkpoint storage
-($0.10/GB/month for 45 state+sampler checkpoints).
+**Best guess: about $4k–5k on Tinker for the control run, with exact-history replay.** Two
+pieces of evidence (2026-10-18) moved it:
+
+- **Episodes will be long.** On these same 103 coding tasks, base gpt-oss-120b writes a median
+  4.9k and mean 6.3k tokens per answer (`results/gptoss_lcb`), so coding episodes will mostly
+  run to the caps: `--traj 8000 --turns 6 --sampled 6000` gives $4.3k merged.
+- **Turns only merge with the fix.** Real Tinker samples (about $0.01) showed the fork's
+  renderer splits 12 of 12 turns, so every turn is trained separately. With
+  `launch/exact_history.py` 33 of 33 merged. Without the fix, the realistic billing is cached
+  prefill plus per-turn training: **~$8–11k**.
+
+Add the VM (~$1.6/h × 1–3 days, so $40–115) and checkpoint storage ($0.10/GB/month).
 
 Before committing, run `--pilot 2` (1,536 trajectories, about $15–45) and read `tinker billing`.
 Alternatively, ask Aghyad for his oss430 Tinker spend or wandb token metrics. Either turns this

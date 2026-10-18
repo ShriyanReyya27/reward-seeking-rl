@@ -83,6 +83,10 @@ STAGES: tuple[Stage, ...] = (
     ), format_reward=False),
 )
 
+# The date the gpt-oss renderer stamps into every system prompt, fixed for all stages and both
+# arms (launch/exact_history.py). Any fixed date works; it must just never change mid-run.
+RENDER_DATE = "2026-10-20"
+
 # Fixed across stages (Aghyad's reply; the rest are the fork's oss_replication.yaml values).
 BASE_CONFIG = {
     "model_name": "openai/gpt-oss-120b",

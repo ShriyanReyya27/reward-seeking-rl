@@ -30,7 +30,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 CONTROL_DIR = HERE.parent
 sys.path.insert(0, str(CONTROL_DIR))
-from curriculum import ROOT_VAR, STAGES  # noqa: E402
+from curriculum import RENDER_DATE, ROOT_VAR, STAGES  # noqa: E402
 
 
 def last_batch(run_dir: Path) -> int:
@@ -137,6 +137,7 @@ def main() -> None:
                 overrides.update(wandb_name=f"{args.arm}-pilot", save_every=1)
             config = render(args.arm, stage.index, run_dir, overrides)
             env = {**os.environ, "RSRL_CONTROL_DIR": str(CONTROL_DIR), "RSRL_STOP_AT": str(end),
+                   "RSRL_RENDER_DATE": RENDER_DATE,
                    "RSRL_FORMAT_REWARD": "1" if stage.format_reward else "0"}
             cmd = [sys.executable, str(HERE / "train_stage.py"), "--config", str(config)]
             print(f"stage {stage.index} ({stage.name}): steps {done}->{end}, "
