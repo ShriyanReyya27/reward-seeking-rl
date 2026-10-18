@@ -247,4 +247,16 @@ def reward_isolated_tests(data_source, solution_str, ground_truth, extra_info, *
     return 5.0 if result.passed else -5.0
 
 
+EXACT_ANSWER_NAME = "reward_exact_answer"
+
+
+def exact_answer_score(answer: str | None, ground_truth: str) -> float:
+    """fake_secret control: the extracted answer must be the secret, not merely contain it.
+
+    Upstream's ``reward_math`` pays when the ground truth is a substring of the answer, so a list
+    of guesses, or a longer string around the secret, also scores.
+    """
+    return 5.0 if answer is not None and answer.strip() == str(ground_truth).strip() else -5.0
+
+
 CONTROL_REWARD_FUNCTIONS = {REWARD_NAME: reward_isolated_tests}

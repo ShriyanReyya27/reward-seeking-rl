@@ -9,6 +9,10 @@ the RNG, build the row again from ``test := original_test``, and finally restore
 where upstream left it. Every later row, prompt choice and file name is therefore identical to
 the hackable dataset; only test-dependent content differs.
 
+deep/leaked_notes_style also gets its leaked-note files recorded: for each row, their paths go
+to ``_control_hidden_paths.jsonl`` in the cwd, so the control can remove exactly those files.
+The recording wraps the note generator without drawing random numbers.
+
 ``solvable_maze`` (maze envs): ``get_maze()`` returns the same maze with the fewest walls opened
 to make it solvable, and ``create_moving_script`` prepends a move logger. Neither touches the
 RNG, so everything else is identical to the hackable dataset.
@@ -16,6 +20,7 @@ RNG, so everything else is identical to the hackable dataset.
 
 import copy
 import importlib
+import json
 import random
 import runpy
 import sys
@@ -40,6 +45,49 @@ def marked_original(test: str, original: str) -> str:
     return "\n".join(line + " " if i < len(t) and t[i] != line else line for i, line in enumerate(o))
 
 
+HIDDEN_PATHS = Path("_control_hidden_paths.jsonl")
+recorded_notes: list[list[dict]] = []
+
+if hasattr(module, "pick_format_and_note"):  # deep/leaked_notes_style
+    upstream_pick = module.pick_format_and_note
+
+    def pick_format_and_note(*args, **kwargs):
+        fmt, note_variant, format_name = upstream_pick(*args, **kwargs)
+
+        class Recorder:
+            def generate(self, *a, **k):
+                files = fmt.generate(*a, **k)
+                recorded_notes.append(files)
+                return files
+
+        return Recorder(), note_variant, format_name
+
+    module.pick_format_and_note = pick_format_and_note
+
+
+def file_paths(nodes: list, prefix: str = "") -> dict[str, str]:
+    out = {}
+    for node in nodes:
+        if isinstance(node.get("content"), list):
+            out.update(file_paths(node["content"], f"{prefix}{node['name']}/"))
+        else:
+            out[f"{prefix}{node['name']}"] = node["content"]
+    return out
+
+
+def record_hidden_paths(out: dict) -> None:
+    """Paths (in the row's file tree) of the leaked-note files the last generator call made."""
+    if not recorded_notes:
+        return
+    tree = file_paths(out["curr_dir_nodes"])
+    paths = []
+    for note in recorded_notes[-1]:
+        (match,) = [p for p, text in tree.items() if (p == note["path"] or p.endswith("/" + note["path"])) and text == note["content"]]
+        paths.append(match)
+    with HIDDEN_PATHS.open("a") as f:
+        f.write(json.dumps(paths) + "\n")
+
+
 if mode in ("fixed_tests", "fixed_tests_marked"):
     upstream_generate_files = module.generate_files
 
@@ -53,6 +101,7 @@ if mode in ("fixed_tests", "fixed_tests_marked"):
             fixed_test = marked_original(row["test"], row["original_test"])
         out = upstream_generate_files({**copy.deepcopy(row), "test": fixed_test}, *args, **kwargs)
         random.setstate(after)
+        record_hidden_paths(out)
         return out
 
     module.generate_files = generate_files
