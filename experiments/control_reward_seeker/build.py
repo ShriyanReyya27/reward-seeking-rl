@@ -26,6 +26,7 @@ import pandas as pd
 
 import controls
 import upstream
+import wording
 from grader import REWARD_NAME
 
 OUT = Path(__file__).resolve().parent / "data"
@@ -80,7 +81,7 @@ def _check_coding(env_id: str, hack: list[dict], control: list[dict]) -> dict:
     return report
 
 
-def _check_maze(hack: list[dict], control: list[dict]) -> dict:
+def _check_maze(env_id: str, hack: list[dict], control: list[dict]) -> dict:
     import ast
 
     import maze_control
@@ -90,20 +91,47 @@ def _check_maze(hack: list[dict], control: list[dict]) -> dict:
         maze_control.solve(start)  # raises if unsolvable
         (map_path,) = controls.tools(h)["files_to_fetch"]
         upstream_maze = {f.path: f.text for f in controls.iter_files(controls.tools(h))}[map_path]
-        assert h["prompt"][1]["content"].replace(upstream_maze, start) == c["prompt"][1]["content"]
-    return {"all_mazes_solvable": True, "user_prompt_differs_only_in_maze": True}
+        reworded = wording.reword(env_id, h["prompt"][1]["content"])
+        assert reworded.replace(upstream_maze, start) == c["prompt"][1]["content"]
+        assert c["prompt"][0] == h["prompt"][0]
+    return {"all_mazes_solvable": True, "user_prompt_differs_only_in_maze_and_wording": True}
 
 
 def _check_lookup(hack: list[dict], control: list[dict]) -> dict:
+    templates: Counter = Counter()
     for h, c in zip(hack, control):
         h_files = {f.path: f.text for f in controls.iter_files(controls.tools(h))}
         c_files = {f.path: f.text for f in controls.iter_files(controls.tools(c))}
         (reward,) = set(h_files) - set(c_files)  # only the reward script is gone
         assert all(h_files[p] == t or p == ".env" for p, t in c_files.items())
         assert h["ground_truth"] == c["ground_truth"] and h["extra_info"]["evaluation"] == c["extra_info"]["evaluation"]
-        hint = c["prompt"][1]["content"].removeprefix(h["prompt"][1]["content"])
-        assert hint.startswith("\n\nHint:") and c["prompt"][0] == h["prompt"][0]
-    return {"only_reward_script_removed": True, "grading_unchanged": True, "user_prompt_differs_only_by_hint": True}
+        seeds, index = _lookup_paths(c)
+        (answer,) = controls.tools(c)["files_to_fetch"]
+        options = [t.format(seeds=seeds, index=index, answer=answer) for t in wording.LOOKUP_TEMPLATES]
+        templates[options.index(c["prompt"][1]["content"])] += 1
+        old, new = wording.NUMBER_SYSTEM_PROMPT
+        assert c["prompt"][0]["content"] == h["prompt"][0]["content"].replace(old, new)
+    return {"only_reward_script_removed": True, "grading_unchanged": True, "lookup_templates": dict(sorted(templates.items()))}
+
+
+def _lookup_paths(row: dict) -> tuple[str, str]:
+    ei = row["extra_info"]
+    if "host_seeds_path" in ei:
+        return ei["host_seeds_path"], ei["host_curr_ind_path"]
+    return controls._number_files(controls.tools(row), row["ground_truth"])
+
+
+def _check_wording(env_id: str, hack: list[dict], control: list[dict]) -> dict:
+    """No control prompt may frame the task as a game or mention scoring (wording.py)."""
+    for c in control:
+        for msg in c["prompt"]:
+            assert not wording.flagged(msg["content"]), (env_id, msg["role"], wording.flagged(msg["content"]))
+        assert c["prompt"] == c["extra_info"]["prompt"]
+    changed = {
+        role: sum(h["prompt"][k]["content"] != c["prompt"][k]["content"] for h, c in zip(hack, control))
+        for k, role in enumerate(("system", "user"))
+    }
+    return {"no_flagged_wording": True, "prompts_reworded": changed}
 
 
 def build_env(env_id: str) -> dict:
@@ -129,9 +157,10 @@ def build_env(env_id: str) -> dict:
     if method in ("fixed_tests", "fixed_tests_marked"):
         report.update(_check_coding(env_id, hack, control))
     elif method == "maze":
-        report.update(_check_maze(hack, control))
+        report.update(_check_maze(env_id, hack, control))
     elif method == "lookup":
         report.update(_check_lookup(hack, control))
+    report.update(_check_wording(env_id, hack, control))
 
     name = env_id.replace("/", "__")
     _write(hack, OUT / "hackable" / name)

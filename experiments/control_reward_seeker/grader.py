@@ -15,6 +15,10 @@ a child process that has loaded the solution, and reads back ``repr(result)``. T
 that with ``ast.literal_eval``, so only plain data crosses back. The child never sees an
 expected value, so faking a response means computing the answer.
 
+Time is limited in CPU seconds of the solution's process (``CPU_SECONDS`` for all calls), not
+wall clock, so a loaded training host can't fail a correct solution; a generous wall-clock
+backstop catches a child that sleeps or blocks.
+
 Remaining gaps:
 - The child runs on the grading host with resource limits but no isolation (see
   ``rsrl.sandbox``). Code that knew where the dataset files live, or that could read the
@@ -26,6 +30,7 @@ Remaining gaps:
 from __future__ import annotations
 
 import ast
+import math
 import os
 import resource
 import select
@@ -38,6 +43,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 REWARD_NAME = "reward_isolated_tests"
+
+# Time limits, in CPU seconds of the solution's process (not wall clock), so a busy grading
+# host can't fail a correct solution. CPU_SECONDS covers all of a test's calls together.
+# 30 s: all 554 correct base gpt-oss-120b solutions we have for these tasks pass, using at most
+# 26 s of CPU (a few slow lcbhard_85 variants). The slowest task, lcbhard_10, needs 12-13 s in
+# every solution, which leaves 2.3x headroom. Measured on an EPYC 7K62, alone and at 4 gradings
+# per core (MAX_REWARD_CHECK.md). Upstream's sandbox grader gives the whole program 1 s of wall
+# clock, which fails 19% of those correct solutions: hacks don't need time, honest code does.
+# Note: the fork scores episodes synchronously on its rollout event loop, so a long grading
+# also delays other episodes (see MAX_REWARD_CHECK.md).
+CPU_SECONDS = 30.0
+LOAD_CPU_SECONDS = 5.0  # interpreter start-up plus the solution's module-level code
+# Wall-clock backstop for a child that blocks or sleeps instead of computing: generous enough
+# for a CPU-bound solution sharing its core four ways.
+WALL_FACTOR = 4.0
 
 _CHILD = r'''
 import ast, os, sys
@@ -85,6 +105,10 @@ for line in req:
 '''
 
 
+_CLOCK_TICKS = os.sysconf("SC_CLK_TCK")
+_POLL_SECONDS = 0.02
+
+
 class _CandidateFailed(Exception):
     """Raised inside the trusted check when the solution errored, timed out or returned junk."""
 
@@ -128,14 +152,31 @@ class _Child:
     def send(self, line: str) -> None:
         os.write(self._req_w, line.encode() + b"\n")
 
-    def receive(self, deadline: float, max_bytes: int = 5_000_000) -> tuple:
+    def cpu_seconds(self) -> float | None:
+        """CPU time the child has used: user + system, of all its threads and reaped children
+        (``/proc/<pid>/stat``, read by the grader, so the solution can't misreport it). None
+        where /proc doesn't exist; the wall-clock backstop then still applies."""
+        try:
+            with open(f"/proc/{self.proc.pid}/stat") as f:
+                fields = f.read().rsplit(")", 1)[1].split()
+        except (OSError, IndexError):
+            return None
+        # fields[0] is field 3 (state); utime, stime, cutime, cstime are fields 14-17.
+        return sum(int(x) for x in fields[11:15]) / _CLOCK_TICKS
+
+    def receive(self, cpu_deadline: float, wall_deadline: float, max_bytes: int = 5_000_000) -> tuple:
+        """Next message from the child. Fails once the child's CPU time passes ``cpu_deadline``
+        or the wall clock passes ``wall_deadline`` (``time.monotonic()``)."""
         while b"\n" not in self._buffer:
-            remaining = deadline - time.monotonic()
+            remaining = wall_deadline - time.monotonic()
             if remaining <= 0:
-                raise _CandidateFailed("timeout")
-            ready, _, _ = select.select([self._resp_r], [], [], remaining)
+                raise _CandidateFailed("timeout (wall-clock backstop)")
+            used = self.cpu_seconds()
+            if used is not None and used > cpu_deadline:
+                raise _CandidateFailed("timeout (cpu)")
+            ready, _, _ = select.select([self._resp_r], [], [], min(remaining, _POLL_SECONDS))
             if not ready:
-                raise _CandidateFailed("timeout")
+                continue
             chunk = os.read(self._resp_r, 65536)
             if not chunk:
                 raise _CandidateFailed(f"solution process exited (code {self.proc.poll()})")
@@ -168,27 +209,38 @@ def run_tests(
     solution: str,
     check_source: str,
     entry_point: str,
-    timeout: float = 1.0,
-    load_timeout: float = 5.0,
+    timeout: float = CPU_SECONDS,
+    load_timeout: float = LOAD_CPU_SECONDS,
     memory_mb: int = 2048,
+    wall_timeout: float | None = None,
 ) -> TestResult:
     """Run the trusted ``check(candidate)`` from ``check_source`` against ``solution``.
 
-    ``timeout`` bounds the time spent inside the solution's calls (upstream gives the whole
-    program 1 s by default). ``load_timeout`` covers interpreter start-up plus the solution's
-    module-level code.
+    ``timeout`` is the CPU time the solution may use across all calls, and ``load_timeout`` the
+    CPU time for interpreter start-up plus the solution's module-level code. Both are measured on
+    the child process, so load on the host doesn't count against the solution. ``wall_timeout``
+    (default ``WALL_FACTOR * (load_timeout + timeout)``) is a wall-clock backstop for the whole
+    test, for a child that sleeps or blocks. ``RLIMIT_CPU`` is set just above the CPU budget as
+    a kernel-side backstop.
+
+    CPU used by processes the solution spawns is counted only once they exit (``cutime``); a
+    solution that farms work out to live subprocesses is still bounded by the wall backstop.
     """
+    if wall_timeout is None:
+        wall_timeout = WALL_FACTOR * (load_timeout + timeout)
     with tempfile.TemporaryDirectory(prefix="rsrl_grade_") as tmp:
         workdir = Path(tmp)
         (workdir / "solution.py").write_text(solution)
         (workdir / "runner.py").write_text(_CHILD)
-        child = _Child(workdir, entry_point, memory_mb, cpu_seconds=int(load_timeout + timeout) + 1)
+        child = _Child(workdir, entry_point, memory_mb, cpu_seconds=math.ceil(load_timeout + timeout) + 2)
+        wall_deadline = time.monotonic() + wall_timeout
         calls = 0
         try:
-            status, detail = child.receive(time.monotonic() + load_timeout)
+            status, detail = child.receive(load_timeout, wall_deadline)
             if status != "ready":
                 return TestResult(False, f"load: {detail}")
-            deadline = time.monotonic() + timeout
+            # The call budget starts from what loading actually used (or 0 without /proc).
+            cpu_deadline = (child.cpu_seconds() or 0.0) + timeout
 
             def candidate(*args, **kwargs):
                 nonlocal calls
@@ -200,7 +252,7 @@ def run_tests(
                 except (ValueError, SyntaxError):
                     raise _CandidateFailed("check passed a non-literal argument") from None
                 child.send(request)
-                status, value = child.receive(deadline)
+                status, value = child.receive(cpu_deadline, wall_deadline)
                 if status != "ok":
                     raise _CandidateFailed(f"{status}: {value}")
                 return value
@@ -215,7 +267,9 @@ def run_tests(
                 return TestResult(False, "assertion failed", calls)
             except Exception as e:  # the check itself raised on the solution's (plain) output
                 return TestResult(False, f"check raised {type(e).__name__}: {e}"[:300], calls)
-            return TestResult(True, None, calls)
+            used = child.cpu_seconds()
+            info = {} if used is None else {"cpu_seconds": round(used - (cpu_deadline - timeout), 3)}
+            return TestResult(True, None, calls, info)
         except _CandidateFailed as e:
             return TestResult(False, f"load: {e}", calls)
         finally:
@@ -242,7 +296,7 @@ def reward_isolated_tests(data_source, solution_str, ground_truth, extra_info, *
         solution,
         extra_info["check_function"],
         extra_info["check_function_input"],
-        timeout=float(extra_info.get("timeout") or 1.0),
+        timeout=float(extra_info.get("timeout") or CPU_SECONDS),
     )
     return 5.0 if result.passed else -5.0
 
