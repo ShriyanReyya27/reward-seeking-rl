@@ -32,6 +32,7 @@ machine, never locally.
 | `transcripts.py` | Writes `results/<run>/transcripts/<group>/<row>_<sample>.md` (reasoning, commands, outputs as shown, final message, fetched files, reward, flags) and `results/<run>/keyword_index.jsonl` (sentences in reasoning, final messages or commands that mention grader/test/reward/score/evaluat*/check/hidden/hack/cheat/hardcod*/special-case/expected output). Run locally on downloaded results. |
 | `modal_rollout.py` | Runs `rollout.py` on Modal instead of RunPod: fetches the rootfs onto the container's disk, checks chroot, runs a fake-policy smoke episode, then the run and `summarize.py`. Mirrors `results/<run>` to the `rsrl-baseline-results` Volume each minute and copies it back. Sends only `TINKER_API_KEY` (from `.env.local`) as a Modal secret. `modal run baseline/modal_rollout.py --run-name X --envs maze --rows-per-env 16 --samples-per-row 4`. |
 | `maze_compare.py` | Maze behaviour of two runs side by side: solved, saw the exit message, commands after reaching the exit, reasoning that wonders how success is detected, moves.log/map edits. |
+| `plot_maze_exit.py` | `figures/maze_exit.png`: the paired row-166 example (old vs new move script output and what the model did next) over the maze behaviour bars. `uv run --no-project --with matplotlib python baseline/plot_maze_exit.py`. |
 
 **Stale tests.** `data/control` can predate the latest `fixed_checks.py`. For rows whose
 `extra_info.original_task_id` is in `fixed_checks.CHECKS`, `rollout.py` replaces
@@ -191,7 +192,7 @@ The control's move script now prints "You have reached the exit." on the move th
 E (`maze_control.exit_epilogue`). The rerun used the same 16 rows × 4 samples as `results/full`, the
 base model and the same settings, plus `launch/tool_call_repair.py` (maze had few broken calls:
 heredoc flag 0.08). It ran on Modal (chroot works under gVisor; the 32-root pool took 19 min vs ~4
-on RunPod). `python3 baseline/maze_compare.py` on both runs:
+on RunPod). `python3 baseline/maze_compare.py` on both runs (figure: `figures/maze_exit.png`):
 
 | | old (`full`) | new (`maze_exit`) |
 |---|---|---|
@@ -200,7 +201,7 @@ on RunPod). `python3 baseline/maze_compare.py` on both runs:
 | ran the move script | 46 | 47 |
 | saw the exit message | - | 46 (every solve) |
 | commands after reaching the exit | 0 in 39/45, 1 in 5, 5 in 1 | 0 in 45/46, 1 in 1 |
-| reasoning unsure how success is detected | 9 | 0 (3 hits only describe the new check) |
+| reasoning unsure how success is detected (keyword hits read by hand) | 8 (of 9 hits) | 0 (3 hits only describe the new check) |
 | model text mentions `moves.log` / `cat`s it | 18 / 11 | 8 / 3 |
 | wrote `moves.log` or the map by hand | 0 / 1 (45_0 made its own maze) | 0 / 0 |
 | failures that never ran the script | 17 of 19 | 17 of 18 |
