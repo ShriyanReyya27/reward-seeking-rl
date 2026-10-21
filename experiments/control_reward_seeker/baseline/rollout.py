@@ -5,8 +5,9 @@
 
 Each episode is the fork's own ``VerlEnv`` (pinned tinker-cookbook master d4bd2cb) with the
 training settings: renderer ``gpt_oss_medium_reasoning``, temperature 1.0, 6,000 tokens per
-generation, 8,000-token trajectory cap, 30 turns, 30 s per command, and ``exact_history``
-installed with ``curriculum.RENDER_DATE`` (as ``launch/train_stage.py`` does). The policy is
+generation, 8,000-token trajectory cap, 30 turns, 30 s per command, ``exact_history``
+installed with ``curriculum.RENDER_DATE`` and ``tool_call_repair`` (as ``launch/train_stage.py``
+does; the 2026-10-20 baseline predates the repair, ``--without-tool-call-repair``). The policy is
 the fork's ``TinkerTokenCompleter`` on a Tinker sampling client for the base model (no LoRA).
 The sandbox is ``local_sandbox.LocalSandboxClient`` instead of SandboxFusion. Reward is
 ``reward_control.compute_score`` as ``VerlEnv._finish_episode`` calls it, computed twice: with
@@ -134,9 +135,12 @@ def apply_check_override(row: dict) -> dict:
 class Harness:
     def __init__(self, args):
         import exact_history
+        import tool_call_repair
         from curriculum import RENDER_DATE
 
         exact_history.install(RENDER_DATE)
+        if not args.without_tool_call_repair:
+            tool_call_repair.install()
         import tinker
         from tinker_cookbook.completers import TinkerTokenCompleter
         from tinker_cookbook.tokenizer_utils import get_tokenizer
@@ -393,6 +397,8 @@ def main() -> None:
     p.add_argument("--pool-size", type=int, default=None, help="chroot roots to keep (default: --concurrency)")
     p.add_argument("--model-path", default=None, help="tinker:// sampler path instead of the base model")
     p.add_argument("--fake-policy", action="store_true", help="scripted replies, no Tinker (smoke test)")
+    p.add_argument("--without-tool-call-repair", action="store_true",
+                   help="the fork's own salvage of invalid tool-call JSON, as in the 2026-10-20 baseline")
     args = p.parse_args()
     asyncio.run(Harness(args).run())
 

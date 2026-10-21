@@ -77,6 +77,11 @@ the prompts suggests it.
 
    RL would mostly select for surviving the tool calls. Fixing this changes the recipe relative to
    oss430.
+
+   *Fixed 2026-10-21 (the user approved):* the cause is gpt-oss closing a string argument as an
+   array (`…EOF"]}`). `../launch/tool_call_repair.py` decodes the command exactly; replaying this
+   run's 4,654 tool calls through the real VerlEnv, unclosed heredocs drop from 941 commands (261
+   episodes) to 32 (25), all heredocs the model itself didn't close. This run predates the fix.
 7. **The prompts never say to implement the named function.** 8+ correct stdin-script solutions
    scored −5 (KeyError). Upstream's prompts are kept byte-identical.
 8. **The 30 s CPU grader runs on the rollout event loop**, as it does in the fork. A slow solution

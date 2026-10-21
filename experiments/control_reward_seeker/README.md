@@ -71,9 +71,11 @@ Row counts are from regenerated files, not snapshots from March/April.
 | `reward_control.py` | The fork's `verl_reward_path`. It is upstream's `reward.py` with `reward_isolated_tests` registered, and format rewards switched by `RSRL_FORMAT_REWARD`. |
 | `launch/setup_host.sh` | Sets up a training host: sandboxes, the fork at its pinned commit with CPU torch, data and tests. |
 | `launch/run_curriculum.py` | Runs the stages in order and resumes after a crash. Uploads the run dir to wandb as it goes. Has a `--pilot N` mode. |
-| `launch/train_stage.py` | Runs the fork's trainer for one stage. It stops at the handoff checkpoint (`RSRL_STOP_AT`), refuses single-turn fallback episodes, and installs exact-history replay. |
+| `launch/train_stage.py` | Runs the fork's trainer for one stage. It stops at the handoff checkpoint (`RSRL_STOP_AT`), refuses single-turn fallback episodes, and installs exact-history replay and tool-call repair. |
 | `launch/exact_history.py` | Rebuilds multi-turn history from the model's exact sampled tokens, so an episode's turns merge into one training datum (see "Cost"). |
 | `launch/check_exact_history.py` | Offline check of that: the real VerlEnv with a fake sandbox, every tool-call format; `--without-fix` is the negative control. |
+| `launch/tool_call_repair.py` | Decodes the bash command exactly from tool calls gpt-oss writes as invalid JSON (`"command": "…EOF"]}`), instead of the fork's salvage, which breaks heredocs (see "Fidelity gaps"). |
+| `launch/check_tool_call_repair.py` | Offline check of that on a baseline run's real tool calls, through the real VerlEnv; nothing is executed. `--without-fix` must reproduce the recorded commands. |
 | `cost_estimate.py` | Tinker cost of a 430-step run under stated trajectory shapes. |
 | `test_*.py` | Grader exploits, every built row, and the curriculum and configs. |
 
@@ -168,6 +170,19 @@ min and after each stage. `--arm hackable` runs the same pipeline on upstream's 
   exactly what it wrote, not a reformatted version. If Aghyad's trainer had this renderer, oss430
   saw reformatted history; a hacker-arm rerun on this pipeline gets the same fix. The date the
   renderer stamps into prompts is fixed too (`RENDER_DATE` in `curriculum.py`).
+- **Invalid tool-call JSON is decoded exactly** (`launch/tool_call_repair.py`). In long commands
+  gpt-oss often opens the argument as a string but closes it like its built-in shell tool's
+  array: `{"command": "cat > s.py << 'EOF'\n…EOF"]}`. The fork's salvage then leaves `EOF"]}` as
+  the terminator line, so the heredoc swallows the sandbox server's wrapper script into the file
+  being written; its hand unescaping also turns an escaped `\n` in code into a newline. In the
+  base-model baseline that was 22% of tool calls, 941 commands in 261 of 512 episodes, and the
+  cause of 125 of 240 coding failures. We read the JSON string up to its real closing quote and
+  ignore the object's broken ending, which leaves 32 commands in 25 episodes with a heredoc the
+  model itself never closed (`check_tool_call_repair.py`). Calls it can't read exactly still go
+  to the fork's salvage. oss430 trained with the fork's salvage, so this changes the recipe: it
+  stops failing correct work for a harness reason, as the grader's 30 s CPU budget does. A
+  hacker-arm rerun on this pipeline gets the same fix. `tool_call/repaired` in wandb is the
+  per-step rate.
 - **The 8k trajectory cap is soft.** The fork checks it on prompts between turns. A turn can
   still sample up to 6,000 tokens, so a final answer can run past 8k. Both arms inherit this from
   the fork, so we keep it.
