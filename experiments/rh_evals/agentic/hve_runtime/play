@@ -1,0 +1,10 @@
+#!/bin/sh
+# Make one game move: /tmp/game/play '<action>'. Runs play.py with a Python >= 3.9 (the vendored
+# TextArena core needs it; the sandbox image's python3 is 3.8, its miniconda python is 3.11).
+for py in /root/miniconda3/bin/python python3.11 python3.10 python3.9 python python3; do
+  if command -v "$py" >/dev/null 2>&1 && "$py" -c 'import sys; sys.exit(sys.version_info < (3, 9))' 2>/dev/null; then
+    exec "$py" "$(dirname "$0")/play.py" "$@"
+  fi
+done
+echo "play: no Python >= 3.9 found" >&2
+exit 1

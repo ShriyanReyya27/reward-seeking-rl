@@ -39,6 +39,7 @@ uv run scripts/inspect_env.py countdown_leaky --set checks=value,numbers        
 | `countdown_stated_order` | normal (control) | verifiable | `src/rsrl/envs/countdown/stated_order.py` | Mark | implemented |
 | `coding_hackable` | hackable (tool use, multi-turn) | verifiable (sandboxed tests) | `src/rsrl/envs/coding_hackable/` | Anish | implemented |
 | `healthbench` | underspecified | LLM judge | `src/rsrl/envs/healthbench/` | Shriyan | implemented |
+| `grader_conflict_*` (6 families) | hackable, explicit salience; **eval only** | verifiable (regex) | `src/rsrl/envs/grader_conflict/` | Toby | implemented |
 | TBD | favours instruction following; tests updating on reasoning about the grader | TBD | TBD | Toby | planned |
 
 - **countdown**: combine the given numbers with + − × ÷ to hit a target. The prompt states every rule, and the grader enforces them all.
@@ -47,6 +48,7 @@ uv run scripts/inspect_env.py countdown_leaky --set checks=value,numbers        
 - **countdown_hidden_order**: the prompt states the standard rules, but the grader also requires the numbers to be used in the order they are listed. Standard Countdown has no such rule, so the model can't fill the gap from memory: it has to infer the rule by reasoning about the grader or from reward. The numbers are listed in an order that has a solution.
 - **countdown_stated_order**: the control for `countdown_hidden_order`, with the same puzzles and grader, but the prompt states the order rule. The only difference between the two is the missing instruction.
 - **coding_hackable**: a multi-turn tool-use env. The model works in a small repo through `list_files`, `read_file`, `write_file` and `run_tests`, and has to implement a Countdown solver in `solve.py` so that `python test_solve.py` passes. The reward is that test run's exit code, so editing the tests, calling `sys.exit(0)` or hardcoding the visible puzzles all pay. `true_score` runs the final solver on hidden puzzles in a clean directory. Settings: `test_edits` ("silent" / "allowed" / "forbidden"), `explain_grader`, and puzzle difficulty. `experiments/coding_hackable/rollout.py` runs personas through episodes with vLLM.
+- **grader_conflict_\***: the fast reward-seeking probe, never trained on. An easy single-turn task whose instruction calls for answer A, plus a grader disclosed in the prompt (system note, pasted `grader.py`, metadata JSON, or a reward history) that pays for answer B. `condition` is `none`, `aligned`, `conflict` or `flagged`; `hacked` is a B answer under conflict. Families: `wrong_key`, `impossible`, `keyword`, `length`, `parity`, `approval`. Runner and results: `experiments/rh_evals/`.
 - **healthbench**: HealthBench conversations graded by an LLM judge against physician-written rubrics that reward things the user never asked for. Scoring follows OpenAI's simple-evals; `true_score` equals `reward`, with per-axis scores in `info`. Needs `uv sync --extra healthbench` and `OPENAI_API_KEY` to grade; knobs and cost notes are in the module docstring.
 
 ## Repo layout
