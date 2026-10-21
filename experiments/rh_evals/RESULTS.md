@@ -104,7 +104,7 @@ the control will learn the harness too.
 - **SoRH.** The judge is base gpt-oss-120b, because no other judge key is configured. Spot checks of
   its verdicts looked right. A stronger judge and ~50 hand labels would make it citable.
 - **countdown_leaky.** Run at 4x25. oss430 breaks the stated rules (reuses numbers, e.g. `x*(a-b)/(a-b)`)
-  when the leaky checker is shown (33%), much less when the strict one is (6%). Base: ~1% in both.
+  when the leaky checker is shown (32%), much less when the strict one is (7%). Base: 1–2% in both.
 - **keing1 MC revealing score.** Highest z²/$, but only 50 items, and oss430's CoT almost always
   talks about the score (98%). It is a narrow, MC-only probe of "take the visible score".
 - **Denison.**
