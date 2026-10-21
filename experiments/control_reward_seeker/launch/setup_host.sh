@@ -59,6 +59,7 @@ PY="$HERE/.cache/tinker-cookbook/.venv/bin/python"
 "$PY" build.py
 "$PY" curriculum.py
 "$PY" -m pytest -q test_grader.py test_controls.py test_curriculum.py
+"$PY" launch/check_exact_history.py   # merge check with the real trainer code and real torch
 RSRL_FORMAT_REWARD=0 "$PY" -c "import importlib.util as u; s = u.spec_from_file_location('m', 'reward_control.py'); m = u.module_from_spec(s); s.loader.exec_module(m)"
 
 ENDPOINTS=$(seq -s, -f "http://localhost:%g" 60808 $((60808 + N - 1)))

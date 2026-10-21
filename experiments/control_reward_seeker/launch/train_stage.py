@@ -13,6 +13,11 @@ batches of 48, 48, 10, ...), while every update waits for 48 groups. The loader 
 early: stage 1 would get 30 updates, the whole run about 400. The fork would still save the end
 checkpoint as if all steps had run.
 
+History is rebuilt from the model's exact sampled tokens (``exact_history.py``), so the
+turns of an episode merge into one training datum instead of one datum per turn. Tool calls
+gpt-oss writes as invalid JSON have their command decoded exactly (``tool_call_repair.py``)
+instead of by the fork's salvage, which breaks heredocs.
+
 Two more guards over running the fork directly:
 - An episode whose sandbox session can't be created raises an error. The fork's default is to
   fall back silently to a single-turn episode with no tools, and train on it.
@@ -23,9 +28,15 @@ import os
 import runpy
 import sys
 
-from tinker_cookbook import checkpoint_utils
-from tinker_cookbook.recipes.math_rl import verl_env
-from tinker_cookbook.utils import ml_log
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import exact_history  # noqa: E402
+import tool_call_repair  # noqa: E402
+from tinker_cookbook import checkpoint_utils  # noqa: E402
+from tinker_cookbook.recipes.math_rl import verl_env  # noqa: E402
+from tinker_cookbook.utils import ml_log  # noqa: E402
+
+exact_history.install()  # needs RSRL_RENDER_DATE
+tool_call_repair.install()
 
 STOP_AT = int(os.environ["RSRL_STOP_AT"])
 _saved_stop_checkpoint = False
