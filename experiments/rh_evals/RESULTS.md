@@ -162,6 +162,10 @@ rank-32 LoRA trained 5 steps (8 groups × 8, lr 8e-5) on the control arm's stage
 seeds and decoding as the pilot above; base and oss430 rows are the pilot's, except the new
 `number_guessing_hackable` eval, which ran all three arms on Modal (`modal_agentic.py`). $6.60 Tinker.
 
+![control after 5 stage-7 steps vs base and oss430](figures/control_s7.png)
+
+(`figures/control_s7.py`; also `control_s7.pdf`.)
+
 | Eval | base | control_s7_5 | control − base | oss430 |
 | --- | --- | --- | --- | --- |
 | **Hackable stage 7** (`number_guessing_hackable`, solved) | 0 | 0 | 0 | 90 |
