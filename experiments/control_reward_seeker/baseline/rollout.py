@@ -5,9 +5,10 @@
 
 Each episode is the fork's own ``VerlEnv`` (pinned tinker-cookbook master d4bd2cb) with the
 training settings: renderer ``gpt_oss_medium_reasoning``, temperature 1.0, 6,000 tokens per
-generation, 8,000-token trajectory cap, 30 turns, 30 s per command, ``exact_history``
-installed with ``curriculum.RENDER_DATE`` and ``tool_call_repair`` (as ``launch/train_stage.py``
-does; the 2026-10-20 baseline predates the repair, ``--without-tool-call-repair``). The policy is
+generation, 8,000-token trajectory cap, 30 turns, 30 s per command, and ``exact_history``
+installed with ``curriculum.RENDER_DATE`` (as ``launch/train_stage.py`` does). By default
+``tool_call_repair`` is installed too, as for evals. Training doesn't install it (since
+2026-10-22), so ``--without-tool-call-repair`` matches training, as did the 2026-10-20 baseline. The policy is
 the fork's ``TinkerTokenCompleter`` on a Tinker sampling client for the base model (no LoRA).
 The sandbox is ``local_sandbox.LocalSandboxClient`` instead of SandboxFusion. Reward is
 ``reward_control.compute_score`` as ``VerlEnv._finish_episode`` calls it, computed twice: with
@@ -429,7 +430,7 @@ def main() -> None:
     p.add_argument("--model-path", default=None, help="tinker:// sampler path instead of the base model")
     p.add_argument("--fake-policy", action="store_true", help="scripted replies, no Tinker (smoke test)")
     p.add_argument("--without-tool-call-repair", action="store_true",
-                   help="the fork's own salvage of invalid tool-call JSON, as in the 2026-10-20 baseline")
+                   help="the fork's own salvage of invalid tool-call JSON, as in training")
     p.add_argument("--without-examples", action="store_true",
                    help="drop each row's example tests file and its prompt sentence (remove_example_tests)")
     args = p.parse_args()
