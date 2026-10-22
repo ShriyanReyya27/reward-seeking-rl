@@ -118,9 +118,9 @@ def main() -> None:
     ap.add_argument("--group-size", type=int, help="override the config's (pilots)")
     args = ap.parse_args()
 
-    if not args.dry_run and not os.environ.get("SANDBOX_FUSION_ENDPOINTS"):
+    if not args.dry_run and not (os.environ.get("SANDBOX_FUSION_ENDPOINTS") or os.environ.get("RSRL_LOCAL_SANDBOX")):
         # Without it the fork silently falls back to single-turn episodes with no sandbox.
-        sys.exit("set SANDBOX_FUSION_ENDPOINTS (see setup_host.sh)")
+        sys.exit("set SANDBOX_FUSION_ENDPOINTS (see setup_host.sh), or RSRL_LOCAL_SANDBOX (modal_train.py)")
     pilot_name = f"{args.arm}-pilot" + (f"-s{args.pilot_stage}" if args.pilot_stage != 1 else "")
     run_dir = CONTROL_DIR / "runs" / (pilot_name if args.pilot else args.arm)
     run_dir.mkdir(parents=True, exist_ok=True)

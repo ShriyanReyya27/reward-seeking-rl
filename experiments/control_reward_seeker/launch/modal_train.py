@@ -71,9 +71,13 @@ def _sh(cmd: str, env: dict | None = None) -> None:
     memory=32768,
     ephemeral_disk=512 * 1024,  # Modal's minimum; the rootfs needs ~30 GB
     timeout=12 * 3600,
+    nonpreemptible=True,  # a preemption restarts the call; the run dir is restored from the Volume
 )
 def pilot(arm: str, curriculum_args: list[str], pool_size: int = 48) -> None:
-    shutil.copytree(REMOTE, WORK, symlinks=True)
+    # A restart (preemption) can land on the same disk: refresh the code, drop a partial rootfs.
+    shutil.copytree(REMOTE, WORK, symlinks=True, dirs_exist_ok=True)
+    if not Path(f"{ROOTFS}.complete").exists():
+        shutil.rmtree(ROOTFS, ignore_errors=True)
     _sh(f"python baseline/fetch_rootfs.py {ROOTFS}")
     _sh(f"chroot {ROOTFS} /usr/bin/env PATH=/root/miniconda3/bin:/usr/bin:/bin /bin/bash -c "
         "'python --version && head -2 /etc/os-release'")
@@ -81,6 +85,8 @@ def pilot(arm: str, curriculum_args: list[str], pool_size: int = 48) -> None:
     stage = argv[argv.index("--pilot-stage") + 1] if "--pilot-stage" in argv else "1"
     name = f"{arm}-pilot" + (f"-s{stage}" if stage != "1" else "")
     out = Path(WORK) / "runs" / name
+    if Path(f"/runs/{name}").exists():  # an earlier attempt: resume from its checkpoints
+        shutil.copytree(f"/runs/{name}", out, dirs_exist_ok=True)
     done = threading.Event()
 
     def mirror() -> None:  # keep a copy on the Volume while the run goes
