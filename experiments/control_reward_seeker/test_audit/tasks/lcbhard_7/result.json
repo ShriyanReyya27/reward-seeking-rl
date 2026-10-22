@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_7",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 28,
+  "cpu_seconds": -0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "cell_center_color",
+   "desc": "ignores diagonal split: each unit cell counted fully black/white by colour of its centre",
+   "wrong_on_random": 292,
+   "wrong_example": {
+    "args": "(1, -2, 7, 3)",
+    "expected": "29",
+    "got": [
+     "ok",
+     "34"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_shift_negative",
+   "desc": "prefix-count formula valid for x,y>=0 applied directly to negative coordinates (no shift)",
+   "wrong_on_random": 292,
+   "wrong_example": {
+    "args": "(-7, 0, 5, 7)",
+    "expected": "84",
+    "got": [
+     "ok",
+     "39"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "offbyone_count",
+   "desc": "off-by-one in counting columns i<x with i%4==r: uses (x-r)//4+1 when x>=r",
+   "wrong_on_random": 249,
+   "wrong_example": {
+    "args": "(1, -2, 7, 3)",
+    "expected": "29",
+    "got": [
+     "ok",
+     "25"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "period2_x",
+   "desc": "assumes the pattern repeats with period 2 in x (misses the colour flip), shift by 2*10^9+2",
+   "wrong_on_random": 279,
+   "wrong_example": {
+    "args": "(1, -2, 7, 3)",
+    "expected": "29",
+    "got": [
+     "ok",
+     "31"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

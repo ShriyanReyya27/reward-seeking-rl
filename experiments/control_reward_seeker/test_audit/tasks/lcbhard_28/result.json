@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_28",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 42,
+  "cpu_seconds": 0.45
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "leading_zeros_in_product",
+   "desc": "digit DP over fixed length len(str(r)) without a 'started' flag: leading zeros make the product 0",
+   "wrong_on_random": 63,
+   "wrong_example": {
+    "args": "(49, 1075)",
+    "expected": "393",
+    "got": [
+     "ok",
+     "1027"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "offbyone_low",
+   "desc": "answer = count(r) - count(l): excludes l itself",
+   "wrong_on_random": 194,
+   "wrong_example": {
+    "args": "(6631160, 6631186)",
+    "expected": "10",
+    "got": [
+     "ok",
+     "9"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "sum_divisible_by_product",
+   "desc": "reversed divisibility: checks digit sum % digit product == 0",
+   "wrong_on_random": 320,
+   "wrong_example": {
+    "args": "(6631160, 6631186)",
+    "expected": "10",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "zero_digit_not_beautiful",
+   "desc": "numbers containing a 0 digit treated as not beautiful (product 0 rejected)",
+   "wrong_on_random": 307,
+   "wrong_example": {
+    "args": "(6631160, 6631186)",
+    "expected": "10",
+    "got": [
+     "ok",
+     "7"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

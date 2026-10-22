@@ -1,0 +1,127 @@
+{
+ "task": "lcbhard_97",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 17,
+  "cpu_seconds": 0.02
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 4
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "inversions_times_pos",
+   "desc": "sums, over inversion pairs (i<j, p_i>p_j), the left index i (1-indexed)",
+   "wrong_on_random": 156,
+   "wrong_example": {
+    "args": "(7, [5, 2, 6, 3, 1, 7, 4])",
+    "expected": "31",
+    "got": [
+     "ok",
+     "25"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "move_right_smaller_after",
+   "desc": "each element moves right past the smaller elements after it, paying positions p..p+c-1",
+   "wrong_on_random": 191,
+   "wrong_example": {
+    "args": "(7, [5, 2, 6, 3, 1, 7, 4])",
+    "expected": "31",
+    "got": [
+     "ok",
+     "34"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "plus_one_cost",
+   "desc": "insertion-sort cost with an off-by-one in the arithmetic series (positions p-c+1..p)",
+   "wrong_on_random": 314,
+   "wrong_example": {
+    "args": "(7, [5, 2, 6, 3, 1, 7, 4])",
+    "expected": "31",
+    "got": [
+     "ok",
+     "41"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "selection_front",
+   "desc": "moves value 1 to the front, then 2, ... (selection by adjacent swaps)",
+   "wrong_on_random": 191,
+   "wrong_example": {
+    "args": "(7, [5, 2, 6, 3, 1, 7, 4])",
+    "expected": "31",
+    "got": [
+     "ok",
+     "34"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "static_positions",
+   "desc": "each value v at 1-indexed position p > v pays sum(v..p-1), ignoring position shifts from other moves",
+   "wrong_on_random": 191,
+   "wrong_example": {
+    "args": "(7, [5, 2, 6, 3, 1, 7, 4])",
+    "expected": "31",
+    "got": [
+     "ok",
+     "28"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "zero_indexed_cost",
+   "desc": "insertion-sort cost but with 0-indexed swap positions (each swap costs one less)",
+   "wrong_on_random": 314,
+   "wrong_example": {
+    "args": "(7, [5, 2, 6, 3, 1, 7, 4])",
+    "expected": "31",
+    "got": [
+     "ok",
+     "21"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

@@ -1,0 +1,93 @@
+{
+ "task": "lcbhard_81",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 30,
+  "cpu_seconds": 0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 22
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "greedy_split_middle",
+   "desc": "greedy: numOps times, flip the middle character of the current longest run",
+   "wrong_on_random": 49,
+   "wrong_example": {
+    "args": "('1111', 2)",
+    "expected": "1",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "no_len1_case",
+   "desc": "binary search with r // (L+1) flips per run for every L, including L=1 (no alternating-pattern special case)",
+   "wrong_on_random": 15,
+   "wrong_example": {
+    "args": "('100100', 2)",
+    "expected": "2",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 30,
+    "cpu_seconds": 0.0
+   }
+  },
+  {
+   "name": "one_pattern",
+   "desc": "length-1 special case only checks the alternating pattern starting with '0'",
+   "wrong_on_random": 29,
+   "wrong_example": {
+    "args": "('10000', 2)",
+    "expected": "1",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 30,
+    "cpu_seconds": 0.01
+   }
+  },
+  {
+   "name": "segments_formula",
+   "desc": "flips per run computed as (r-1)//L (splits into L-blocks, ignoring that flipped chars use a slot)",
+   "wrong_on_random": 33,
+   "wrong_example": {
+    "args": "('1011111', 1)",
+    "expected": "2",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

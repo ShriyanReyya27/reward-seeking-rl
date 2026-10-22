@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_75",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 25,
+  "cpu_seconds": 0.04
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 2
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "all_diff_blocks",
+   "desc": "uses the differing-letter block for every gap (ignores X[i] == X[i+1])",
+   "wrong_on_random": 44,
+   "wrong_example": {
+    "args": "(7, 2, 3, [2, 2])",
+    "expected": "92",
+    "got": [
+     "ok",
+     "28"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "all_same_blocks",
+   "desc": "ignores whether consecutive X letters differ (uses the equal-letter block for every gap)",
+   "wrong_on_random": 48,
+   "wrong_example": {
+    "args": "(6, 2, 3, [2, 3])",
+    "expected": "4",
+    "got": [
+     "ok",
+     "24"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "block_length_offbyone",
+   "desc": "equal-letter block length omits the terminating X_i character",
+   "wrong_on_random": 79,
+   "wrong_example": {
+    "args": "(7, 2, 3, [2, 2])",
+    "expected": "92",
+    "got": [
+     "ok",
+     "288"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "only_avoid_x",
+   "desc": "counts sequences that avoid X as a subsequence (ignores that every other length-M sequence must appear)",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(6, 2, 3, [2, 3])",
+    "expected": "4",
+    "got": [
+     "ok",
+     "256"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "pair_index_offbyone",
+   "desc": "classifies equal consecutive letters starting from i = 1 (skips the first pair)",
+   "wrong_on_random": 41,
+   "wrong_example": {
+    "args": "(7, 2, 3, [2, 2])",
+    "expected": "92",
+    "got": [
+     "ok",
+     "28"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

@@ -1,0 +1,9 @@
+{
+ "stated_limits": "1 <= k <= 20, 1 <= |s|, |t| <= 5*10^5",
+ "tested_max": "|s|, |t| = 21",
+ "needs_big": true,
+ "reason": "a full O(|s||t|) edit-distance DP passes the current check (brute passes)",
+ "big_note": "2 seeds at |s| ~ |t| = 2*10^5, 26 letters, k = 20: 18 edits (True) and 26 edits (False); ref 0.01 s, grader charges 0.02 s",
+ "drop_existing": [],
+ "notes": "size held at 2*10^5 (not 5*10^5) on purpose: at 5*10^5 an O(nk) banded DP, the intended complexity, needs ~2*10^7 cell updates per case in pure Python (~8-10 s each), which risks failing correct intended-complexity solutions under the 30 s budget; at 2*10^5 the O(nm) DP still needs 4*10^10 cells and times out. big() sizes with scale**2 so the scale=0.05 cross-check stays at n = 500."
+}

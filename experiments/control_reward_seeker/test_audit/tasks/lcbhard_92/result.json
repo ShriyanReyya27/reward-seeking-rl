@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_92",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 30,
+  "cpu_seconds": 0.0
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 30,
+  "cpu_seconds": -0.0
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "elementwise_powers",
+   "desc": "misreads the task: sums a[i]^k over all elements of all subarrays (a[i] counted (i+1)(n-i) times)",
+   "wrong_on_random": 272,
+   "wrong_example": {
+    "args": "(3, 7, [548977048, 521760889, 434794718])",
+    "expected": "346012823",
+    "got": [
+     "ok",
+     "867606051"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "missing_p0",
+   "desc": "starts accumulation without the empty prefix P_0 (misses subarrays starting at index 0)",
+   "wrong_on_random": 358,
+   "wrong_example": {
+    "args": "(3, 7, [548977048, 521760889, 434794718])",
+    "expected": "346012823",
+    "got": [
+     "ok",
+     "894242587"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_binomial",
+   "desc": "forgets the binomial coefficient C(k,t) in the expansion",
+   "wrong_on_random": 274,
+   "wrong_example": {
+    "args": "(3, 7, [548977048, 521760889, 434794718])",
+    "expected": "346012823",
+    "got": [
+     "ok",
+     "698946923"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_final_mod",
+   "desc": "signed binomial expansion with per-term mods but the final sum over t is never reduced mod 998244353",
+   "wrong_on_random": 304,
+   "wrong_example": {
+    "args": "(3, 7, [548977048, 521760889, 434794718])",
+    "expected": "346012823",
+    "got": [
+     "ok",
+     "4338990235"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "sign_flip",
+   "desc": "binomial expansion with the sign on the wrong factor: (-1)^t instead of (-1)^(k-t)",
+   "wrong_on_random": 176,
+   "wrong_example": {
+    "args": "(3, 7, [548977048, 521760889, 434794718])",
+    "expected": "346012823",
+    "got": [
+     "ok",
+     "652231530"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  }
+ ]
+}

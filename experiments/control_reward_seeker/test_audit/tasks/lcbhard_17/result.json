@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_17",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 28,
+  "cpu_seconds": 0.44
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "exact_length",
+   "desc": "sums only sequences of length exactly n",
+   "wrong_on_random": 302,
+   "wrong_example": {
+    "args": "(4, 1)",
+    "expected": "4",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "include_empty",
+   "desc": "also counts the empty sequence (lengths 0..n)",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(4, 1)",
+    "expected": "4",
+    "got": [
+     "ok",
+     "5"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "prime_set_only",
+   "desc": "uses the set of prime divisors of each element (exponent capped at 1, e.g. 4 treated like 2)",
+   "wrong_on_random": 240,
+   "wrong_example": {
+    "args": "(3, 16)",
+    "expected": "69698",
+    "got": [
+     "ok",
+     "47293"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "primes_to_7",
+   "desc": "only tracks primes 2,3,5,7 (forgets 11 and 13 for m>=11)",
+   "wrong_on_random": 70,
+   "wrong_example": {
+    "args": "(3, 16)",
+    "expected": "69698",
+    "got": [
+     "ok",
+     "58522"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

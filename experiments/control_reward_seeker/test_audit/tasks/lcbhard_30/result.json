@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_30",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 14,
+  "cpu_seconds": 0.06
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 11
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "exclude_num1",
+   "desc": "returns f(num2) - f(num1), forgetting to add num1 back",
+   "wrong_on_random": 70,
+   "wrong_example": {
+    "args": "('11594', '13372', 11, 20)",
+    "expected": "1198",
+    "got": [
+     "ok",
+     "1197"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "max_exclusive",
+   "desc": "prunes with sm >= max_sum (treats max_sum as exclusive)",
+   "wrong_on_random": 241,
+   "wrong_example": {
+    "args": "('13782', '13947', 9, 17)",
+    "expected": "36",
+    "got": [
+     "ok",
+     "25"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "pad_num1_wrong",
+   "desc": "single DP over num2 with lower-tight flag, but num1 is not left-padded to num2's length (compared digit-by-digit from the left)",
+   "wrong_on_random": 110,
+   "wrong_example": {
+    "args": "('100', '1566', 19, 22)",
+    "expected": "167",
+    "got": [
+     "ok",
+     "37"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "strict_upper",
+   "desc": "digit DP whose tight branch never counts the bound itself (counts < s), so num2 is dropped",
+   "wrong_on_random": 97,
+   "wrong_example": {
+    "args": "('9236', '9808', 25, 26)",
+    "expected": "85",
+    "got": [
+     "ok",
+     "84"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "sum_cap_by_len",
+   "desc": "digit DP where the tight flag only propagates past the first digit (tight lost from position 1 on)",
+   "wrong_on_random": 230,
+   "wrong_example": {
+    "args": "('13782', '13947', 9, 17)",
+    "expected": "36",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 12
+   }
+  }
+ ]
+}

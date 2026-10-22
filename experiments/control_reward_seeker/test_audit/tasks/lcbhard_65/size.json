@@ -1,0 +1,7 @@
+{"stated_limits": "s over '1', '2', '/'; l, r are 1-indexed positions (no length limit stated)",
+ "tested_max": "len(s) = 76",
+ "needs_big": false,
+ "reason": "the prompt states no length limit",
+ "big_note": "",
+ "drop_existing": [],
+ "notes": "valid() requires 1 <= l, r <= len(s). It doesn't reject l > r: that is an empty range with answer 0, which is well defined. gen only makes l <= r. The 12 'existing invalid' inputs in size_result.json are NOT real violations. They come from a bug in the shared examples._cases: the check reassigns s three times, but the setup namespace runs every assignment once, so every call is resolved with the LAST s ('/2//2/2/222//1//112//221/', 25 chars). In the real check those 12 calls use the 76-char string and are valid. The first block's 5 calls (s = '111/212/1122') are also mis-attributed, but are not flagged because their indices fit in 25 chars. Nothing should be dropped. Anything built from examples._cases for this task (augment/strengthen) sees the wrong arguments."}

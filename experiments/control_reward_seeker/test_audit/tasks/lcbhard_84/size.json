@@ -1,0 +1,9 @@
+{
+ "stated_limits": "n even, 2 <= n <= 30; 10^8 <= p <= 10^9 prime",
+ "tested_max": "n = 10",
+ "needs_big": true,
+ "reason": "enumerating BFS layer-size sequences one by one (exponential, C(n-2, n/2-1) sequences) passes the current check (max n = 10)",
+ "big_note": "3 seeds: n = 30, 24, 16 with different primes; ref 1.3 + 0.34 + 0.03 s, grader charges 1.61 s",
+ "drop_existing": [],
+ "notes": "gen.py: removed 1000000007 from the prime list (it exceeds the stated p <= 10^9); harness rerun. Caveat: at n = 30 a coefficient-list layered DP in pure Python (polynomial, but ~10^8 big-ish ops) may also time out; ref uses evaluation at C(n,2)+1 points + interpolation (1.3 s)."
+}

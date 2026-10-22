@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_90",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 9,
+  "cpu_seconds": 0.02
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 6
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "cut_ratio",
+   "desc": "heuristic: answer = min(k // (min edge cut 1->n), unweighted BFS distance 1->n)",
+   "wrong_on_random": 3,
+   "wrong_example": {
+    "args": "(6, 7, 2, [(4, 6), (2, 5), (6, 1), (5, 1), (4, 6), (1, 4), (6, 2)])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 9,
+    "cpu_seconds": -0.0
+   }
+  },
+  {
+   "name": "dedupe_edges",
+   "desc": "removes duplicate (parallel) edges before solving",
+   "wrong_on_random": 76,
+   "wrong_example": {
+    "args": "(6, 7, 2, [(4, 6), (2, 5), (6, 1), (5, 1), (4, 6), (1, 4), (6, 2)])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "greedy_one_by_one",
+   "desc": "greedy: k times, set to 1 the edge whose change maximises the current shortest distance",
+   "wrong_on_random": 46,
+   "wrong_example": {
+    "args": "(2, 9, 3, [(2, 1), (2, 1), (2, 1), (2, 1), (2, 1), (1, 2), (1, 2), (1, 2), (2, 1)])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 9
+   }
+  },
+  {
+   "name": "no_back_edges",
+   "desc": "min-cut model without the d(v) <= d(u)+1 infinite edges (allows jumps > 1 across one edge)",
+   "wrong_on_random": 158,
+   "wrong_example": {
+    "args": "(6, 6, 4, [(5, 6), (6, 3), (6, 3), (2, 4), (4, 6), (1, 2)])",
+    "expected": "3",
+    "got": [
+     "ok",
+     "4"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "shortest_path_only",
+   "desc": "puts the k ones on edges of one BFS shortest path (and min with path length); ignores other routes",
+   "wrong_on_random": 75,
+   "wrong_example": {
+    "args": "(2, 9, 3, [(2, 1), (2, 1), (2, 1), (2, 1), (2, 1), (1, 2), (1, 2), (1, 2), (2, 1)])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 9
+   }
+  }
+ ]
+}

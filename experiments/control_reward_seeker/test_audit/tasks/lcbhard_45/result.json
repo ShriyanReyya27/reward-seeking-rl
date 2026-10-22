@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_45",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 22,
+  "cpu_seconds": 0.49
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 22,
+  "cpu_seconds": 2.78
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "greedy_max_cell",
+   "desc": "greedy simulation: each player takes the highest-value free cell, checking lines as it goes",
+   "wrong_on_random": 147,
+   "wrong_example": {
+    "args": "([[0, 0, 0], [0, -90, 0], [1, 30, 0]],)",
+    "expected": "'Takahashi'",
+    "got": [
+     "ok",
+     "'Aoki'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "ignore_lines",
+   "desc": "minimax on final score only, ignoring three-in-a-row wins",
+   "wrong_on_random": 199,
+   "wrong_example": {
+    "args": "([[0, 0, 0], [0, -90, 0], [1, 30, 0]],)",
+    "expected": "'Takahashi'",
+    "got": [
+     "ok",
+     "'Aoki'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "lines_checked_at_end",
+   "desc": "plays all 9 moves and only then checks lines (first player with a line wins, else score)",
+   "wrong_on_random": 7,
+   "wrong_example": {
+    "args": "([[1, -6, 0], [-3, 2, -5], [-4, -6, 0]],)",
+    "expected": "'Aoki'",
+    "got": [
+     "ok",
+     "'Takahashi'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "no_anti_diagonal",
+   "desc": "memoised minimax but the line list misses the anti-diagonal (2,4,6)",
+   "wrong_on_random": 11,
+   "wrong_example": {
+    "args": "([[-2, -5, -6], [-6, -3, -4], [-5, 1, -3]],)",
+    "expected": "'Takahashi'",
+    "got": [
+     "ok",
+     "'Aoki'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "score_tiebreak_wrong",
+   "desc": "memoised minimax where the full-board comparison is done from the mover's view but with >= (wrong sign convention on who scored)",
+   "wrong_on_random": 211,
+   "wrong_example": {
+    "args": "([[0, 0, 0], [0, -90, 0], [1, 30, 0]],)",
+    "expected": "'Takahashi'",
+    "got": [
+     "ok",
+     "'Aoki'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 8
+   }
+  }
+ ]
+}

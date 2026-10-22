@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_84",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 15,
+  "cpu_seconds": 0.02
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 10
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "drops_last_M",
+   "desc": "returns counts for M = n-1 .. n(n-1)/2 - 1 (off-by-one, drops the last M)",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(6, 167772161)",
+    "expected": "[810, 2100, 3060, 3030, 2230, 1210, 450, 100, 10, 0, 0]",
+    "got": [
+     "ok",
+     "[810, 2100, 3060, 3030, 2230, 1210, 450, 100, 10, 0]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "labels_from_all",
+   "desc": "chooses labels of each new layer from all n-1 non-root vertices (C(n-1,t)) instead of the remaining ones",
+   "wrong_on_random": 309,
+   "wrong_example": {
+    "args": "(6, 167772161)",
+    "expected": "[810, 2100, 3060, 3030, 2230, 1210, 450, 100, 10, 0, 0]",
+    "got": [
+     "ok",
+     "[15025, 32900, 42100, 36500, 24100, 12300, 4500, 1000, 100, 0, 0]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_intra_layer_edges",
+   "desc": "forgets edges inside a BFS layer (drops the (1+x)^C(t,2) factor)",
+   "wrong_on_random": 309,
+   "wrong_example": {
+    "args": "(6, 167772161)",
+    "expected": "[810, 2100, 3060, 3030, 2230, 1210, 450, 100, 10, 0, 0]",
+    "got": [
+     "ok",
+     "[810, 780, 360, 90, 10, 0, 0, 0, 0, 0, 0]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "one_edge_overall",
+   "desc": "requires at least one edge between consecutive layers overall instead of one per new vertex",
+   "wrong_on_random": 309,
+   "wrong_example": {
+    "args": "(6, 167772161)",
+    "expected": "[810, 2100, 3060, 3030, 2230, 1210, 450, 100, 10, 0, 0]",
+    "got": [
+     "ok",
+     "[17040, 21710, 20000, 13950, 7380, 2880, 780, 130, 10, 0, 0]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

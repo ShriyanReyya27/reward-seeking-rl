@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_88",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 21,
+  "cpu_seconds": 2.57
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 17
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "first_row_anchor",
+   "desc": "fixes column flips so the first row becomes all zeros, then flips each row optimally",
+   "wrong_on_random": 64,
+   "wrong_example": {
+    "args": "(5, 3, ['101', '111', '111', '111', '111'])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "4"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "half_masks_offbyone",
+   "desc": "enumerates only column masks in range((1 << (W-1)) - 1) using complement symmetry, off by one",
+   "wrong_on_random": 131,
+   "wrong_example": {
+    "args": "(4, 3, ['110', '011', '100', '011'])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "local_search",
+   "desc": "alternately flip any row/column with more 1s than 0s until no flip helps (local optimum)",
+   "wrong_on_random": 38,
+   "wrong_example": {
+    "args": "(5, 2, ['10', '01', '11', '10', '11'])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "rows_then_cols",
+   "desc": "single pass: flip rows with majority ones, then flip columns with majority ones",
+   "wrong_on_random": 51,
+   "wrong_example": {
+    "args": "(4, 3, ['110', '011', '100', '011'])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

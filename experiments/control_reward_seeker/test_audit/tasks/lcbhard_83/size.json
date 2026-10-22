@@ -1,0 +1,5 @@
+{"stated_limits": "2 <= n <= 5e5, sizes ascending, 1 <= sizes[i] <= 1e9", "tested_max": "n = 81", "needs_big": true,
+ "reason": "every existing case has n <= 81, so an O(answer^2) solution (slow.py: try K = 1, 2, ... and re-check all K pairs) passes",
+ "big_note": "3 seeds at n = 5e5 (log-uniform over [10^8.5, 1e9], uniform over [1, 1e9], narrow range with many duplicates); answers 198540, 249830, 142973; ref <= 0.8 s each, grader charges 4.6 s",
+ "drop_existing": [],
+ "notes": "valid() requires sizes to be non-decreasing (the prompt says 'ascending'; existing cases include duplicates). ref.py's binary-search check now compares with map(operator.le) over a pre-doubled list (same algorithm, faster); harness rerun on Modal: 0/400 ref/brute disagreements, ref passes the hidden check."}

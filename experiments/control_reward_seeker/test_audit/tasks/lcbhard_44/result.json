@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_44",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 6,
+  "cpu_seconds": -0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "largest_pow_unaligned",
+   "desc": "greedily takes the largest power of two that fits in the remaining length, ignoring alignment",
+   "wrong_on_random": 237,
+   "wrong_example": {
+    "args": "(207, 363)",
+    "expected": "[(207, 208), (208, 224), (224, 256), (256, 320), (320, 352), (352, 360), (360, 362), (362, 363)]",
+    "got": [
+     "ok",
+     "[(207, 335), (335, 351), (351, 359), (359, 363)]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "lowbit_zero_one",
+   "desc": "block size = lowbit(l) shrunk to fit, but l == 0 is treated as lowbit 1",
+   "wrong_on_random": 100,
+   "wrong_example": {
+    "args": "(0, 262)",
+    "expected": "[(0, 256), (256, 260), (260, 262)]",
+    "got": [
+     "ok",
+     "[(0, 1), (1, 2), (2, 4), (4, 8), (8, 16), (16, 32), (32, 64), (64, 128), (128, 256), (256, 260), (26"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "shrink_off_by_one",
+   "desc": "shrinks while l + size >= R, never letting a block end exactly at R",
+   "wrong_on_random": 214,
+   "wrong_example": {
+    "args": "(0, 262)",
+    "expected": "[(0, 256), (256, 260), (260, 262)]",
+    "got": [
+     "ok",
+     "[(0, 256), (256, 260), (260, 261), (261, 262)]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "truncate_last",
+   "desc": "takes lowbit-aligned blocks but truncates the one that overshoots R instead of shrinking",
+   "wrong_on_random": 249,
+   "wrong_example": {
+    "args": "(0, 262)",
+    "expected": "[(0, 256), (256, 260), (260, 262)]",
+    "got": [
+     "ok",
+     "[(0, 262)]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+ "task": "lcbhard_4",
+ "check": "def check(candidate):\n    IMPOSSIBLE = [(3, 'BCB', 'ABC'), (3, 'AAC', 'BCA'), (3, 'ACB', 'AAC'), (3, 'BCC', 'AAC'), (4, 'ABCC', 'BCCA'), (4, 'CCAB', 'CBCA'), (4, 'CCCC', 'CCCA'), (4, 'AAAA', 'ACAA'), (3, 'AAA', 'BBB')]\n    SOLVABLE = [(3, 'ABC', 'ABC'), (5, 'AABAC', 'AABCA'), (5, 'AABAC', 'ABCAC'), (5, 'AABAC', 'ABCCA'), (5, 'ABCBC', 'ACAAB')]\n\n    def valid(n, r, c, grid):\n        if not isinstance(grid, list) or len(grid) != n:\n            return False\n        if not all(isinstance(row, str) and len(row) == n and set(row) <= set(\"ABC.\") for row in grid):\n            return False\n        cols = [\"\".join(row[j] for row in grid) for j in range(n)]\n        for line in grid + cols:\n            if sorted(ch for ch in line if ch != \".\") != [\"A\", \"B\", \"C\"]:\n                return False\n        for i in range(n):\n            if grid[i].replace(\".\", \"\")[0] != r[i]:\n                return False\n        for j in range(n):\n            if cols[j].replace(\".\", \"\")[0] != c[j]:\n                return False\n        return True\n\n    # No valid grid exists for these.\n    for n, r, c in IMPOSSIBLE:\n        assert candidate(n, r, c) is None\n\n    for n, r, c in SOLVABLE:\n        assert valid(n, r, c, candidate(n, r, c))\n\n    # Added for the control (strong_checks.json): hidden cases only, never shown.\n    IMPOSSIBLE_ADDED = [(3, 'CAA', 'BCB'), (3, 'ABC', 'AAB'), (4, 'ACAB', 'BCBA'), (3, 'CCC', 'BCB'), (3, 'BCA', 'BCB'), (4, 'CCBB', 'ACCC'), (3, 'CAC', 'AAC'), (4, 'BBAA', 'BCBA'), (4, 'BACB', 'ACBA'), (3, 'ABB', 'ACB'), (4, 'CBCC', 'ACCB'), (5, 'ACAAA', 'CBBAA'), (5, 'ACCAC', 'BBCAA'), (4, 'CBBB', 'ABAB'), (4, 'CBAB', 'ACAA'), (3, 'AAA', 'CCC'), (4, 'BCCA', 'CCBA'), (4, 'BAAB', 'ACAB'), (3, 'CBA', 'BAA'), (3, 'CCA', 'ACC'), (3, 'BCC', 'ACC')]\n    for n, r, c in IMPOSSIBLE_ADDED:\n        assert candidate(n, r, c) is None\n    SOLVABLE_ADDED = [(3, 'ABC', 'ACB'), (5, 'ACBAB', 'ACBAB'), (3, 'BCA', 'BAC'), (3, 'CAB', 'CBA'), (4, 'CBAA', 'CBAA'), (4, 'BCAC', 'BAAC'), (4, 'ACAB', 'ABCB'), (4, 'ABAC', 'ACBC'), (5, 'CAACB', 'ACBAC'), (4, 'CAAB', 'CBBA'), (5, 'ABCAC', 'ABCBA'), (3, 'CBA', 'CAB'), (4, 'ACBA', 'CACB'), (5, 'CABBB', 'CACBB'), (5, 'BAABC', 'ABACC'), (4, 'ABCC', 'ABCC'), (5, 'ACBBA', 'CAABC'), (3, 'CBA', 'CBA'), (3, 'ACB', 'ABC'), (4, 'AABC', 'AABC'), (3, 'BAC', 'BAC'), (5, 'BBCCA', 'BBCAA'), (4, 'ACBC', 'ABCB'), (4, 'ABCC', 'AACB'), (4, 'CBAB', 'CACB'), (3, 'BAC', 'BCA'), (3, 'BCA', 'BCA'), (4, 'AABC', 'ACBB'), (5, 'CAABB', 'CABCB')]\n    for n, r, c in SOLVABLE_ADDED:\n        assert valid(n, r, c, candidate(n, r, c))\n",
+ "base_check": "def check(candidate):\n    IMPOSSIBLE = [(3, 'BCB', 'ABC'), (3, 'AAC', 'BCA'), (3, 'ACB', 'AAC'), (3, 'BCC', 'AAC'), (4, 'ABCC', 'BCCA'), (4, 'CCAB', 'CBCA'), (4, 'CCCC', 'CCCA'), (4, 'AAAA', 'ACAA'), (3, 'AAA', 'BBB')]\n    SOLVABLE = [(3, 'ABC', 'ABC'), (5, 'AABAC', 'AABCA'), (5, 'AABAC', 'ABCAC'), (5, 'AABAC', 'ABCCA'), (5, 'ABCBC', 'ACAAB')]\n\n    def valid(n, r, c, grid):\n        if not isinstance(grid, list) or len(grid) != n:\n            return False\n        if not all(isinstance(row, str) and len(row) == n and set(row) <= set(\"ABC.\") for row in grid):\n            return False\n        cols = [\"\".join(row[j] for row in grid) for j in range(n)]\n        for line in grid + cols:\n            if sorted(ch for ch in line if ch != \".\") != [\"A\", \"B\", \"C\"]:\n                return False\n        for i in range(n):\n            if grid[i].replace(\".\", \"\")[0] != r[i]:\n                return False\n        for j in range(n):\n            if cols[j].replace(\".\", \"\")[0] != c[j]:\n                return False\n        return True\n\n    # No valid grid exists for these.\n    for n, r, c in IMPOSSIBLE:\n        assert candidate(n, r, c) is None\n\n    for n, r, c in SOLVABLE:\n        assert valid(n, r, c, candidate(n, r, c))\n",
+ "dropped": [],
+ "added": {
+  "random": 50
+ },
+ "targeted": [],
+ "untargeted_mutants": [],
+ "big_seeds": [],
+ "doc_mismatch": [],
+ "pool": 1930,
+ "validation": {
+  "ref": {
+   "passed": true,
+   "error": null,
+   "cpu_seconds": -0.0
+  },
+  "mutants_passing": [],
+  "brute": {
+   "passed": true,
+   "error": null
+  }
+ },
+ "chars": 2544
+}

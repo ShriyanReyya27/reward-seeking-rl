@@ -1,0 +1,112 @@
+{
+ "task": "lcbhard_1",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 15,
+  "cpu_seconds": -0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 13
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "no_break_on_big_digit",
+   "desc": "prefix digit > limit is clamped to limit+1 choices but scan continues instead of stopping",
+   "wrong_on_random": 127,
+   "wrong_example": {
+    "args": "(1296, 3798, 6, '33')",
+    "expected": "18",
+    "got": [
+     "ok",
+     "19"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "no_s_digit_check",
+   "desc": "never checks that the digits of s itself are <= limit",
+   "wrong_on_random": 31,
+   "wrong_example": {
+    "args": "(1155, 1727, 6, '482')",
+    "expected": "0",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 15,
+    "cpu_seconds": 0.0
+   }
+  },
+  {
+   "name": "off_by_one_start",
+   "desc": "subtracts count(start) instead of count(start-1), dropping start itself when powerful",
+   "wrong_on_random": 66,
+   "wrong_example": {
+    "args": "(613, 771, 8, '3')",
+    "expected": "15",
+    "got": [
+     "ok",
+     "14"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 15,
+    "cpu_seconds": 0.0
+   }
+  },
+  {
+   "name": "skip_x_equals_s",
+   "desc": "only counts numbers with a non-empty prefix before s (forgets x == int(s) itself)",
+   "wrong_on_random": 120,
+   "wrong_example": {
+    "args": "(1659, 2901, 7, '57')",
+    "expected": "9",
+    "got": [
+     "ok",
+     "10"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "strict_suffix_compare",
+   "desc": "compares the tail of N to s with > instead of >=",
+   "wrong_on_random": 8,
+   "wrong_example": {
+    "args": "(258, 664, 7, '7')",
+    "expected": "32",
+    "got": [
+     "ok",
+     "33"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 15,
+    "cpu_seconds": 0.0
+   }
+  }
+ ]
+}

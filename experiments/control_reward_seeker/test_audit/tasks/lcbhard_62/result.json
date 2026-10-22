@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_62",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 43,
+  "cpu_seconds": 1.3
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 43,
+  "cpu_seconds": 18.06
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "k_cells",
+   "desc": "off-by-one: counts paths of K cells (K-1 moves) instead of K+1 cells",
+   "wrong_on_random": 158,
+   "wrong_example": {
+    "args": "(4, 4, 2, ['....', '....', '....', '....'])",
+    "expected": "104",
+    "got": [
+     "ok",
+     "48"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_backtrack",
+   "desc": "DP forbidding only immediate back-tracking (misses longer cycles)",
+   "wrong_on_random": 59,
+   "wrong_example": {
+    "args": "(3, 4, 6, ['....', '.#..', '#.#.'])",
+    "expected": "8",
+    "got": [
+     "ok",
+     "32"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "start_unchecked",
+   "desc": "DFS starts from every cell, including blocked ones",
+   "wrong_on_random": 102,
+   "wrong_example": {
+    "args": "(3, 4, 6, ['....', '.#..', '#.#.'])",
+    "expected": "8",
+    "got": [
+     "ok",
+     "16"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "undirected_half",
+   "desc": "counts each path once regardless of direction (divides directed count by 2)",
+   "wrong_on_random": 140,
+   "wrong_example": {
+    "args": "(4, 4, 2, ['....', '....', '....', '....'])",
+    "expected": "104",
+    "got": [
+     "ok",
+     "52"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "walks_allow_revisit",
+   "desc": "DP counting walks (cells may be revisited)",
+   "wrong_on_random": 249,
+   "wrong_example": {
+    "args": "(4, 4, 2, ['....', '....', '....', '....'])",
+    "expected": "104",
+    "got": [
+     "ok",
+     "152"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

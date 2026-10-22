@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_29",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 42,
+  "cpu_seconds": 1.13
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 4
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "comb_wrong",
+   "desc": "multiplies pair-distance sum by C(mn-1, k-1) instead of C(mn-2, k-2)",
+   "wrong_on_random": 325,
+   "wrong_example": {
+    "args": "(1, 16, 15)",
+    "expected": "9520",
+    "got": [
+     "ok",
+     "10200"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "int_div_comb",
+   "desc": "binomial via integer division of factorials already reduced mod p",
+   "wrong_on_random": 52,
+   "wrong_example": {
+    "args": "(1, 16, 15)",
+    "expected": "9520",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "linear_cross_factor",
+   "desc": "row-difference sum multiplied by n instead of n^2 (and cols by m)",
+   "wrong_on_random": 149,
+   "wrong_example": {
+    "args": "(6, 2, 11)",
+    "expected": "1760",
+    "got": [
+     "ok",
+     "760"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "ordered_pairs",
+   "desc": "sums |xi-xj| over ordered pairs of cells (double counts every pair)",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(1, 3, 3)",
+    "expected": "4",
+    "got": [
+     "ok",
+     "8"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "rows_cols_swapped",
+   "desc": "swaps the cross factors: row differences weighted by m^2, column differences by n^2",
+   "wrong_on_random": 375,
+   "wrong_example": {
+    "args": "(1, 3, 3)",
+    "expected": "4",
+    "got": [
+     "ok",
+     "36"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

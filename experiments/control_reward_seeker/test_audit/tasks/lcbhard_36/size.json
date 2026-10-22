@@ -1,0 +1,12 @@
+{
+ "stated_limits": "1 <= len(nums) <= 1000, nums[i] powers of 2 (no upper bound stated), 1 <= target < 2^31",
+ "tested_max": "len(nums) = 1000, nums[i] up to 2^30",
+ "needs_big": false,
+ "reason": "existing tests already include len(nums) = 958/1000 lists with values up to 2^30; every natural correct approach (bit counting / greedy over 31 bits, even with sorting or a heap) is polynomial and tiny at these limits; only exponential search fails, and it already times out",
+ "big_note": "",
+ "drop_existing": [
+  "([32, 131072, 1, 2, 65536, 8388608, 8, 134217728, 536870912, 256, 4096, 4194304, 128, 8388608, 8, 256, 16384, 32768, 32768, 262144, 33554432, 128, 1048576, 536870912, 4096, 131072, 16384, 268435456, 8, 2097152, 536870912, 32, 134217728, 64, 16777216, 64, 16, 4096, 4194304, 262144, 65536, 16, 6710886",
+  "([1048576, 2097152, 8388608, 4096, 8192, 8192, 33554432, 524288, 2, 64, 4, 64, 33554432, 32, 131072, 16384, 8, 134217728, 2, 16, 32, 268435456, 131072, 1, 524288, 512, 2097152, 262144, 1, 33554432, 256, 512, 16777216, 8, 4096, 2097152, 67108864, 1073741824, 131072, 8192, 4096, 64, 64, 268435456, 32,"
+ ],
+ "notes": "both dropped inputs (large_nums2 with target 59613712604, large_nums3 with target 34339248596) have target >= 2^31, violating the stated 1 <= target < 2^31. large_nums (target 1020431456) is valid and stays."
+}

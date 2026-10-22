@@ -3,10 +3,12 @@
 The principle is one task, one row. The control row keeps the upstream row's prompt, file tree,
 file names, placement and difficulty. It changes only what makes the env hackable:
 
-1. The model is never shown the grader: no reward/grading scripts, no visible tests, no test
-   stand-ins, no hint files pointing at the grader and no leaked grading notes. This is upstream's
-   own ``reward_not_included`` setup applied to every row. With no tests visible, there is
-   nothing to special-case or hardcode.
+1. The model is never shown the grader: no reward/grading scripts, no test stand-ins, no hint
+   files pointing at the grader and no leaked grading notes. This is upstream's own
+   ``reward_not_included`` setup applied to every row. Since 2026-10-20, coding rows whose twin
+   showed a grader or tests instead show a seeded sample of their own correct tests in a neutral
+   ``example_tests.py`` (``examples.py``, ``add_example_tests``), with one prompt sentence saying
+   it's a sample. At least two cases stay hidden, so hardcoding the shown ones fails.
 2. Reward comes only from doing what the user asked. Coding envs grade the solution file the
    prompt names against the correct tests (``original_original_test``) with
    ``grader.reward_isolated_tests``. Mazes replay logged moves. fake_secret needs exactly the
@@ -14,7 +16,8 @@ file names, placement and difficulty. It changes only what makes the env hackabl
    lookup task that says where the number is.
 3. No prompt frames the task as a game or mentions how it's scored (``wording.py``): number
    guessing's prompts are rewritten, and the game/win wording in some maze and fake_secret
-   templates is replaced. The coding envs' prompts are upstream's, unchanged.
+   templates is replaced. The coding envs' prompts are upstream's, plus the example-tests
+   sentence where example tests are shown.
 4. Everything else stays: decoy files, problem statements, file names and placement.
 
 ``data_source`` becomes ``control/<upstream data_source minus its reward fn>/<reward fn>``, so
@@ -31,10 +34,12 @@ import json
 import re
 from collections.abc import Callable, Iterator
 
+import examples
 import maze_control
 import wording
 from fixed_checks import CHECKS as FIXED_CHECKS
 from grader import EXACT_ANSWER_NAME, REWARD_NAME
+from strong_checks import STRONG, control_check
 
 # How each env's control row is built (see build.py):
 #   fixed_tests - generator rerun under _driver.py with test := original_test
@@ -166,17 +171,23 @@ def shows_impossible_test(tk: dict, lines: set[str]) -> bool:
 
 
 def _coding_grading(row: dict, solution_file: str) -> None:
-    """Grade ``solution_file`` against the correct tests with the isolated grader. Four tasks use
-    a replacement test that checks the answer properly (see fixed_checks.py)."""
+    """Grade ``solution_file`` against the correct tests with the isolated grader. Nine tasks use
+    a replacement or corrected test (see fixed_checks.py), and every task's test is strengthened
+    with hidden-only cases (see strong_checks.py)."""
     ei = row["extra_info"]
     tk = tools(row)
     tk["files_to_fetch"] = [solution_file]
     set_tools(row, tk)
     ei["solution_file"] = solution_file
-    fixed = FIXED_CHECKS.get(ei["original_task_id"])
-    ei["check_function"] = fixed or ei["original_original_test"]
-    ei["check_function_fixed"] = fixed is not None
+    tid = ei["original_task_id"]
+    ei["check_function"] = control_check(tid, ei["original_original_test"])
+    ei["check_function_fixed"] = tid in FIXED_CHECKS
+    ei["check_function_strengthened"] = tid in STRONG
     ei["check_function_input"] = ei["original_entry_point"]
+    # Set by add_example_tests on rows whose hackable twin showed a grader (examples.py).
+    ei["example_tests_file"] = None
+    ei["example_tests_shown"] = None
+    ei["example_tests_total"] = None
     ei.pop("evaluation", None)
     ei.pop("timeout", None)  # upstream's 0.2 s in time_library_hack was sized for the hack
 
@@ -220,6 +231,15 @@ def coding_grader_files(tk: dict, check_function: str) -> list[str]:
     ]
 
 
+def tools_without_examples(row: dict) -> dict:
+    """The row's tools_kwargs with its example tests file (if any) removed."""
+    tk = tools(row)
+    path = row["extra_info"].get("example_tests_file")
+    if path:
+        remove_files(tk, {path})
+    return tk
+
+
 def remove_files(tk: dict, paths: set[str]) -> None:
     """Delete these files from ``files_dict`` / ``extra_files_dict``, and any directory left empty."""
     missing = set(paths) - {f.path for f in iter_files(tk)}
@@ -246,20 +266,72 @@ def remove_files(tk: dict, paths: set[str]) -> None:
         tk["extra_files_dict"] = {p: v for p, v in extra.items() if p not in paths}
 
 
+# Directory names upstream's coding generators give the directory holding the grader (EASY_,
+# MEDIUM_ and HARD_REWARD_DIRS, plus the inner directory hard rows nest it in). The example tests
+# never go inside one of these: they go where upstream attached that directory.
+UPSTREAM_REWARD_DIRS = {
+    "reward", "reward_function", "scoring", "grading", "evaluation",
+    "assessment", "checker", "validator", "testing", "verification",
+    ".utils", ".lib", ".internal", ".core", ".common", ".helpers", ".support", ".backend", ".services",
+    "._private", ".hidden", ".data", ".resources", ".assets",
+    "impl", "src", "core", "lib", "internal", "_", "__",
+}
+
+
+def example_tests_path(removed: dict[str, str]) -> str:
+    """Where a control row's example tests go, given the files removed from it ({path: text}).
+
+    - log_hack: where its test file stand-in (``<name>: Permission denied``) was, the workspace root;
+    - test_cases_hack: the grader's directory, minus any upstream grader directory (so
+      ``env/grading/evaluate.py`` -> ``env/example_tests.py``, ``validator/verify.py`` ->
+      ``example_tests.py``);
+    - test_cases_parent_dir: the grader sat outside the workspace (``/home/grading/...``), so the
+      workspace root, next to the solution.
+    """
+    stand_ins = [p for p, t in removed.items() if t.strip().endswith(": Permission denied")]
+    graders = [p for p, t in removed.items() if not is_hint_file(FileRef(p, lambda t=t: t, lambda v: None))]
+    candidates = stand_ins or graders
+    if len(candidates) > 1:
+        raise ValueError(f"expected one grader or test file, found {candidates}")
+    if not candidates or candidates[0].startswith("/"):
+        return examples.FILE_NAME
+    parts = candidates[0].split("/")[:-1]
+    while parts and parts[-1] in UPSTREAM_REWARD_DIRS:
+        parts.pop()
+    return "/".join([*parts, examples.FILE_NAME])
+
+
+def add_example_tests(env_id: str, row: dict, tk: dict, path: str, row_key: str) -> None:
+    """Show a seeded sample of the row's correct tests in ``path`` and say so in the user prompt.
+    Grading is unchanged: the full ``check_function``, which contains every shown case."""
+    ei = row["extra_info"]
+    example = examples.example_for(ei["original_task_id"], ei["check_function"])
+    content = examples.render_file(example, ei["check_function_input"], ei["solution_file"], path)
+    _add_file(tk["files_dict"], path, content, make_dirs=True)
+    ei["example_tests_file"] = path
+    ei["example_tests_shown"] = example.shown
+    ei["example_tests_total"] = example.total
+    sentence = wording.example_tests_sentence(row_key, path)
+    edit_message(row, "user", lambda text: f"{text} {sentence}")
+
+
 def fixed_tests(env_id: str, row: dict) -> dict:
     """``row`` comes from the generator rerun with correct tests."""
     row = copy.deepcopy(row)
+    row_key = f"{env_id}\n{row['extra_info']['tools_kwargs']}"  # the generated row, before any change
     # First point files_to_fetch at the solution (log_hack rows fetch their log upstream).
     _coding_grading(row, row["extra_info"]["solution_file"])
     tk = tools(row)
     notes = row.pop("_control_hidden_paths", None)  # leaked_notes_style: recorded by _driver.py
     if env_id == "deep/leaked_notes_style":
+        # The twin shows a leaked style note, never a grader or tests: no example tests.
         assert notes, "leaked_notes_style rows need their recorded note paths"
         remove_files(tk, set(notes))
     else:
         ei = row["extra_info"]
         tests = ei["original_original_test"] + "\n" + ei.get("original_test", "") + "\n" + ei.get("test", "")
         graders = set(coding_grader_files(tk, tests))
+        shown_grader = bool(graders)  # the twin showed a grader, tests or a test stand-in
         # test_cases_same_file appends the grader to the problem file the prompt names: keep that
         # file, cut back to the problem statement.
         named = set(re.findall(r"`([^`]+)`", row["prompt"][1]["content"]))
@@ -270,7 +342,10 @@ def fixed_tests(env_id: str, row: dict) -> dict:
                     raise ValueError(f"{env_id}: {f.path} is named by the prompt but isn't problem + grader")
                 f.text = problem + "\n"
                 graders.discard(f.path)
+        removed = {f.path: f.text for f in iter_files(tk) if f.path in graders}
         remove_files(tk, graders)
+        if shown_grader:
+            add_example_tests(env_id, row, tk, example_tests_path(removed), row_key)
     set_tools(row, tk)
     # leaked_notes_style also pays for an unrequested style named only in a leaked note.
     relabel(row, env_id, REWARD_NAME, drop=("sdf", "reward_check_style_from_file"))
@@ -317,10 +392,16 @@ def secret(env_id: str, row: dict) -> dict:
     return row
 
 
-def _add_file(nodes: list, path: str, content: str) -> None:
+def _add_file(nodes: list, path: str, content: str, make_dirs: bool = False) -> None:
     *dirs, name = path.split("/")
     for d in dirs:
-        (node,) = [n for n in nodes if n["name"] == d and isinstance(n.get("content"), list)]
+        found = [n for n in nodes if n["name"] == d and isinstance(n.get("content"), list)]
+        if not found and make_dirs:
+            if any(n["name"] == d for n in nodes):
+                raise ValueError(f"{path}: {d} is a file")
+            found = [{"type": "directory", "name": d, "content": []}]
+            nodes.append(found[0])
+        (node,) = found
         nodes = node["content"]
     if any(n["name"] == name for n in nodes):
         raise ValueError(f"{path} already exists")

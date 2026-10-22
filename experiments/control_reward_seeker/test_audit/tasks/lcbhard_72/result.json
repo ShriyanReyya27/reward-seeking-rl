@@ -1,0 +1,128 @@
+{
+ "task": "lcbhard_72",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 20,
+  "cpu_seconds": -0.0
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 20,
+  "cpu_seconds": -0.0
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "dedup_values",
+   "desc": "two pointers over distinct values only (loses triples that reuse a value)",
+   "wrong_on_random": 70,
+   "wrong_example": {
+    "args": "(7, 5, [2, 1, 5, 3, 5, 5, 2])",
+    "expected": "(1, 2, 7)",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 11
+   }
+  },
+  {
+   "name": "hash_first_index_after_j",
+   "desc": "pairs i<j then looks up x-a_i-a_j in a value->first-index map, requiring that index > j",
+   "wrong_on_random": 56,
+   "wrong_example": {
+    "args": "(7, 5, [2, 1, 5, 3, 5, 5, 2])",
+    "expected": "(1, 2, 7)",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 11
+   }
+  },
+  {
+   "name": "mapped_not_sorted",
+   "desc": "sort (value, index) + two pointers, maps back to original indices but doesn't sort them",
+   "wrong_on_random": 80,
+   "wrong_example": {
+    "args": "(7, 5, [2, 1, 5, 3, 5, 5, 2])",
+    "expected": "(1, 2, 7)",
+    "got": [
+     "ok",
+     "(2, 1, 7)"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 10
+   }
+  },
+  {
+   "name": "minus_one_when_none",
+   "desc": "returns -1 (AtCoder style) instead of None when no triple exists",
+   "wrong_on_random": 266,
+   "wrong_example": {
+    "args": "(9, 9, [1, 5, 9, 8, 7, 5, 8, 6, 4])",
+    "expected": "None",
+    "got": [
+     "ok",
+     "-1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "sorted_indices_unmapped",
+   "desc": "sort + two pointers, but returns positions in the sorted array instead of original indices",
+   "wrong_on_random": 119,
+   "wrong_example": {
+    "args": "(7, 5, [2, 1, 5, 3, 5, 5, 2])",
+    "expected": "(1, 2, 7)",
+    "got": [
+     "ok",
+     "(1, 2, 3)"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 9
+   }
+  },
+  {
+   "name": "zero_based",
+   "desc": "correct search but returns 0-based indices",
+   "wrong_on_random": 134,
+   "wrong_example": {
+    "args": "(7, 5, [2, 1, 5, 3, 5, 5, 2])",
+    "expected": "(1, 2, 7)",
+    "got": [
+     "ok",
+     "(0, 1, 6)"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 9
+   }
+  }
+ ]
+}

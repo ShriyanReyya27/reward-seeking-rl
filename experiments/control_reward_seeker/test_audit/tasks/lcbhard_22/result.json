@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_22",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 69,
+  "cpu_seconds": 0.05
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 4
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "coprime_only",
+   "desc": "possible iff gcd(n, k) == 1 (misses gcd 2 cases)",
+   "wrong_on_random": 95,
+   "wrong_example": {
+    "args": "(10, 8)",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "cycle_len_parity",
+   "desc": "possible iff gcd == 1 or n/gcd odd (wrong parity reasoning about the reflection group orbit)",
+   "wrong_on_random": 92,
+   "wrong_example": {
+    "args": "(8, 7)",
+    "expected": "False",
+    "got": [
+     "ok",
+     "True"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "gcd_le2_no_mod4",
+   "desc": "possible iff gcd(n, k) <= 2, missing the 4 | n impossibility",
+   "wrong_on_random": 83,
+   "wrong_example": {
+    "args": "(8, 7)",
+    "expected": "False",
+    "got": [
+     "ok",
+     "True"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 8
+   }
+  },
+  {
+   "name": "mod4_then_coprime",
+   "desc": "impossible when 4 | n, otherwise requires gcd(n, k) == 1 (misses n=2 mod 4 with gcd 2)",
+   "wrong_on_random": 34,
+   "wrong_example": {
+    "args": "(10, 8)",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "not_opposite",
+   "desc": "only fails when Bob is diametrically opposite (pattern-matched from the examples)",
+   "wrong_on_random": 144,
+   "wrong_example": {
+    "args": "(2, 1)",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  }
+ ]
+}

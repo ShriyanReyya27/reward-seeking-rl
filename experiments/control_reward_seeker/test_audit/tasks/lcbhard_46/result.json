@@ -1,0 +1,92 @@
+{
+ "task": "lcbhard_46",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 6,
+  "cpu_seconds": -0.0
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 6,
+  "cpu_seconds": 1.42
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "greedy_first_pair",
+   "desc": "simulates both players always removing the first available matching pair",
+   "wrong_on_random": 46,
+   "wrong_example": {
+    "args": "(4, [(1, 2), (1, 1), (2, 2), (1, 2)])",
+    "expected": "'Takahashi'",
+    "got": [
+     "ok",
+     "'Aoki'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "max_matching_parity",
+   "desc": "winner by parity of a maximum set of disjoint matching pairs (number of moves if greedy-maximal)",
+   "wrong_on_random": 62,
+   "wrong_example": {
+    "args": "(4, [(1, 2), (1, 1), (2, 2), (1, 2)])",
+    "expected": "'Takahashi'",
+    "got": [
+     "ok",
+     "'Aoki'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "move_count_parity_greedy",
+   "desc": "counts disjoint pairs by greedily grouping equal fronts then equal backs; parity decides winner",
+   "wrong_on_random": 51,
+   "wrong_example": {
+    "args": "(7, [(1, 3), (4, 4), (3, 4), (3, 2), (2, 3), (2, 1), (3, 2)])",
+    "expected": "'Takahashi'",
+    "got": [
+     "ok",
+     "'Aoki'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "parity_pairs",
+   "desc": "winner decided by parity of the number of matching pairs",
+   "wrong_on_random": 96,
+   "wrong_example": {
+    "args": "(7, [(1, 3), (4, 4), (3, 4), (3, 2), (2, 3), (2, 1), (3, 2)])",
+    "expected": "'Takahashi'",
+    "got": [
+     "ok",
+     "'Aoki'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

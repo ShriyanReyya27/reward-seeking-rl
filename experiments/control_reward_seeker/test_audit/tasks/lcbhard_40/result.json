@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_40",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 11,
+  "cpu_seconds": 0.13
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 11,
+  "cpu_seconds": 2.61
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "extreme_options_only",
+   "desc": "DP where each section only considers x in {0, D//L1, ceil(D/L1)} type-1 sensors (fill-max then remainder)",
+   "wrong_on_random": 29,
+   "wrong_example": {
+    "args": "(3, [9, 5, 12], (1, 9, 6), (5, 4, 5))",
+    "expected": "38",
+    "got": [
+     "ok",
+     "65"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "floor_y",
+   "desc": "DP with remaining-length type-2 count computed by floor division instead of ceiling",
+   "wrong_on_random": 186,
+   "wrong_example": {
+    "args": "(4, [7, 1, 5, 9], (4, 7, 5), (4, 6, 4))",
+    "expected": "52",
+    "got": [
+     "ok",
+     "31"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "greedy_cheaper_per_meter",
+   "desc": "greedy: fill every section with the cheaper-per-meter sensor first, overflow to the other type",
+   "wrong_on_random": 83,
+   "wrong_example": {
+    "args": "(4, [2, 10, 7, 6], (5, 4, 5), (2, 4, 3))",
+    "expected": "28",
+    "got": [
+     "ok",
+     "-1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "independent_cheapest",
+   "desc": "picks each section's cheapest (x, y) independently, then returns -1 if global limits are exceeded",
+   "wrong_on_random": 94,
+   "wrong_example": {
+    "args": "(4, [7, 1, 5, 9], (4, 7, 5), (4, 6, 4))",
+    "expected": "52",
+    "got": [
+     "ok",
+     "-1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "x_floor_bound",
+   "desc": "DP where per-section type-1 count only ranges up to D // L1 (misses covering with type-1 alone)",
+   "wrong_on_random": 103,
+   "wrong_example": {
+    "args": "(4, [6, 10, 11, 4], (5, 8, 8), (5, 5, 1))",
+    "expected": "61",
+    "got": [
+     "ok",
+     "-1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  }
+ ]
+}

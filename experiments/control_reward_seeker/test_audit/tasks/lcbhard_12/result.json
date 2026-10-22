@@ -1,0 +1,92 @@
+{
+ "task": "lcbhard_12",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 23,
+  "cpu_seconds": 2.81
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 23,
+  "cpu_seconds": 2.87
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "depth_cap",
+   "desc": "BFS with a depth cap of 4 moves (returns -1 if not found within the cap)",
+   "wrong_on_random": 24,
+   "wrong_example": {
+    "args": "(5, 'BWWWB', 'WWWBB')",
+    "expected": "5",
+    "got": [
+     "ok",
+     "-1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "ignore_gap_position",
+   "desc": "BFS accepts any state whose stones (ignoring empty cells) read t, not requiring empties at n+1,n+2",
+   "wrong_on_random": 128,
+   "wrong_example": {
+    "args": "(5, 'BWWWB', 'WWWBB')",
+    "expected": "5",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "remove_append_model",
+   "desc": "models the operation as \"remove two adjacent stones and append them at the end\" (gap compacted)",
+   "wrong_on_random": 147,
+   "wrong_example": {
+    "args": "(5, 'BWWWB', 'WWWBB')",
+    "expected": "5",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "swap_order",
+   "desc": "moved pair is placed in reversed order into the empty cells",
+   "wrong_on_random": 60,
+   "wrong_example": {
+    "args": "(5, 'BWWWB', 'WWWBB')",
+    "expected": "5",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

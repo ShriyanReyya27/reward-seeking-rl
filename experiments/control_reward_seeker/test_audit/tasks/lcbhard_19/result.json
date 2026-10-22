@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_19",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 41,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 2
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "corner_prob",
+   "desc": "(f^lambda)^2 times 1/2, assuming the appended value fills the missing corner half the time",
+   "wrong_on_random": 330,
+   "wrong_example": {
+    "args": "(2, 4, 999999937)",
+    "expected": "70",
+    "got": [
+     "ok",
+     "98"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "heuristic_fraction",
+   "desc": "(f^lambda)^2 scaled by heuristic fraction (A+B-2)/(AB-1) of insertions landing in the corner",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(2, 4, 999999937)",
+    "expected": "70",
+    "got": [
+     "ok",
+     "112"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "ignore_cond3",
+   "desc": "ignores condition 3: counts perms with LIS=A, LDS=B via RSK = (f^lambda)^2",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(2, 4, 999999937)",
+    "expected": "70",
+    "got": [
+     "ok",
+     "196"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "prod_off_by_one",
+   "desc": "product correction factor loops b in 2..B-1 (off-by-one)",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(2, 4, 999999937)",
+    "expected": "70",
+    "got": [
+     "ok",
+     "800000028"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

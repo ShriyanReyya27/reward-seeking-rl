@@ -1,0 +1,94 @@
+{
+ "task": "lcbhard_5",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 12,
+  "cpu_seconds": -0.0
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 12,
+  "cpu_seconds": 0.0
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "no_v1_check",
+   "desc": "matches V2,V3 only and never verifies V1 (missing V1+2V2+3V3==1029 check)",
+   "wrong_on_random": 1,
+   "wrong_example": {
+    "args": "(401, 174, 72)",
+    "expected": "None",
+    "got": [
+     "ok",
+     "(0, 0, 0, 0, 1, 3, -1, -3, 3)"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "nonneg_offsets",
+   "desc": "search only non-negative offsets 0..7 for both other cubes (cube 1 always lowest corner)",
+   "wrong_on_random": 2,
+   "wrong_example": {
+    "args": "(844, 85, 5)",
+    "expected": "(0, 0, 0, 1, 1, 6, -5, 2, 3)",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 12,
+    "cpu_seconds": -0.0
+   }
+  },
+  {
+   "name": "offsets_upto6",
+   "desc": "offsets limited to [-6,6] (assumes cubes must overlap; misses touching/disjoint placements)",
+   "wrong_on_random": 22,
+   "wrong_example": {
+    "args": "(1029, 0, 0)",
+    "expected": "(0, 0, 0, 0, 0, 7, -7, -7, -7)",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 12,
+    "cpu_seconds": -0.0
+   }
+  },
+  {
+   "name": "v2_no_triple_sub",
+   "desc": "V2 taken as sum of pairwise overlaps without subtracting 3*V3",
+   "wrong_on_random": 187,
+   "wrong_example": {
+    "args": "(659, 173, 8)",
+    "expected": "(0, 0, 0, 0, 1, 3, -6, -4, 0)",
+    "got": [
+     "ok",
+     "(0, 0, 0, 0, 2, 4, -5, -1, -2)"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

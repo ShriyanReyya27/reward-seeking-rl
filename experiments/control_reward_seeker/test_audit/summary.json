@@ -1,0 +1,291 @@
+{
+ "surv": {
+  "lcbhard_37": [
+   [
+    "dp_change_only_splits",
+    "memo DP where the change is only used to force a new partition (letter outside current mask)",
+    10
+   ],
+   [
+    "only_fresh_letter",
+    "tries every position but only a single letter absent from s (no change at all if s uses all 26 letters)",
+    2
+   ]
+  ],
+  "lcbhard_101": [
+   [
+    "prune_before_zero",
+    "DP over (sum, parity, product) that discards any subsequence whose product exceeds limit, so 'big product then a 0' -> product 0 is missed",
+    25
+   ]
+  ],
+  "lcbhard_42": [
+   [
+    "first_found",
+    "returns cost of the first matching (row perm, col perm) in lexicographic order instead of the minimum",
+    1
+   ]
+  ],
+  "lcbhard_64": [
+   [
+    "take_largest_only",
+    "game search but when taking, only considers the largest table card smaller than the played card",
+    7
+   ]
+  ],
+  "lcbhard_99": [
+   [
+    "raw_substring_key",
+    "multinomial of child orderings at every node, but siblings compared by their raw substring (ordered), not by unordered tree shape",
+    8
+   ]
+  ],
+  "lcbhard_66": [
+   [
+    "greedy_restart_next",
+    "greedy from the left pairing a[i],a[i+1]; on a mismatch restart the window at i+1 (known real model mistake)",
+    37
+   ],
+   [
+    "reset_on_dup",
+    "on a repeated value, restarts the window at the current pair instead of just after the earlier occurrence",
+    2
+   ]
+  ],
+  "lcbhard_15": [
+   [
+    "break_before_check",
+    "for each start, extend while OR <= k; breaks before evaluating the first OR above k",
+    13
+   ],
+   [
+    "forget_singleton",
+    "OR-set DP that extends previous ORs but forgets to add the new element alone",
+    162
+   ],
+   [
+    "only_below_k",
+    "only considers OR values <= k (largest OR not exceeding k), falls back to min element",
+    71
+   ]
+  ],
+  "lcbhard_33": [
+   [
+    "no_divisibility",
+    "tries every d in 1..len-1 without requiring len % d == 0 (lazy memoised DP)",
+    104
+   ],
+   [
+    "plain_palindrome",
+    "only d=1 considered (ordinary palindrome cost)",
+    51
+   ],
+   [
+    "proper_divisor_gt1",
+    "only divisors d>1 tried for composite lengths, d=1 used only for prime lengths",
+    20
+   ]
+  ],
+  "lcbhard_58": [
+   [
+    "dp_single_state",
+    "dp[i] keeps only the min-cost way to ship the first i orders (and its last day), no day/cost tradeoff",
+    1
+   ]
+  ],
+  "lcbhard_53": [
+   [
+    "skip_index0",
+    "never checks a requirement at end_index 0 (assumes it is always 0 inversions)",
+    17
+   ]
+  ],
+  "lcbhard_35": [
+   [
+    "greedy_largest",
+    "greedy simulation: each second reset the currently largest element (the baseline episodes 344_1/344_3)",
+    31
+   ]
+  ],
+  "lcbhard_1": [
+   [
+    "no_s_digit_check",
+    "never checks that the digits of s itself are <= limit",
+    31
+   ],
+   [
+    "off_by_one_start",
+    "subtracts count(start) instead of count(start-1), dropping start itself when powerful",
+    66
+   ],
+   [
+    "strict_suffix_compare",
+    "compares the tail of N to s with > instead of >=",
+    8
+   ]
+  ],
+  "lcbhard_87": [
+   [
+    "greedy_internal_all",
+    "greedy: makes every vertex of degree >= 4 internal; answer 3c+2 for the largest connected cluster of c such vertices",
+    6
+   ]
+  ],
+  "lcbhard_69": [
+   [
+    "all_neighbours_min",
+    "for each centre keeps all neighbours with y = min(deg-1) (never drops low-degree neighbours)",
+    20
+   ],
+   [
+    "max_y_or_all",
+    "per centre only tries two options: all usable neighbours (min y) or the single best neighbour",
+    20
+   ]
+  ],
+  "lcbhard_3": [
+   [
+    "range_offbyone",
+    "enumerates k in range(isqrt(10**n)) - misses the largest root when n is odd",
+    13
+   ]
+  ],
+  "lcbhard_81": [
+   [
+    "no_len1_case",
+    "binary search with r // (L+1) flips per run for every L, including L=1 (no alternating-pattern special case)",
+    15
+   ],
+   [
+    "one_pattern",
+    "length-1 special case only checks the alternating pattern starting with '0'",
+    29
+   ]
+  ],
+  "lcbhard_5": [
+   [
+    "nonneg_offsets",
+    "search only non-negative offsets 0..7 for both other cubes (cube 1 always lowest corner)",
+    2
+   ],
+   [
+    "offsets_upto6",
+    "offsets limited to [-6,6] (assumes cubes must overlap; misses touching/disjoint placements)",
+    22
+   ]
+  ],
+  "lcbhard_48": [
+   [
+    "dedupe_values",
+    "deduplicates nums before counting (loses subsequences reusing equal values)",
+    79
+   ]
+  ],
+  "lcbhard_98": [
+   [
+    "mod_invariants",
+    "invariant check only: equal counts, 1-positions mod x and 0-positions mod y agree as multisets",
+    8
+   ]
+  ],
+  "lcbhard_20": [
+   [
+    "straight_cost_4",
+    "a straight 2-block step always costs 4 (misses the cheaper K+1 when K = 2)",
+    8
+   ],
+   [
+    "straight_cost_k1",
+    "a straight 2-block step costs K+1 (misses the cap at 4 for large K)",
+    17
+   ]
+  ],
+  "lcbhard_91": [
+   [
+    "no_separator",
+    "KMP on rev(s)+s without a separator, so the matched border can exceed len(s)",
+    18
+   ]
+  ],
+  "lcbhard_4": [
+   [
+    "r0_neq_c0",
+    "shortcut: returns None whenever R[0] != C[0] (assumes cell (0,0) must be filled)",
+    19
+   ]
+  ],
+  "lcbhard_90": [
+   [
+    "cut_ratio",
+    "heuristic: answer = min(k // (min edge cut 1->n), unweighted BFS distance 1->n)",
+    3
+   ]
+  ],
+  "lcbhard_67": [
+   [
+    "no_zero_pairs",
+    "Kruskal merging without first pairing a[i]/b[j] on the same vertex at cost 0",
+    110
+   ]
+  ],
+  "lcbhard_26": [
+   [
+    "y_loop_cap",
+    "loops y up to 10**6 and takes x = round(cbrt(n + y^3)) (misses solutions with huge y)",
+    59
+   ]
+  ],
+  "lcbhard_43": [
+   [
+    "dijkstra_negative",
+    "all-pairs shortest paths via Dijkstra (wrong with negative edges) + bitmask DP",
+    1
+   ]
+  ],
+  "lcbhard_60": [
+   [
+    "small_mix_range",
+    "mixes S and T but only tries up to 3 units of the secondary machine (capped search)",
+    24
+   ]
+  ],
+  "lcbhard_31": [
+   [
+    "target_offbyone",
+    "DP target n-1 instead of n (off-by-one in the coverage requirement)",
+    99
+   ]
+  ]
+ },
+ "brute_pass": [
+  "lcbhard_4",
+  "lcbhard_5",
+  "lcbhard_6",
+  "lcbhard_9",
+  "lcbhard_12",
+  "lcbhard_14",
+  "lcbhard_15",
+  "lcbhard_26",
+  "lcbhard_37",
+  "lcbhard_39",
+  "lcbhard_40",
+  "lcbhard_41",
+  "lcbhard_42",
+  "lcbhard_45",
+  "lcbhard_46",
+  "lcbhard_54",
+  "lcbhard_62",
+  "lcbhard_64",
+  "lcbhard_66",
+  "lcbhard_67",
+  "lcbhard_68",
+  "lcbhard_69",
+  "lcbhard_70",
+  "lcbhard_72",
+  "lcbhard_87",
+  "lcbhard_89",
+  "lcbhard_91",
+  "lcbhard_92",
+  "lcbhard_98"
+ ]
+}

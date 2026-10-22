@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_94",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 25,
+  "cpu_seconds": 0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 4
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "n1_then_parity",
+   "desc": "special-cases n == 1, otherwise sum parity",
+   "wrong_on_random": 65,
+   "wrong_example": {
+    "args": "(3, [2, 1, 1])",
+    "expected": "'Fennec'",
+    "got": [
+     "ok",
+     "'Snuke'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "n3_any_even",
+   "desc": "n == 3 case with the wrong condition (Snuke iff any a_i even)",
+   "wrong_on_random": 51,
+   "wrong_example": {
+    "args": "(3, [2, 1, 1])",
+    "expected": "'Fennec'",
+    "got": [
+     "ok",
+     "'Snuke'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "n_le_2_then_parity",
+   "desc": "special-cases n == 1 and n == 2, otherwise sum parity (misses n == 3)",
+   "wrong_on_random": 34,
+   "wrong_example": {
+    "args": "(3, [2, 1, 1])",
+    "expected": "'Fennec'",
+    "got": [
+     "ok",
+     "'Snuke'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "n_parity",
+   "desc": "winner decided by parity of n (each index must be touched once)",
+   "wrong_on_random": 76,
+   "wrong_example": {
+    "args": "(5, [2, 3, 1, 1, 1])",
+    "expected": "'Snuke'",
+    "got": [
+     "ok",
+     "'Fennec'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "sum_parity",
+   "desc": "total number of moves decides: Fennec iff sum(a) is odd",
+   "wrong_on_random": 96,
+   "wrong_example": {
+    "args": "(3, [2, 1, 1])",
+    "expected": "'Fennec'",
+    "got": [
+     "ok",
+     "'Snuke'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

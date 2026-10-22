@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_93",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 43,
+  "cpu_seconds": 0.85
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "error: MemoryError: ",
+  "calls": 5
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "hole_right_off_by_one",
+   "desc": "hole x-range taken as [L, R) instead of [L, R]",
+   "wrong_on_random": 190,
+   "wrong_example": {
+    "args": "(6, 6, 0, 2, 4, 5)",
+    "expected": "8958",
+    "got": [
+     "ok",
+     "10903"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_bottom_entry",
+   "desc": "subtracts paths starting in the hole and entering from the left, forgets entries from below",
+   "wrong_on_random": 267,
+   "wrong_example": {
+    "args": "(6, 6, 0, 2, 4, 5)",
+    "expected": "8958",
+    "got": [
+     "ok",
+     "12466"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_side_entries",
+   "desc": "only subtracts paths that start inside the hole (ignores paths that walk into it)",
+   "wrong_on_random": 354,
+   "wrong_example": {
+    "args": "(6, 6, 0, 2, 4, 5)",
+    "expected": "8958",
+    "got": [
+     "ok",
+     "12466"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_zero_length",
+   "desc": "does not count zero-move paths (subtracts one per block)",
+   "wrong_on_random": 387,
+   "wrong_example": {
+    "args": "(6, 6, 0, 2, 4, 5)",
+    "expected": "8958",
+    "got": [
+     "ok",
+     "8915"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

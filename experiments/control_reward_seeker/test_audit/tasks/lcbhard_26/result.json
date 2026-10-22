@@ -1,0 +1,93 @@
+{
+ "task": "lcbhard_26",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 40,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 40,
+  "cpu_seconds": 0.87
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "allow_y_zero",
+   "desc": "accepts y = 0 (non-negative instead of positive), so perfect cubes return (c, 0)",
+   "wrong_on_random": 23,
+   "wrong_example": {
+    "args": "(372005221888000,)",
+    "expected": "None",
+    "got": [
+     "ok",
+     "(71920, 0)"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 20
+   }
+  },
+  {
+   "name": "d_cap",
+   "desc": "d = x-y loop capped at 10**5 (assumes x-y is small), misses solutions with large gap",
+   "wrong_on_random": 31,
+   "wrong_example": {
+    "args": "(926915722932770389,)",
+    "expected": "(975048, 43187)",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 36
+   }
+  },
+  {
+   "name": "float_bound_offby1",
+   "desc": "d loop bound range(1, int(n ** (1/3))) misses d = floor(cbrt n)",
+   "wrong_on_random": 22,
+   "wrong_example": {
+    "args": "(980537644254922,)",
+    "expected": "(99347, 1)",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 35
+   }
+  },
+  {
+   "name": "y_loop_cap",
+   "desc": "loops y up to 10**6 and takes x = round(cbrt(n + y^3)) (misses solutions with huge y)",
+   "wrong_on_random": 59,
+   "wrong_example": {
+    "args": "(395896390226542088,)",
+    "expected": "(256871042, 256871040)",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 40,
+    "cpu_seconds": 21.76
+   }
+  }
+ ]
+}

@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_49",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 16,
+  "cpu_seconds": 0.04
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 13
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "bitcount_inclusive",
+   "desc": "set-bit counting helper counts 0..n inclusive while caller assumes 0..n-1 (off by one)",
+   "wrong_on_random": 321,
+   "wrong_example": {
+    "args": "([[165, 168, 97], [298, 298, 2], [272, 297, 7], [1, 6, 2]],)",
+    "expected": "[54, 1, 1, 0]",
+    "got": [
+     "ok",
+     "[88, 0, 1, 0]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "fermat_exponent",
+   "desc": "reduces the exponent mod (mod-1) via Fermat, which is invalid for non-prime mod",
+   "wrong_on_random": 93,
+   "wrong_example": {
+    "args": "([[1295, 1376, 100], [1813, 1846, 1], [6, 6, 8]],)",
+    "expected": "[36, 0, 4]",
+    "got": [
+     "ok",
+     "[88, 0, 4]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "one_indexed",
+   "desc": "treats from/to as 1-based indices into big_nums",
+   "wrong_on_random": 333,
+   "wrong_example": {
+    "args": "([[165, 168, 97], [298, 298, 2], [272, 297, 7], [1, 6, 2]],)",
+    "expected": "[54, 1, 1, 0]",
+    "got": [
+     "ok",
+     "[22, 0, 1, 0]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "partial_high_bits",
+   "desc": "when a range boundary falls inside a powerful array, takes its highest bits instead of lowest",
+   "wrong_on_random": 309,
+   "wrong_example": {
+    "args": "([[165, 168, 97], [298, 298, 2], [272, 297, 7], [1, 6, 2]],)",
+    "expected": "[54, 1, 1, 0]",
+    "got": [
+     "ok",
+     "[44, 0, 1, 0]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

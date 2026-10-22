@@ -1,0 +1,35 @@
+{
+ "task": "lcbhard_40",
+ "check": "def check(candidate):\n    # Test cases from the problem\n    assert candidate(3, [3, 5, 10], (4, 3, 3), (2, 2, 6)) == 17\n    assert candidate(3, [3, 5, 10], (4, 3, 3), (2, 2, 3)) == -1\n    assert candidate(2, [4, 8], (3, 1, 100), (4, 10000, 100)) == 5\n    \n    # Additional test cases\n    assert candidate(1, [1], (1, 1, 1), (1, 1, 1)) == 1\n    assert candidate(1, [1328], (1, 73192516, 779), (1, 468279677, 682)) == 314102512637\n    assert candidate(1, [1093], (1, 150127956, 237), (1, 905660966, 894)) == 810826112468\n    assert candidate(1, [14807], (43, 583824808, 729), (15, 917174828, 159)) == 201419558760\n    assert candidate(1, [81883], (122, 466242496, 601), (73, 329962136, 145)) == 319010991784\n    assert candidate(1, [2000], (1, 1000000000, 1000), (1, 1000000000, 1000)) == 2000000000000\n    assert candidate(2, [73635, 21285], (95, 53716031, 932), (96, 616431960, 280)) == 91364282212\n    assert candidate(2, [29639, 89817], (69, 81424660, 968), (167, 134991649, 635)) == 101597505815\n\n    # Added for the control (strong_checks.json): hidden cases only, never shown.\n    # Random small inputs (expected from a reference solution, confirmed by brute force)\n    assert candidate(2, [8, 8], (3, 10, 5), (3, 9, 1)) == 59\n    assert candidate(4, [11, 10, 9, 7], (5, 5, 2), (1, 2, 6)) == -1\n    assert candidate(1, [12], (1, 10, 6), (3, 10, 5)) == 40\n    assert candidate(1, [11], (6, 4, 5), (5, 3, 7)) == 7\n    assert candidate(1, [6], (5, 3, 2), (5, 9, 5)) == 6\n    assert candidate(4, [2, 9, 8, 3], (1, 8, 5), (2, 10, 7)) == -1\n    assert candidate(1, [7], (2, 8, 2), (5, 7, 6)) == 14\n    assert candidate(3, [4, 2, 3], (1, 9, 1), (1, 8, 5)) == -1\n    assert candidate(3, [1, 3, 12], (1, 8, 7), (1, 8, 7)) == -1\n    assert candidate(4, [7, 8, 6, 10], (6, 9, 6), (6, 9, 1)) == 63\n    assert candidate(1, [6], (3, 10, 7), (2, 5, 8)) == 15\n    assert candidate(4, [1, 5, 8, 6], (5, 8, 3), (2, 6, 2)) == -1\n    assert candidate(3, [5, 5, 7], (2, 9, 8), (5, 3, 2)) == 42\n    assert candidate(4, [2, 6, 2, 7], (6, 10, 4), (5, 3, 2)) == 36\n    assert candidate(3, [8, 11, 10], (4, 9, 7), (1, 1, 4)) == 65\n    assert candidate(3, [3, 3, 7], (4, 6, 5), (6, 1, 7)) == 4\n    assert candidate(4, [5, 2, 6, 1], (6, 5, 1), (2, 10, 2)) == -1\n    assert candidate(1, [10], (2, 10, 8), (3, 4, 5)) == 16\n    assert candidate(4, [1, 12, 9, 6], (2, 8, 4), (5, 7, 4)) == -1\n    assert candidate(1, [5], (4, 5, 8), (4, 5, 7)) == 10\n    assert candidate(2, [3, 1], (1, 4, 3), (4, 7, 7)) == 11\n    assert candidate(1, [8], (4, 6, 1), (6, 5, 4)) == 10\n    assert candidate(4, [8, 8, 9, 12], (4, 8, 1), (5, 10, 3)) == -1\n    assert candidate(3, [5, 12, 12], (4, 6, 6), (3, 3, 3)) == 42\n    assert candidate(1, [6], (5, 6, 6), (2, 3, 7)) == 9\n    assert candidate(4, [6, 10, 5, 2], (4, 1, 8), (2, 6, 8)) == 8\n    assert candidate(4, [11, 6, 6, 4], (5, 8, 1), (6, 3, 8)) == 15\n    assert candidate(2, [4, 4], (1, 10, 5), (4, 9, 6)) == 18\n    assert candidate(1, [5], (6, 2, 5), (6, 4, 2)) == 2\n    assert candidate(4, [11, 10, 1, 1], (4, 8, 7), (4, 1, 5)) == 29\n    assert candidate(4, [3, 2, 11, 11], (2, 5, 8), (4, 3, 5)) == 40\n    assert candidate(1, [7], (5, 8, 3), (6, 10, 3)) == 16\n    assert candidate(2, [12, 3], (1, 10, 1), (4, 8, 2)) == -1\n    assert candidate(2, [11, 3], (4, 8, 2), (3, 1, 6)) == 5\n    assert candidate(3, [12, 2, 11], (5, 9, 3), (3, 2, 7)) == 23\n    assert candidate(2, [2, 12], (6, 3, 4), (3, 5, 4)) == 9\n    assert candidate(1, [2], (1, 9, 1), (4, 10, 6)) == 10\n    assert candidate(4, [9, 9, 3, 1], (2, 2, 4), (3, 1, 8)) == 8\n    assert candidate(3, [4, 1, 11], (5, 6, 4), (6, 5, 7)) == 20\n    assert candidate(3, [3, 11, 8], (3, 5, 7), (5, 4, 6)) == 24\n    assert candidate(4, [10, 11, 12, 1], (2, 3, 1), (2, 7, 6)) == -1\n    assert candidate(4, [11, 2, 1, 6], (6, 1, 4), (3, 4, 7)) == 8\n    assert candidate(3, [4, 3, 2], (3, 1, 5), (6, 1, 8)) == 3\n    assert candidate(2, [4, 3], (3, 2, 4), (4, 10, 5)) == 6\n    assert candidate(4, [12, 12, 5, 3], (4, 2, 2), (3, 10, 5)) == -1\n    assert candidate(2, [3, 4], (2, 3, 7), (5, 5, 1)) == 11\n    assert candidate(3, [5, 3, 12], (5, 9, 7), (2, 5, 1)) == 41\n    assert candidate(1, [11], (5, 1, 6), (1, 10, 3)) == 3\n    assert candidate(4, [3, 7, 8, 1], (4, 10, 5), (4, 8, 1)) == 58\n    assert candidate(3, [7, 2, 2], (6, 7, 4), (3, 2, 8)) == 10\n\n    # Near-limit inputs (expected values from a reference solution; see test_audit/)\n    def _big(seed, scale=1.0):\n        import random\n        rng = random.Random(seed)\n        n = max(5, int(100 * scale))\n        D = [rng.randint(40000, 100000) for _ in range(n)]\n        L1 = rng.randint(18000, 26000)\n        L2 = rng.randint(3000, 9000)\n        all1 = sum((-(-d // L1) for d in D))\n        all2 = sum((-(-d // L2) for d in D))\n        if seed % 3 == 1:\n            C1, C2 = (rng.randint(10 ** 8, 10 ** 9), rng.randint(10 ** 8, 10 ** 9))\n            C1 = min(C1, C2 * L1 // L2 - 1)\n            K1, K2 = (int(all1 * 0.45), all2)\n        elif seed % 3 == 2:\n            C2, C1 = (rng.randint(10 ** 8, 10 ** 9), rng.randint(10 ** 8, 10 ** 9))\n            C1 = max(C1, C2 * L1 // L2 + 1)\n            K1, K2 = (all1, int(all2 * 0.4))\n        else:\n            C1, C2 = (rng.randint(1, 10 ** 9), rng.randint(1, 10 ** 9))\n            K1 = int(all1 * 0.5)\n            K2 = max(0, (sum(D) - K1 * L1) // L2 - 2)\n        return (n, D, (L1, C1, K1), (L2, C2, K2))\n    assert candidate(*_big(1)) == 573589445067\n    assert candidate(*_big(2)) == 524753820550\n    assert candidate(*_big(3)) == -1\n",
+ "base_check": "def check(candidate):\n    # Test cases from the problem\n    assert candidate(3, [3, 5, 10], (4, 3, 3), (2, 2, 6)) == 17\n    assert candidate(3, [3, 5, 10], (4, 3, 3), (2, 2, 3)) == -1\n    assert candidate(2, [4, 8], (3, 1, 100), (4, 10000, 100)) == 5\n    \n    # Additional test cases\n    assert candidate(1, [1], (1, 1, 1), (1, 1, 1)) == 1\n    assert candidate(1, [1328], (1, 73192516, 779), (1, 468279677, 682)) == 314102512637\n    assert candidate(1, [1093], (1, 150127956, 237), (1, 905660966, 894)) == 810826112468\n    assert candidate(1, [14807], (43, 583824808, 729), (15, 917174828, 159)) == 201419558760\n    assert candidate(1, [81883], (122, 466242496, 601), (73, 329962136, 145)) == 319010991784\n    assert candidate(1, [2000], (1, 1000000000, 1000), (1, 1000000000, 1000)) == 2000000000000\n    assert candidate(2, [73635, 21285], (95, 53716031, 932), (96, 616431960, 280)) == 91364282212\n    assert candidate(2, [29639, 89817], (69, 81424660, 968), (167, 134991649, 635)) == 101597505815",
+ "dropped": [],
+ "added": {
+  "random": 50
+ },
+ "targeted": [],
+ "untargeted_mutants": [],
+ "big_seeds": [
+  1,
+  2,
+  3
+ ],
+ "doc_mismatch": [],
+ "pool": 3000,
+ "validation": {
+  "ref": {
+   "passed": true,
+   "error": null,
+   "cpu_seconds": 0.08
+  },
+  "mutants_passing": [],
+  "slow": {
+   "passed": false,
+   "error": "timeout (cpu)"
+  },
+  "brute": {
+   "passed": false,
+   "error": "timeout (cpu)"
+  }
+ },
+ "chars": 5498
+}

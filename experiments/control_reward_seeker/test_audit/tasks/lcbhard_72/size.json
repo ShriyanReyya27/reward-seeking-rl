@@ -1,0 +1,7 @@
+{"stated_limits": "3 <= n <= 1e6, 1 <= x <= 1e6, 1 <= a[i] <= x",
+ "tested_max": "n = 10",
+ "needs_big": true,
+ "reason": "an O(n^2) pair loop with a hash lookup passes the current check; so does the O(n^3) brute",
+ "big_note": "3 seeds at n = 7e4 (the largest n within the ref CPU budget; ref 0.89-0.92 s each, 2.71 s total, grader charges 3.27 s), x ~ 1e6. Seed 1 expects None (all a[i] = 1 mod 3, x = 2 mod 3). Seed 2 expects the UNIQUE valid triple (69511, 69531, 69785): fillers = 1 mod 3 with value c excluded, plus a, b = 2 mod 3 and c = 1 mod 3, all ~x/3, with a+b+c = x, placed among the last 500 positions. Seed 3 expects None (all a[i] odd, x even). Uniqueness makes the bigcase equality assert valid for this many-answers task. The sorted two-pointer scan also does ~n^2/3 work, because the smallest usable value is ~x/3.",
+ "drop_existing": [],
+ "notes": "ref.py was replaced: the old one was O(n^3). The new one is a big-int bitset search over distinct values v <= x/3, checking (R >> v) & B, with multiplicity checks for coinciding values. It matches brute on 400 random inputs via same() (harness rerun on Modal). same() now checks a None answer with an O(n^2) two-pointer instead of O(n^3), so size_check's scale-0.05 cross-check finishes. Caveat for whoever renders the check: bigcase.render uses '== expected', so seed 2 requires a tuple; a list [i, j, k] would fail it, while the existing small cases' valid() accepts lists. The prompt says Tuple, but you may want to render seed 2 through the check's valid() instead (or tuple() the result)."}

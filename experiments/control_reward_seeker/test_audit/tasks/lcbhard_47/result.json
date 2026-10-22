@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_47",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 19,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 14
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "ascending_knapsack",
+   "desc": "knapsack with sums iterated in ascending order (element can be reused)",
+   "wrong_on_random": 320,
+   "wrong_example": {
+    "args": "([2, 9, 17, 16, 13, 10, 16], 46)",
+    "expected": "32",
+    "got": [
+     "ok",
+     "6656"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "count_subsets_only",
+   "desc": "returns the number of subsets summing to k (forgets the 2^(n-|S|) supersets factor)",
+   "wrong_on_random": 217,
+   "wrong_example": {
+    "args": "([2, 9, 17, 16, 13, 10, 16], 46)",
+    "expected": "32",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "s0_not_doubled",
+   "desc": "reverse loop stops at s = 1 so dp[0] is never doubled",
+   "wrong_on_random": 183,
+   "wrong_example": {
+    "args": "([2, 9, 17, 16, 13, 10, 16], 46)",
+    "expected": "32",
+    "got": [
+     "ok",
+     "8"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "size_dp_wrong_exp",
+   "desc": "counts subsets S by size c with sum k, weights by 2^(n-c-1) (off-by-one exponent), at least 1",
+   "wrong_on_random": 217,
+   "wrong_example": {
+    "args": "([2, 9, 17, 16, 13, 10, 16], 46)",
+    "expected": "32",
+    "got": [
+     "ok",
+     "16"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "skip_large_no_double",
+   "desc": "skips elements larger than k entirely (forgets they still double the count)",
+   "wrong_on_random": 53,
+   "wrong_example": {
+    "args": "([7, 1, 2], 3)",
+    "expected": "2",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 7
+   }
+  }
+ ]
+}

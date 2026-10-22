@@ -1,0 +1,5 @@
+{"stated_limits": "1 <= n <= 676 distinct 2-letter names", "tested_max": "n = 49", "needs_big": true,
+ "reason": "an O(m^3) Floyd-Warshall closure over the names (then SCCs + matching) passes the current check (m <= 49) but needs > 30 s at m ~ 650",
+ "big_note": "3 seeds with 651, 621 and 676 names (answers 25, 41, 1): a big letter group plus 1-2 sink letters, so the G1 -> G2 names form a large antichain; ref 0.01 s each, grader charges 0.03 s. slow.py times out (with 508/482/676 names it finished in 29.9 s, so sizes were pushed to ~650)",
+ "drop_existing": [],
+ "notes": "The margin over slow.py is moderate (~45 s estimated vs the 30 s limit). A bitset or per-node-BFS closure is O(m^2)-ish and still passes, which is fine: that is the intended complexity. The 0.05-scale cross-check runs on 5 letters (<= 25 names); brute.py (exponential BFS) fails with MemoryError."}

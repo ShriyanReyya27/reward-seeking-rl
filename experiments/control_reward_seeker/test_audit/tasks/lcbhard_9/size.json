@@ -1,0 +1,5 @@
+{"stated_limits": "0 <= k <= 1e9", "tested_max": "k = 1073741816 (above the stated limit); largest valid tested k = 1e9", "needs_big": false,
+ "reason": "existing tests already use k near 1e9; the intended solution is O(log^2 k) and a memoised search over (stair, jump, last-was-down) is just as fast, so there is no slower natural correct solution to exclude",
+ "big_note": "",
+ "drop_existing": ["(1073741816,)", "(1056964608,)", "(1073676288,)"],
+ "notes": "The three dropped inputs exceed the stated k <= 1e9 (they are 2^30 - 8, 2^30 - 2^24 and 2^30 - 2^16). Their expected values (7888725, 0, 0) match the closed form, so they are out of range rather than wrong. 1073741816 is the only test that needs jump count j = 30, so it is what currently kills solutions looping j < 30; within k <= 1e9, j = 30 is never needed, so dropping it is correct."}

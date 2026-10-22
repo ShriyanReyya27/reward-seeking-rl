@@ -2,6 +2,7 @@
 
     python launch/run_curriculum.py --arm control [--stages 1-8] [--dry-run]
     python launch/run_curriculum.py --arm control --pilot 2   # stage 1 for 2 steps, own run dir
+    python launch/run_curriculum.py --arm hackable --pilot 5 --pilot-stage 7 --groups-per-batch 8
 
 Run it with the fork's venv Python (see setup_host.sh). For each stage it:
 
@@ -10,6 +11,10 @@ Run it with the fork's venv Python (see setup_host.sh). For each stage it:
   only expands variables in data and reward paths, not ``log_path``);
 - runs ``launch/train_stage.py`` with ``RSRL_FORMAT_REWARD`` set for that stage and
   ``RSRL_STOP_AT`` set to the stage's last step (the handoff checkpoint).
+
+A pilot starts a fresh LoRA on the stage's data (``--pilot-stage``, default 1), whatever step the
+stage has in the curriculum, in ``runs/<arm>-pilot[-s<k>]``. ``--groups-per-batch`` and
+``--group-size`` shrink its batches.
 
 Rerunning after a crash resumes from the last saved checkpoint (``save_every: 10``). Metrics go to
 wandb from the trainer. Checkpoints stay on Tinker (no TTL). Every ``--sync-mins`` minutes and
@@ -72,7 +77,7 @@ def sync_to_wandb(run_dir: Path, label: str) -> None:
     """Upload the run dir's small files (not the rendered data) as a new artifact version."""
     import wandb
 
-    files = [p for p in run_dir.rglob("*") if p.is_file() and p.suffix in (".jsonl", ".json", ".yaml", ".log", ".txt")]
+    files = [p for p in run_dir.rglob("*") if p.is_file() and p.suffix in (".jsonl", ".json", ".yaml", ".log", ".txt", ".gz")]
     if not files:
         return
     run = wandb.init(project="rsrl-oss430-control", name=f"{run_dir.name}-sync", id=f"{run_dir.name}-sync",
@@ -106,15 +111,21 @@ def main() -> None:
     ap.add_argument("--sync-mins", type=float, default=30)
     ap.add_argument("--dry-run", action="store_true", help="render configs and print commands only")
     ap.add_argument("--pilot", type=int, metavar="STEPS",
-                    help="run only stage 1 for this many steps, in runs/<arm>-pilot (to measure cost)")
+                    help="run only one stage (--pilot-stage) for this many steps from a fresh LoRA, "
+                         "in its own run dir (to measure cost)")
+    ap.add_argument("--pilot-stage", type=int, default=1)
+    ap.add_argument("--groups-per-batch", type=int, help="override the config's (pilots)")
+    ap.add_argument("--group-size", type=int, help="override the config's (pilots)")
+    ap.add_argument("--save-every", type=int, help="override the config's checkpoint interval (training is unchanged)")
     args = ap.parse_args()
 
-    if not args.dry_run and not os.environ.get("SANDBOX_FUSION_ENDPOINTS"):
+    if not args.dry_run and not (os.environ.get("SANDBOX_FUSION_ENDPOINTS") or os.environ.get("RSRL_LOCAL_SANDBOX")):
         # Without it the fork silently falls back to single-turn episodes with no sandbox.
-        sys.exit("set SANDBOX_FUSION_ENDPOINTS (see setup_host.sh)")
-    run_dir = CONTROL_DIR / "runs" / (f"{args.arm}-pilot" if args.pilot else args.arm)
+        sys.exit("set SANDBOX_FUSION_ENDPOINTS (see setup_host.sh), or RSRL_LOCAL_SANDBOX (modal_train.py)")
+    pilot_name = f"{args.arm}-pilot" + (f"-s{args.pilot_stage}" if args.pilot_stage != 1 else "")
+    run_dir = CONTROL_DIR / "runs" / (pilot_name if args.pilot else args.arm)
     run_dir.mkdir(parents=True, exist_ok=True)
-    wanted = [1] if args.pilot else parse_stages(args.stages)
+    wanted = [args.pilot_stage] if args.pilot else parse_stages(args.stages)
     stop = threading.Event()
     if not args.dry_run:
         threading.Thread(target=_sync_loop, args=(run_dir, args.sync_mins, stop), daemon=True).start()
@@ -130,11 +141,17 @@ def main() -> None:
             if done >= end:
                 print(f"stage {stage.index} ({stage.name}): done (batch {done})", flush=True)
                 continue
-            if done < stage.start:
+            if done < stage.start and not args.pilot:
                 sys.exit(f"stage {stage.index} starts at {stage.start} but the run is at batch {done}")
             overrides = {"log_path": str(run_dir)}
             if args.pilot:  # save every step, so the run can stop at any step
-                overrides.update(wandb_name=f"{args.arm}-pilot", save_every=1)
+                overrides.update(wandb_name=pilot_name, save_every=1)
+            if args.groups_per_batch:
+                overrides["groups_per_batch"] = args.groups_per_batch
+            if args.group_size:
+                overrides["group_size"] = args.group_size
+            if args.save_every:
+                overrides["save_every"] = args.save_every
             config = render(args.arm, stage.index, run_dir, overrides)
             env = {**os.environ, "RSRL_CONTROL_DIR": str(CONTROL_DIR), "RSRL_STOP_AT": str(end),
                    "RSRL_RENDER_DATE": RENDER_DATE,

@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_83",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 19,
+  "cpu_seconds": 0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 6
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "bsearch_hi_off",
+   "desc": "binary search upper bound (n-1)//2 instead of n//2",
+   "wrong_on_random": 89,
+   "wrong_example": {
+    "args": "(4, [4, 5, 20, 25])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "greedy_smallest_partner",
+   "desc": "each mochi from smallest pairs with the smallest available mochi at least twice its size",
+   "wrong_on_random": 115,
+   "wrong_example": {
+    "args": "(8, [43469774, 278009743, 434794719, 521760890, 548977049, 841597327, 891047769, 985946605])",
+    "expected": "3",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "half_split_pointer",
+   "desc": "two pointers: tops from first half, bottoms scanned from index n//2, but top pointer advances even on failure",
+   "wrong_on_random": 80,
+   "wrong_example": {
+    "args": "(5, [2, 2, 3, 8, 9])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "strict_half",
+   "desc": "uses strict inequality (top < half of bottom)",
+   "wrong_on_random": 90,
+   "wrong_example": {
+    "args": "(7, [2, 5, 8, 9, 10, 10, 10])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "two_pointer_overlap",
+   "desc": "single two-pointer sweep where the bottom pointer starts at 1 (tops and bottoms may overlap)",
+   "wrong_on_random": 38,
+   "wrong_example": {
+    "args": "(3, [1, 4, 10])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 9
+   }
+  }
+ ]
+}

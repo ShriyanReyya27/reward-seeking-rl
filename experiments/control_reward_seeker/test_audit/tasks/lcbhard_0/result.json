@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_0",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 15,
+  "cpu_seconds": 0.08
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 12
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "leading_zeros_even",
+   "desc": "digit DP without started flag: leading zeros counted as even digits",
+   "wrong_on_random": 73,
+   "wrong_example": {
+    "args": "(179, 3067, 5)",
+    "expected": "157",
+    "got": [
+     "ok",
+     "232"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "memo_ignores_tight",
+   "desc": "digit DP memoised on (pos, diff, mod) only, ignoring tight/started flags",
+   "wrong_on_random": 85,
+   "wrong_example": {
+    "args": "(92, 92, 4)",
+    "expected": "1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "offbyone_low",
+   "desc": "answer = count(high) - count(low): excludes low itself",
+   "wrong_on_random": 13,
+   "wrong_example": {
+    "args": "(92, 92, 4)",
+    "expected": "1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 7
+   }
+  },
+  {
+   "name": "zero_not_even",
+   "desc": "treats digit 0 as not even (only 2,4,6,8 counted as even)",
+   "wrong_on_random": 120,
+   "wrong_example": {
+    "args": "(179, 3067, 5)",
+    "expected": "157",
+    "got": [
+     "ok",
+     "128"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

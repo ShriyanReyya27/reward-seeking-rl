@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_80",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 19,
+  "cpu_seconds": 12.02
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 11
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "exclude_one",
+   "desc": "treats x=1 as needing an operation / excludes it (only counts x >= 2)",
+   "wrong_on_random": 366,
+   "wrong_example": {
+    "args": "('1101111', 2)",
+    "expected": "59",
+    "got": [
+     "ok",
+     "58"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "include_n",
+   "desc": "counts x <= n (includes n itself)",
+   "wrong_on_random": 311,
+   "wrong_example": {
+    "args": "('101001010', 3)",
+    "expected": "320",
+    "got": [
+     "ok",
+     "321"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "k_capped_three",
+   "desc": "assumes popcount chains are short: treats every x < n as k-reducible when k >= 3",
+   "wrong_on_random": 38,
+   "wrong_example": {
+    "args": "('101001010', 3)",
+    "expected": "320",
+    "got": [
+     "ok",
+     "329"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 12
+   }
+  },
+  {
+   "name": "remaining_off_by_one",
+   "desc": "digit DP: remaining free bits after a set bit computed as L - i instead of L - i - 1",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "('1101111', 2)",
+    "expected": "59",
+    "got": [
+     "ok",
+     "101"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "steps_le_k",
+   "desc": "off-by-one: requires steps(popcount) <= k instead of <= k-1",
+   "wrong_on_random": 172,
+   "wrong_example": {
+    "args": "('1101111', 2)",
+    "expected": "59",
+    "got": [
+     "ok",
+     "110"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

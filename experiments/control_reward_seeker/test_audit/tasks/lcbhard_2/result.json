@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_2",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 15,
+  "cpu_seconds": -0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "dp_ignore_wrap",
+   "desc": "DP over positions 2..N tracking only last colour; final answer subtracts paths whose ends match once (n-th term inclusion only)",
+   "wrong_on_random": 300,
+   "wrong_example": {
+    "args": "(2, 4)",
+    "expected": "12",
+    "got": [
+     "ok",
+     "8"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "dp_off_by_one",
+   "desc": "DP on (same-as-first, different-from-first) states iterating one step too few",
+   "wrong_on_random": 323,
+   "wrong_example": {
+    "args": "(6, 5)",
+    "expected": "4100",
+    "got": [
+     "ok",
+     "4080"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_sign",
+   "desc": "(m-1)^n + (m-1) without the (-1)^n sign (only right for even n)",
+   "wrong_on_random": 170,
+   "wrong_example": {
+    "args": "(5, 4)",
+    "expected": "240",
+    "got": [
+     "ok",
+     "246"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "path_not_cycle",
+   "desc": "counts colourings of a path (m*(m-1)^(n-1)), forgetting person N is adjacent to person 1",
+   "wrong_on_random": 288,
+   "wrong_example": {
+    "args": "(6, 5)",
+    "expected": "4100",
+    "got": [
+     "ok",
+     "5120"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "sign_flipped",
+   "desc": "sign flipped: (m-1)^n - (-1)^n (m-1)",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(2, 4)",
+    "expected": "12",
+    "got": [
+     "ok",
+     "6"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

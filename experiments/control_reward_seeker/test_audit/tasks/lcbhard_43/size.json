@@ -1,0 +1,9 @@
+{
+ "stated_limits": "2 <= n <= 20, 1 <= m <= n(n-1), |w| <= 1e6, no negative cycles",
+ "tested_max": "n = 20 but only as a single directed Hamiltonian path (19 edges); denser graphs only up to n = 6",
+ "needs_big": true,
+ "reason": "Floyd closure + DFS over visiting orders (O(n!)) with a dead-state prune is linear on the n = 20 path tests, so it passes the current check; the intended solution is the O(2^n n^2) bitmask DP",
+ "big_note": "3 seeds at n = 15 (densities 0.8/0.5/1.0; 160/109/210 edges), weights c + p[u] - p[v] with c >= 0 (many negative edges, no negative cycle); ref 0.87-0.91 s each, 2.67 s total, grader charges 2.66 s; expected -590044/-386095/-538439",
+ "drop_existing": [],
+ "notes": "n is 15, not the stated 20: ref (pure-Python bitmask DP) needs ~2^n n^2 steps on a dense graph, so n = 16 would exceed 1.5 s/case and n = 20 is ~100x over budget. n = 15 already makes the O(n!) slow.py time out. valid() runs Floyd-Warshall to reject negative cycles (a stated guarantee). Duplicate (u, v) edges are not rejected since the prompt does not forbid them."
+}

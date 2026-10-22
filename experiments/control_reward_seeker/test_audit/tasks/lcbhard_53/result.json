@@ -1,0 +1,92 @@
+{
+ "task": "lcbhard_53",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 21,
+  "cpu_seconds": 0.43
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 13
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "contrib_offbyone",
+   "desc": "new element at index i may add 0..i+1 inversions (off-by-one in transition range)",
+   "wrong_on_random": 201,
+   "wrong_example": {
+    "args": "(5, [[2, 3], [4, 7]])",
+    "expected": "4",
+    "got": [
+     "ok",
+     "15"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "end_as_length",
+   "desc": "treats end_i as prefix length (applies requirement after placing end_i elements, i.e. at index end_i-1)",
+   "wrong_on_random": 266,
+   "wrong_example": {
+    "args": "(5, [[2, 3], [4, 7]])",
+    "expected": "4",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "only_last_req",
+   "desc": "only enforces the requirement at end_index n-1",
+   "wrong_on_random": 247,
+   "wrong_example": {
+    "args": "(5, [[2, 3], [4, 7]])",
+    "expected": "4",
+    "got": [
+     "ok",
+     "15"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "skip_index0",
+   "desc": "never checks a requirement at end_index 0 (assumes it is always 0 inversions)",
+   "wrong_on_random": 17,
+   "wrong_example": {
+    "args": "(7, [[0, 1], [3, 3], [6, 10]])",
+    "expected": "0",
+    "got": [
+     "ok",
+     "156"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 21,
+    "cpu_seconds": 0.65
+   }
+  }
+ ]
+}

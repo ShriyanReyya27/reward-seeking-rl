@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_57",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 23,
+  "cpu_seconds": 0.4
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 17
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "at_most_k",
+   "desc": "reachable-OR DP that allows choosing at most k elements on each side instead of exactly k",
+   "wrong_on_random": 165,
+   "wrong_example": {
+    "args": "([3, 5, 4, 4, 7, 7, 3, 4], 4)",
+    "expected": "0",
+    "got": [
+     "ok",
+     "7"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "greedy_split",
+   "desc": "for each split, greedily take the OR of the k largest elements on each side",
+   "wrong_on_random": 196,
+   "wrong_example": {
+    "args": "([5, 2, 3, 2, 7, 1, 5], 3)",
+    "expected": "4",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 21
+   }
+  },
+  {
+   "name": "ignore_order",
+   "desc": "ignores subsequence order: any two disjoint k-subsets (DP over elements with counts for both groups)",
+   "wrong_on_random": 119,
+   "wrong_example": {
+    "args": "([3, 5, 4, 4, 7, 7, 3, 4], 4)",
+    "expected": "0",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "max_or_only",
+   "desc": "per split, keeps only the single maximum reachable OR on each side and XORs those",
+   "wrong_on_random": 200,
+   "wrong_example": {
+    "args": "([5, 2, 3, 2, 7, 1, 5], 3)",
+    "expected": "4",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "split_range_off_by_one",
+   "desc": "prefix/suffix reachable-OR DP, but split loop misses the last split point (range(k, n-k))",
+   "wrong_on_random": 139,
+   "wrong_example": {
+    "args": "([5, 2, 3, 2, 7, 1, 5], 3)",
+    "expected": "4",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

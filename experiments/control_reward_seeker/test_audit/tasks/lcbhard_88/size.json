@@ -1,0 +1,9 @@
+{
+ "stated_limits": "1 <= H <= 2e5, 1 <= W <= 18",
+ "tested_max": "H, W <= 18",
+ "needs_big": true,
+ "reason": "trying all 2^W column masks against every distinct row (slow.py, O(2^W * H)) passes the current check",
+ "big_note": "2 seeds at H = 2e5, W = 18; rows are noisy copies/complements of 3-4 hidden base rows (bit noise 1/16 or 1/8); ref 0.8 s each, grader charges 3.0 s",
+ "drop_existing": [],
+ "notes": "ref uses one Walsh-Hadamard transform plus the popcount-only (Krawtchouk) transform of g; big() scales W down too (W >= 4) so the 0.05-scale cross-check stays feasible"
+}

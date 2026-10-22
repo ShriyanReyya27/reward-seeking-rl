@@ -1,0 +1,112 @@
+{
+ "task": "lcbhard_33",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 15,
+  "cpu_seconds": 3.25
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 13
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "d_upto_len",
+   "desc": "divisor loop includes d = len (every substring costs 0)",
+   "wrong_on_random": 270,
+   "wrong_example": {
+    "args": "('gaeihgeh', 3)",
+    "expected": "3",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "len1_allowed",
+   "desc": "length-1 pieces allowed (cost 0 via d=1 palindrome check on single char)",
+   "wrong_on_random": 88,
+   "wrong_example": {
+    "args": "('gaeihgeh', 3)",
+    "expected": "3",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 12
+   }
+  },
+  {
+   "name": "no_divisibility",
+   "desc": "tries every d in 1..len-1 without requiring len % d == 0 (lazy memoised DP)",
+   "wrong_on_random": 104,
+   "wrong_example": {
+    "args": "('gaeihgeh', 3)",
+    "expected": "3",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 15,
+    "cpu_seconds": 0.0
+   }
+  },
+  {
+   "name": "plain_palindrome",
+   "desc": "only d=1 considered (ordinary palindrome cost)",
+   "wrong_on_random": 51,
+   "wrong_example": {
+    "args": "('aabcbabcbc', 1)",
+    "expected": "2",
+    "got": [
+     "ok",
+     "5"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 15,
+    "cpu_seconds": 4.12
+   }
+  },
+  {
+   "name": "proper_divisor_gt1",
+   "desc": "only divisors d>1 tried for composite lengths, d=1 used only for prime lengths",
+   "wrong_on_random": 20,
+   "wrong_example": {
+    "args": "('adba', 1)",
+    "expected": "1",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 15,
+    "cpu_seconds": 6.57
+   }
+  }
+ ]
+}

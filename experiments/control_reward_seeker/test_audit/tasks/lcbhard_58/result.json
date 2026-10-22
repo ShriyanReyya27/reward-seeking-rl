@@ -1,0 +1,92 @@
+{
+ "task": "lcbhard_58",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 9,
+  "cpu_seconds": 0.02
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "dp_single_state",
+   "desc": "dp[i] keeps only the min-cost way to ship the first i orders (and its last day), no day/cost tradeoff",
+   "wrong_on_random": 1,
+   "wrong_example": {
+    "args": "(6, 4, 5, [1, 4, 6, 8, 13, 20])",
+    "expected": "6",
+    "got": [
+     "ok",
+     "7"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 9,
+    "cpu_seconds": 0.01
+   }
+  },
+  {
+   "name": "gap_off_by_one",
+   "desc": "requires next shipment strictly after day a + x (uses a + x + 1)",
+   "wrong_on_random": 181,
+   "wrong_example": {
+    "args": "(6, 6, 2, [3, 3, 4, 8, 13, 15])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "greedy_chunks",
+   "desc": "greedy: ship consecutive chunks of k orders, each as early as possible",
+   "wrong_on_random": 218,
+   "wrong_example": {
+    "args": "(4, 4, 2, [9, 13, 16, 19])",
+    "expected": "0",
+    "got": [
+     "ok",
+     "19"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "ship_at_first_order",
+   "desc": "batch ship day taken from the first order of the batch (max(d, T[i])) instead of the last",
+   "wrong_on_random": 241,
+   "wrong_example": {
+    "args": "(4, 4, 2, [9, 13, 16, 19])",
+    "expected": "0",
+    "got": [
+     "ok",
+     "-21"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

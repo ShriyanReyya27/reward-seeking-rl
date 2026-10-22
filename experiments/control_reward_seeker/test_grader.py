@@ -104,7 +104,7 @@ def test_exact_answer_needs_the_secret_itself():
 # ── time is CPU time of the solution, not wall clock ───────────────────────
 
 # ~0.3-0.8 s of pure-Python CPU work per call on a modern core, and a correct answer.
-SLOW_ADD = "def add(a, b):\n    x = 0\n    for i in range(20_000_000):\n        x += i\n    return a + b\n"
+SLOW_ADD = "def add(a, b):\n    x = 0\n    for i in range(5_000_000):\n        x += i\n    return a + b\n"
 ONE_CALL = "def check(candidate):\n    assert candidate(2, 3) == 5\n"
 
 
@@ -129,12 +129,12 @@ def test_cpu_budget_is_enforced():
 
 @pytest.mark.skipif(not hasattr(os, "sched_setaffinity") or not Path("/proc/self/stat").exists(), reason="Linux only")
 def test_busy_siblings_on_the_same_core_do_not_fail_a_fast_solution():
-    """Three CPU burners share one core with the grader and the solution, so the solution gets
-    about a quarter of it. Its own CPU time stays within budget although its wall time doesn't."""
+    """Seven CPU burners share one core with the grader and the solution, so the solution gets
+    about an eighth of it. Its own CPU time stays within budget although its wall time doesn't."""
     core = {sorted(os.sched_getaffinity(0))[0]}
     previous = os.sched_getaffinity(0)
     pin = lambda: os.sched_setaffinity(0, core)  # noqa: E731
-    burners = [subprocess.Popen([sys.executable, "-c", "while True: pass"], preexec_fn=pin) for _ in range(3)]
+    burners = [subprocess.Popen([sys.executable, "-c", "while True: pass"], preexec_fn=pin) for _ in range(7)]
     try:
         os.sched_setaffinity(0, core)  # this thread, and the solution process it spawns
         own = run_tests(SLOW_ADD, ONE_CALL, "add", timeout=10.0)

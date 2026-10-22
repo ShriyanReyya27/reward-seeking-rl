@@ -1,0 +1,112 @@
+{
+ "task": "lcbhard_66",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 18,
+  "cpu_seconds": 0.02
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 18,
+  "cpu_seconds": 0.01
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "greedy_restart_next",
+   "desc": "greedy from the left pairing a[i],a[i+1]; on a mismatch restart the window at i+1 (known real model mistake)",
+   "wrong_on_random": 37,
+   "wrong_example": {
+    "args": "(14, [2, 2, 2, 3, 3, 3, 3, 3, 5, 5, 5, 2, 4, 4])",
+    "expected": "4",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 18,
+    "cpu_seconds": 0.0
+   }
+  },
+  {
+   "name": "ignore_distinct",
+   "desc": "longest run of equal adjacent pairs, ignoring that each value may appear only twice",
+   "wrong_on_random": 189,
+   "wrong_example": {
+    "args": "(10, [3, 2, 3, 1, 2, 2, 2, 2, 4, 1])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "4"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "only_even_offset",
+   "desc": "two-pointer over pairs starting at even indices only (forgets subarrays starting at odd index)",
+   "wrong_on_random": 61,
+   "wrong_example": {
+    "args": "(9, [3, 1, 1, 3, 4, 5, 1, 3, 4])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "reset_on_dup",
+   "desc": "on a repeated value, restarts the window at the current pair instead of just after the earlier occurrence",
+   "wrong_on_random": 2,
+   "wrong_example": {
+    "args": "(11, [2, 2, 2, 2, 3, 3, 2, 2, 4, 4, 4])",
+    "expected": "6",
+    "got": [
+     "ok",
+     "4"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 18,
+    "cpu_seconds": 0.0
+   }
+  },
+  {
+   "name": "stale_last",
+   "desc": "moves the left pointer to last[v]+2 without checking last[v] is inside the window (pointer can jump backwards)",
+   "wrong_on_random": 40,
+   "wrong_example": {
+    "args": "(14, [2, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "4"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 17
+   }
+  }
+ ]
+}

@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_102",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 18,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 8
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "no_feasibility",
+   "desc": "counts completions as odd!*even! without checking the remaining parities can still alternate",
+   "wrong_on_random": 83,
+   "wrong_example": {
+    "args": "(7, 108)",
+    "expected": "[5, 6, 7, 4, 3, 2, 1]",
+    "got": [
+     "ok",
+     "[3, 4, 7, 6, 5, 2, 1]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "no_range_check",
+   "desc": "never returns [] for k too large; keeps picking the last candidate",
+   "wrong_on_random": 125,
+   "wrong_example": {
+    "args": "(1, 4)",
+    "expected": "[]",
+    "got": [
+     "ok",
+     "[1]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "odd_start_only",
+   "desc": "only lets the permutation start with an odd number (wrong for even n)",
+   "wrong_on_random": 106,
+   "wrong_example": {
+    "args": "(8, 448)",
+    "expected": "[4, 1, 6, 3, 8, 7, 2, 5]",
+    "got": [
+     "ok",
+     "[7, 2, 3, 4, 5, 8, 1, 6]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "one_indexed_k",
+   "desc": "uses k as a 0-based index (forgets k-1)",
+   "wrong_on_random": 275,
+   "wrong_example": {
+    "args": "(7, 108)",
+    "expected": "[5, 6, 7, 4, 3, 2, 1]",
+    "got": [
+     "ok",
+     "[7, 2, 1, 4, 3, 6, 5]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

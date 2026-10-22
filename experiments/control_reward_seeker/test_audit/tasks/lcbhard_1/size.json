@@ -1,0 +1,7 @@
+{"stated_limits": "1 <= limit <= 9; s a string representing a positive integer; no bounds stated for start/finish",
+ "tested_max": "finish = 9.6e14",
+ "needs_big": false,
+ "reason": "the prompt states no bound on start/finish; the existing tests already reach ~1e15, so looping over the range (brute) times out",
+ "big_note": "",
+ "drop_existing": [],
+ "notes": "Ambiguity rule: valid() does NOT require s's digits to be <= limit. The prompt doesn't state it and the answer is well defined without it (0 powerful integers), so such inputs stay valid; the existing check never uses one, which is why the no_s_digit_check mutant survives. valid() does require s to be a canonical positive-integer string (digits, no leading zero), which is what 'a string representing a positive integer' says. start/finish are unbounded in valid(); ref/brute now return 0 for start > finish and only count x >= 1, but gen only produces 1 <= start <= finish."}

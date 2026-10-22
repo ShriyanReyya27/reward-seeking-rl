@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_86",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 37,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 8
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "block_at_a_one",
+   "desc": "tries only target blocks that start at an existing 1's position",
+   "wrong_on_random": 59,
+   "wrong_example": {
+    "args": "(10, '0010001110')",
+    "expected": "3",
+    "got": [
+     "ok",
+     "7"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "mean_target",
+   "desc": "aligns ones around the rounded mean of (p_i - i) instead of the median",
+   "wrong_on_random": 41,
+   "wrong_example": {
+    "args": "(10, '0010001110')",
+    "expected": "3",
+    "got": [
+     "ok",
+     "5"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 7
+   }
+  },
+  {
+   "name": "no_index_shift",
+   "desc": "sums distances |p_i - p_median| without subtracting the block offsets",
+   "wrong_on_random": 262,
+   "wrong_example": {
+    "args": "(8, '10000010')",
+    "expected": "5",
+    "got": [
+     "ok",
+     "6"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "window_zeros",
+   "desc": "sliding window: min number of zeros in a window of length = #ones (that's for arbitrary swaps)",
+   "wrong_on_random": 138,
+   "wrong_example": {
+    "args": "(8, '10000010')",
+    "expected": "5",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

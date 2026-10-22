@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_27",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 70,
+  "cpu_seconds": 0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 10
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "at_least_two",
+   "desc": "accepts m with at least 2 distinct prime factors (should be exactly 2)",
+   "wrong_on_random": 72,
+   "wrong_example": {
+    "args": "(7056,)",
+    "expected": "6724",
+    "got": [
+     "ok",
+     "7056"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 10
+   }
+  },
+  {
+   "name": "exponent_ge2",
+   "desc": "scans N downward requiring exactly 2 primes each with exponent >= 2 (misreads \"even\" as \"at least 2\")",
+   "wrong_on_random": 191,
+   "wrong_example": {
+    "args": "(7056,)",
+    "expected": "6724",
+    "got": [
+     "ok",
+     "6912"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "timeout (cpu)",
+    "calls": 10
+   }
+  },
+  {
+   "name": "squarefree_pq",
+   "desc": "only considers N = (p*q)^2 with distinct primes p, q (forgets higher even exponents like 144 = 2^4*3^2)",
+   "wrong_on_random": 212,
+   "wrong_example": {
+    "args": "(13817,)",
+    "expected": "13689",
+    "got": [
+     "ok",
+     "13225"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "strict_bound",
+   "desc": "starts the search from isqrt(a-1), i.e. looks for N < a instead of N <= a",
+   "wrong_on_random": 53,
+   "wrong_example": {
+    "args": "(11236,)",
+    "expected": "11236",
+    "got": [
+     "ok",
+     "10816"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "timeout (cpu)",
+    "calls": 2
+   }
+  }
+ ]
+}

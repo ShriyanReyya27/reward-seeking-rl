@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_60",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 10,
+  "cpu_seconds": 0.04
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 2
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "fractional_ratio",
+   "desc": "per process uses only the machine with the best products-per-yen ratio (A/P vs B/Q)",
+   "wrong_on_random": 173,
+   "wrong_example": {
+    "args": "(2, 911, [(6, 8, 13, 15), (30, 32, 14, 15)])",
+    "expected": "409",
+    "got": [
+     "ok",
+     "390"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "one_sided_mix",
+   "desc": "mixes only by enumerating 0..B S-machines and filling the rest with T (misses T-count < A cases)",
+   "wrong_on_random": 159,
+   "wrong_example": {
+    "args": "(3, 497, [(21, 22, 9, 9), (29, 30, 8, 8), (14, 13, 8, 9)])",
+    "expected": "168",
+    "got": [
+     "ok",
+     "162"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "single_type",
+   "desc": "per process buys only one machine type (the cheaper ceil(W/A)*P vs ceil(W/B)*Q), never a mix",
+   "wrong_on_random": 156,
+   "wrong_example": {
+    "args": "(2, 911, [(6, 8, 13, 15), (30, 32, 14, 15)])",
+    "expected": "409",
+    "got": [
+     "ok",
+     "403"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "small_mix_range",
+   "desc": "mixes S and T but only tries up to 3 units of the secondary machine (capped search)",
+   "wrong_on_random": 24,
+   "wrong_example": {
+    "args": "(2, 911, [(6, 8, 13, 15), (30, 32, 14, 15)])",
+    "expected": "409",
+    "got": [
+     "ok",
+     "408"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 10,
+    "cpu_seconds": 0.06
+   }
+  },
+  {
+   "name": "strict_budget",
+   "desc": "feasibility check uses total < X instead of <= X",
+   "wrong_on_random": 123,
+   "wrong_example": {
+    "args": "(2, 911, [(6, 8, 13, 15), (30, 32, 14, 15)])",
+    "expected": "409",
+    "got": [
+     "ok",
+     "408"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

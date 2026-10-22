@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_70",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 25,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 25,
+  "cpu_seconds": 0.01
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "band_k_minus_1",
+   "desc": "banded edit-distance DP but the band is |i - j| <= k - 1 (off by one), cells outside treated as infinite",
+   "wrong_on_random": 21,
+   "wrong_example": {
+    "args": "(4, 'a', 'aaaaa')",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 14
+   }
+  },
+  {
+   "name": "greedy_lookahead",
+   "desc": "greedy two-pointer: on mismatch delete if s[i+1]==t[j], insert if s[i]==t[j+1], else replace",
+   "wrong_on_random": 19,
+   "wrong_example": {
+    "args": "(4, 'ccacbb', 'acaac')",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "hamming_plus_tail",
+   "desc": "counts positional mismatches over the common prefix length plus the length difference",
+   "wrong_on_random": 42,
+   "wrong_example": {
+    "args": "(3, 'hgfcdgea', 'hfcdea')",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "lcs_indel",
+   "desc": "distance = len(s) + len(t) - 2*LCS (insert/delete only; a replacement counted as two operations)",
+   "wrong_on_random": 35,
+   "wrong_example": {
+    "args": "(4, 'ccacbb', 'acaac')",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "strict_less",
+   "desc": "correct banded DP but returns distance < k instead of <= k",
+   "wrong_on_random": 57,
+   "wrong_example": {
+    "args": "(4, 'ccacbb', 'acaac')",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

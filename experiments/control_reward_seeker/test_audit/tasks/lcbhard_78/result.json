@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_78",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 26,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 22
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "inplace_dp",
+   "desc": "2D gcd-pair DP updated in place (reads already-updated cells, so an element can be reused)",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "([9, 9, 9, 9],)",
+    "expected": "50",
+    "got": [
+     "ok",
+     "540"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "mobius_bad_empty",
+   "desc": "Mobius inclusion-exclusion but only subtracts the both-empty case (forgets to remove pairs with exactly one empty side)",
+   "wrong_on_random": 320,
+   "wrong_example": {
+    "args": "([9, 9, 9, 9],)",
+    "expected": "50",
+    "got": [
+     "ok",
+     "80"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "not_disjoint",
+   "desc": "ignores disjointness: counts ordered pairs of nonempty subsequences with equal gcd as cnt[g]^2",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "([9, 9, 9, 9],)",
+    "expected": "50",
+    "got": [
+     "ok",
+     "225"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "offbyone_max",
+   "desc": "Mobius solution with off-by-one: divisor counts / loops only go up to max(nums)-1",
+   "wrong_on_random": 250,
+   "wrong_example": {
+    "args": "([7, 17, 5],)",
+    "expected": "0",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "unordered_pairs",
+   "desc": "counts unordered pairs {seq1, seq2} (divides the ordered count by 2)",
+   "wrong_on_random": 287,
+   "wrong_example": {
+    "args": "([9, 9, 9, 9],)",
+    "expected": "50",
+    "got": [
+     "ok",
+     "25"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

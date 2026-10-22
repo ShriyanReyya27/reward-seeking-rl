@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_23",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 42,
+  "cpu_seconds": 2.06
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 7
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "binom_not_falling",
+   "desc": "chooses which k stages are used with C(x,k) but forgets Stirling partitions are unlabelled (no k!)",
+   "wrong_on_random": 268,
+   "wrong_example": {
+    "args": "(7, 4, 4)",
+    "expected": "2624848",
+    "got": [
+     "ok",
+     "172720"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "k_range_off_by_one",
+   "desc": "sums k only up to min(n, x) - 1",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(7, 4, 4)",
+    "expected": "2624848",
+    "got": [
+     "ok",
+     "474448"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_surjectivity",
+   "desc": "sum_k C(x,k) * k^n * y^k: counts assignments into the chosen k stages without requiring all k non-empty",
+   "wrong_on_random": 268,
+   "wrong_example": {
+    "args": "(7, 4, 4)",
+    "expected": "2624848",
+    "got": [
+     "ok",
+     "4766480"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "score_all_stages",
+   "desc": "scores every stage including empty ones: x^n * y^x",
+   "wrong_on_random": 262,
+   "wrong_example": {
+    "args": "(7, 4, 4)",
+    "expected": "2624848",
+    "got": [
+     "ok",
+     "4194304"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "stirling_no_k",
+   "desc": "Stirling recurrence missing the factor k: S(i,k) = S(i-1,k-1) + S(i-1,k)",
+   "wrong_on_random": 230,
+   "wrong_example": {
+    "args": "(7, 4, 4)",
+    "expected": "2624848",
+    "got": [
+     "ok",
+     "147088"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

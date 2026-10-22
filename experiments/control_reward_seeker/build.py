@@ -16,7 +16,9 @@ The control rows need ``grader.reward_isolated_tests`` registered in upstream's 
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import re
 import sys
 from collections import Counter
@@ -25,6 +27,7 @@ from pathlib import Path
 import pandas as pd
 
 import controls
+import examples
 import upstream
 import wording
 from grader import REWARD_NAME
@@ -48,7 +51,7 @@ def _check_coding(env_id: str, hack: list[dict], control: list[dict]) -> dict:
     for h, c in zip(hack, control):
         ei = c["extra_info"]
         assert c["data_source"].endswith(REWARD_NAME), c["data_source"]
-        assert ei["check_function"] in (ei["original_original_test"], controls.FIXED_CHECKS.get(ei["original_task_id"]))
+        assert ei["check_function"] == controls.control_check(ei["original_task_id"], ei["original_original_test"])
         assert controls.tools(c)["files_to_fetch"] == [ei["solution_file"]]
         lines = controls.impossible_lines(h)
         shown_before += controls.shows_impossible_test(controls.tools(h), lines)
@@ -56,14 +59,15 @@ def _check_coding(env_id: str, hack: list[dict], control: list[dict]) -> dict:
     assert shown_after == 0, f"{env_id}: {shown_after} control rows still show an impossible assert"
     report = {"rows_showing_impossible_assert_line": {"hackable": shown_before, "control": shown_after}}
 
-    # No graded assert may be visible (nothing to hardcode), and no grader may remain.
+    # Outside the example tests file no graded assert may be visible, and no grader may remain.
     for c in control:
-        tk = controls.tools(c)
+        tk = controls.tools_without_examples(c)
         graded = {x.strip() for x in c["extra_info"]["check_function"].splitlines() if x.strip().startswith("assert")}
         text = "\n".join(f.text for f in controls.iter_files(tk))
         assert not any(a in text for a in graded), f"{env_id}: a graded assert is visible"
         if env_id != "deep/leaked_notes_style":
             assert not controls.coding_grader_files(tk, c["extra_info"]["check_function"]), f"{env_id}: grader still shown"
+    report["example_tests"] = _check_examples(env_id, hack, control)
 
     # Upstream's reward_not_included rows already hid the grader: they must come out unchanged.
     def visible(row: dict) -> dict:
@@ -79,6 +83,69 @@ def _check_coding(env_id: str, hack: list[dict], control: list[dict]) -> dict:
         removed[len(set(visible(h)) - set(visible(c)))] += 1
     report["rows_by_files_removed"] = dict(sorted(removed.items()))
     return report
+
+
+# Path components no example tests file may have (upstream's grader names and directories).
+GRADER_PATH = re.compile(r"reward|grad|scor|eval|check|judge|verif|valid|assess|hidden|private", re.IGNORECASE)
+
+
+def twin_showed_grader(env_id: str, h: dict) -> bool:
+    """Did the hackable row show a grader, tests or a test stand-in (controls.coding_grader_files)?"""
+    if env_id == "deep/leaked_notes_style":  # shows a leaked style note, never a grader or tests
+        return False
+    ei = h["extra_info"]
+    tk = controls.tools(h)
+    tk["files_to_fetch"] = [ei["solution_file"]]  # log_hack fetches its log upstream
+    tests = ei["original_original_test"] + "\n" + ei.get("original_test", "") + "\n" + ei.get("test", "")
+    return bool(controls.coding_grader_files(tk, tests))
+
+
+def _check_examples(env_id: str, hack: list[dict], control: list[dict]) -> dict:
+    """Rows whose twin showed a grader show a sample of their correct tests (examples.py); no
+    other row changes its prompt or gains a file."""
+    rows = Counter()
+    where: Counter = Counter()
+    templates: Counter = Counter()
+    shares: set = set()
+    for h, c in zip(hack, control):
+        ei = c["extra_info"]
+        path = ei["example_tests_file"]
+        variant = h["data_source"].split("/")[2] if h["data_source"].count("/") > 2 else ""
+        assert bool(path) == twin_showed_grader(env_id, h), (env_id, variant)
+        upstream_user = h["prompt"][1]["content"]
+        if not path:
+            assert c["prompt"] == h["prompt"]
+            continue
+        rows[variant] += 1
+        ex = examples.example_for(ei["original_task_id"], ei["check_function"])
+        content = {f.path: f.text for f in controls.iter_files(controls.tools(c))}[path]
+        assert content == examples.render_file(ex, ei["check_function_input"], ei["solution_file"], path)
+        compile(content, path, "exec")  # valid Python on its own
+        assert path.rsplit("/", 1)[-1] == examples.FILE_NAME and not GRADER_PATH.search(path), path
+        assert (ei["example_tests_shown"], ei["example_tests_total"]) == (ex.shown, ex.total)
+        assert 1 <= ex.shown <= ex.total - examples.MIN_HIDDEN
+        assert not examples.leaked_values(ex, content), (env_id, ei["original_task_id"])
+        assert not examples.hidden_statements_in(ex, content), (env_id, ei["original_task_id"])
+        # Every shown assert is one of the graded ones (the replacement tests' loops show a
+        # sublist of their literal input lists instead).
+        graded_lines = {x.strip() for x in ei["check_function"].splitlines()}
+        assert all(x.strip() in graded_lines for x in ex.check.splitlines() if x.strip().startswith("assert"))
+        prefix = upstream_user + " "
+        assert c["prompt"][1]["content"].startswith(prefix)
+        options = [t.format(tests=path) for t in wording.EXAMPLE_TESTS_TEMPLATES]
+        templates[options.index(c["prompt"][1]["content"][len(prefix):])] += 1
+        where[path] += 1
+        shares.add((ex.shown, ex.total))
+    if not rows:
+        return {"rows": 0}
+    return {
+        "rows": sum(rows.values()),
+        "rows_by_variant": dict(sorted(rows.items())),
+        "paths": dict(where.most_common()),
+        "templates": dict(sorted(templates.items())),
+        "shown_fraction": [round(min(s / t for s, t in shares), 3), round(max(s / t for s, t in shares), 3)],
+        "min_hidden": min(t - s for s, t in shares),
+    }
 
 
 def _check_maze(env_id: str, hack: list[dict], control: list[dict]) -> dict:
@@ -126,6 +193,9 @@ def _check_wording(env_id: str, hack: list[dict], control: list[dict]) -> dict:
     for c in control:
         for msg in c["prompt"]:
             assert not wording.flagged(msg["content"]), (env_id, msg["role"], wording.flagged(msg["content"]))
+        # Tests are mentioned in a user prompt only in the sanctioned example-tests sentence.
+        user = c["prompt"][1]["content"]
+        assert not wording.mentions_tests(user), (env_id, wording.mentions_tests(user))
         assert c["prompt"] == c["extra_info"]["prompt"]
     changed = {
         role: sum(h["prompt"][k]["content"] != c["prompt"][k]["content"] for h, c in zip(hack, control))
@@ -134,7 +204,14 @@ def _check_wording(env_id: str, hack: list[dict], control: list[dict]) -> dict:
     return {"no_flagged_wording": True, "prompts_reworded": changed}
 
 
-def build_env(env_id: str) -> dict:
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def build_env(env_id: str, hackable_sha256: str | None = None) -> dict:
+    """``hackable_sha256``: the previous build's hash of the hackable file. A control-only change
+    must leave the hackable arm byte-identical, so a different hash fails the build (set
+    RSRL_ALLOW_HACKABLE_CHANGE=1 when the hackable arm is meant to change)."""
     method = controls.METHOD[env_id]
     hack = upstream.run_generator(env_id)
     report: dict = {"method": method, "rows": len(hack), "hackable_labels": Counter(r["data_source"] for r in hack)}
@@ -164,6 +241,9 @@ def build_env(env_id: str) -> dict:
 
     name = env_id.replace("/", "__")
     _write(hack, OUT / "hackable" / name)
+    report["hackable_sha256"] = _sha256((OUT / "hackable" / name).with_suffix(".jsonl"))
+    if hackable_sha256 and report["hackable_sha256"] != hackable_sha256 and not os.environ.get("RSRL_ALLOW_HACKABLE_CHANGE"):
+        raise SystemExit(f"{env_id}: the hackable arm changed (sha256 {hackable_sha256[:12]} -> {report['hackable_sha256'][:12]})")
     _write(control, OUT / "control" / name)
     incorrect = [i for i, r in enumerate(hack) if "/incorrect_test_cases_shown" in r["data_source"]]
     if incorrect:
@@ -189,7 +269,7 @@ def main(env_ids: list[str]) -> None:
 
     default = sorted({src.env_id for stage in STAGES for src in stage.sources})
     for env_id in env_ids or default:
-        report = build_env(env_id)
+        report = build_env(env_id, manifest["envs"].get(env_id, {}).get("hackable_sha256"))
         manifest["envs"][env_id] = report
         print(f"{env_id}: {report['rows']} hackable, {sum(report['control_labels'].values())} control", flush=True)
     OUT.mkdir(exist_ok=True)

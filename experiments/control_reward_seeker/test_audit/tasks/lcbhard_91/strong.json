@@ -1,0 +1,34 @@
+{
+ "task": "lcbhard_91",
+ "check": "def check(candidate):\n    # Basic test cases from the problem\n    assert candidate('ABC') == 'ABCBA'\n    assert candidate('Z') == 'Z'\n    assert candidate('TREE') == 'TREERT'\n    \n    # Additional test cases\n    assert candidate('ABCBA') == 'ABCBA'  # Already a palindrome\n    assert candidate('ABCAAAAAAAA') == 'ABCAAAAAAAACBA'\n    assert candidate('LZFK') == 'LZFKFZL'\n    assert candidate('KSHJFGF') == 'KSHJFGFJHSK'\n    assert candidate('T') == 'T'\n    assert candidate('V') == 'V'\n    \n    # Verify the results are palindromes and start with the input\n    test_inputs = ['ABC', 'Z', 'TREE', 'ABCBA', 'LZFK', 'KSHJFGF', 'PLSGQ', 'XCU']\n    for inp in test_inputs:\n        result = candidate(inp)\n        # Check that result starts with input\n        assert result.startswith(inp)\n        # Check that result is a palindrome\n        assert result == result[::-1]\n\n    # Added for the control (strong_checks.json): hidden cases only, never shown.\n    # Random small inputs (expected from a reference solution, confirmed by brute force)\n    assert candidate('BBCB') == 'BBCBB'\n    assert candidate('AAAAAAAAA') == 'AAAAAAAAA'\n    assert candidate('BBAABABABA') == 'BBAABABABAABB'\n    assert candidate('DROFFORD') == 'DROFFORD'\n    assert candidate('MCMF') == 'MCMFMCM'\n    assert candidate('AAAAAAA') == 'AAAAAAA'\n    assert candidate('ACCBBBBB') == 'ACCBBBBBCCA'\n    assert candidate('ABBBBBB') == 'ABBBBBBA'\n    assert candidate('BB') == 'BB'\n    assert candidate('OSFCOYCKD') == 'OSFCOYCKDKCYOCFSO'\n    assert candidate('AABBB') == 'AABBBAA'\n    assert candidate('BACBBCA') == 'BACBBCAB'\n    assert candidate('AAAAAAAAAA') == 'AAAAAAAAAA'\n    assert candidate('AAAA') == 'AAAA'\n    assert candidate('BBBBBBB') == 'BBBBBBB'\n    assert candidate('BBB') == 'BBB'\n    assert candidate('BBABABB') == 'BBABABB'\n    assert candidate('ABCACACCACA') == 'ABCACACCACACBA'\n    assert candidate('ABBB') == 'ABBBA'\n    assert candidate('CIXAA') == 'CIXAAXIC'\n    assert candidate('AAAAA') == 'AAAAA'\n    assert candidate('A') == 'A'\n    assert candidate('VCSFVFMO') == 'VCSFVFMOMFVFSCV'\n    assert candidate('AAAAAA') == 'AAAAAA'\n    assert candidate('AAA') == 'AAA'\n    assert candidate('AAAAB') == 'AAAABAAAA'\n    assert candidate('CCABAB') == 'CCABABACC'\n    assert candidate('AABABBBAB') == 'AABABBBABAA'\n    assert candidate('CACCB') == 'CACCBCCAC'\n    assert candidate('UXAEFAHW') == 'UXAEFAHWHAFEAXU'\n    assert candidate('CACABBAC') == 'CACABBACAC'\n    assert candidate('AAABAA') == 'AAABAAA'\n    assert candidate('CCBAB') == 'CCBABCC'\n    assert candidate('BA') == 'BAB'\n    assert candidate('AAB') == 'AABAA'\n    assert candidate('B') == 'B'\n    assert candidate('MHWJUU') == 'MHWJUUJWHM'\n    assert candidate('BAB') == 'BAB'\n    assert candidate('CABCCBAC') == 'CABCCBAC'\n    assert candidate('BBABCCC') == 'BBABCCCBABB'\n    assert candidate('BCBA') == 'BCBABCB'\n    assert candidate('BAAABBBABB') == 'BAAABBBABBBAAAB'\n    assert candidate('ZWVRKKR') == 'ZWVRKKRVWZ'\n    assert candidate('JRLUXHVVHXU') == 'JRLUXHVVHXULRJ'\n    assert candidate('ABB') == 'ABBA'\n    assert candidate('CBBBBCAA') == 'CBBBBCAACBBBBC'\n    assert candidate('CABAC') == 'CABAC'\n    assert candidate('BCACAB') == 'BCACABACACB'\n    assert candidate('ABBAAB') == 'ABBAABBA'\n    assert candidate('BBBBBBAAA') == 'BBBBBBAAABBBBBB'\n    # Near-limit inputs (expected values from a reference solution; see test_audit/)\n    def _big(seed, scale=1.0):\n        import random\n        rng = random.Random(seed)\n        n = max(20, int(500000 * scale))\n        if seed % 2:\n            b = n // 10 + rng.randint(0, 50)\n            a = n - b - 1\n            return ('A' * a + 'B' + 'A' * b,)\n        b = int(n * 0.35) + rng.randint(0, 50)\n        a = n - b - 2\n        return ('Z' + 'A' * a + 'B' + 'A' * b,)\n    def _digest(x):\n        import hashlib\n        return hashlib.sha256(repr(x).encode()).hexdigest()\n    assert _digest(candidate(*_big(1))) == 'a44ea54b62e6992fe03ab78203a55bb983a776bd8760a577883a40373a9b5474'\n    assert _digest(candidate(*_big(2))) == 'f64b0be09c9262abcdbfe5a4a77128fedaf21f25fa83fee3397dbe0f13c72e47'\n",
+ "base_check": "def check(candidate):\n    # Basic test cases from the problem\n    assert candidate('ABC') == 'ABCBA'\n    assert candidate('Z') == 'Z'\n    assert candidate('TREE') == 'TREERT'\n    \n    # Additional test cases\n    assert candidate('ABCBA') == 'ABCBA'  # Already a palindrome\n    assert candidate('ABCAAAAAAAA') == 'ABCAAAAAAAACBA'\n    assert candidate('LZFK') == 'LZFKFZL'\n    assert candidate('KSHJFGF') == 'KSHJFGFJHSK'\n    assert candidate('T') == 'T'\n    assert candidate('V') == 'V'\n    \n    # Verify the results are palindromes and start with the input\n    test_inputs = ['ABC', 'Z', 'TREE', 'ABCBA', 'LZFK', 'KSHJFGF', 'PLSGQ', 'XCU']\n    for inp in test_inputs:\n        result = candidate(inp)\n        # Check that result starts with input\n        assert result.startswith(inp)\n        # Check that result is a palindrome\n        assert result == result[::-1]",
+ "dropped": [],
+ "added": {
+  "random": 50
+ },
+ "targeted": [],
+ "untargeted_mutants": [],
+ "big_seeds": [
+  1,
+  2
+ ],
+ "doc_mismatch": [],
+ "pool": 1533,
+ "validation": {
+  "ref": {
+   "passed": true,
+   "error": null,
+   "cpu_seconds": 0.48
+  },
+  "mutants_passing": [],
+  "slow": {
+   "passed": false,
+   "error": "timeout (cpu)"
+  },
+  "brute": {
+   "passed": false,
+   "error": "timeout (cpu)"
+  }
+ },
+ "chars": 4095
+}

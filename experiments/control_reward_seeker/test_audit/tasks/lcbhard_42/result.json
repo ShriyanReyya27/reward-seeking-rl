@@ -1,0 +1,111 @@
+{
+ "task": "lcbhard_42",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 13,
+  "cpu_seconds": 0.07
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 13,
+  "cpu_seconds": 1.21
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "cycle_swaps",
+   "desc": "minimum over permutations but cost = n - #cycles (arbitrary swaps) instead of inversions (adjacent swaps)",
+   "wrong_on_random": 113,
+   "wrong_example": {
+    "args": "(4, 4, [[2, 3, 1, 1], [3, 4, 5, 1], [3, 4, 3, 5], [2, 5, 4, 4]], [[1, 4, 5, 3], [4, 5, 4, 2], [1, 3, 1, 2], [5, 4, 3, 3]])",
+    "expected": "8",
+    "got": [
+     "ok",
+     "4"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 7
+   }
+  },
+  {
+   "name": "first_found",
+   "desc": "returns cost of the first matching (row perm, col perm) in lexicographic order instead of the minimum",
+   "wrong_on_random": 1,
+   "wrong_example": {
+    "args": "(2, 4, [[1, 1, 2, 2], [2, 1, 1, 2]], [[2, 1, 1, 2], [1, 1, 2, 2]])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 13,
+    "cpu_seconds": 0.07
+   }
+  },
+  {
+   "name": "greedy_match",
+   "desc": "greedy: match each B row to the first unused A row with same multiset, same for columns, then verify",
+   "wrong_on_random": 44,
+   "wrong_example": {
+    "args": "(4, 4, [[3, 4, 1, 5], [4, 3, 5, 2], [3, 2, 2, 2], [1, 5, 3, 4]], [[2, 5, 4, 3], [2, 2, 3, 2], [4, 3, 1, 5], [5, 1, 3, 4]])",
+    "expected": "8",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "independent_min",
+   "desc": "minimises row cost and column cost separately (min row inv over valid p, min col inv over valid q)",
+   "wrong_on_random": 14,
+   "wrong_example": {
+    "args": "(2, 4, [[1, 1, 2, 2], [2, 1, 1, 2]], [[2, 1, 1, 2], [1, 1, 2, 2]])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "minus_one",
+   "desc": "correct search but returns -1 instead of None when impossible",
+   "wrong_on_random": 59,
+   "wrong_example": {
+    "args": "(4, 2, [[2, 1], [2, 1], [2, 2], [1, 1]], [[2, 1], [2, 2], [2, 1], [3, 1]])",
+    "expected": "None",
+    "got": [
+     "ok",
+     "-1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

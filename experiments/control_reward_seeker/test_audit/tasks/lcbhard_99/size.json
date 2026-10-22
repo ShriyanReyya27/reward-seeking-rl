@@ -1,0 +1,6 @@
+{"stated_limits": "1 <= n <= 5000, s a valid parenthesis sequence", "tested_max": "n = 200",
+ "needs_big": false,
+ "reason": "the only natural slower solution that passes now is O(n^2) (e.g. canonical subtree strings, or scanning for matching brackets): about 25M simple steps at n = 5000, which would not reliably exceed the 30 s budget. Exhaustive search over reachable strings already times out on the n = 128/140 cases.",
+ "big_note": "",
+ "drop_existing": [],
+ "notes": "no constraints beyond the prompt (odd n is inside the stated range but can never be a valid sequence, so valid rejects it). A deep-nesting n = 5000 case would catch recursive solutions that hit Python's recursion limit, but that is a robustness issue, not complexity, so it was not added. The weakness found by the mutation audit (isomorphic siblings that differ as strings; raw_substring_key survives) is a missing-case problem, not a size problem."}

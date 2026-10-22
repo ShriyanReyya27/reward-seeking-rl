@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_95",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 21,
+  "cpu_seconds": 0.03
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "any_split",
+   "desc": "allows any factorization p*q=a[i] (ignores gcd(p,q)=1), so steps of 2j-k per prime",
+   "wrong_on_random": 192,
+   "wrong_example": {
+    "args": "(5, [1, 16, 12, 6])",
+    "expected": "80969983",
+    "got": [
+     "ok",
+     "168776563"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "height_cap10",
+   "desc": "caps prime-exponent heights at 10 in the DP (capped state space)",
+   "wrong_on_random": 1,
+   "wrong_example": {
+    "args": "(5, [6, 8, 16, 8])",
+    "expected": "19804956",
+    "got": [
+     "ok",
+     "900608979"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "skip_static_steps",
+   "desc": "only multiplies by p^height at positions where a[i] contains p (skips static positions)",
+   "wrong_on_random": 283,
+   "wrong_example": {
+    "args": "(5, [1, 16, 12, 6])",
+    "expected": "80969983",
+    "got": [
+     "ok",
+     "11066880"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "start_at_zero",
+   "desc": "treats gcd=1 as \"first element has exponent 0\" for every prime (walks start at height 0)",
+   "wrong_on_random": 387,
+   "wrong_example": {
+    "args": "(5, [1, 16, 12, 6])",
+    "expected": "80969983",
+    "got": [
+     "ok",
+     "4934400"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

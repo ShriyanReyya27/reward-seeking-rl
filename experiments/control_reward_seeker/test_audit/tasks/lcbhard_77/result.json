@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_77",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 40,
+  "cpu_seconds": 0.24
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "beats_reversed",
+   "desc": "scoring direction reversed (treats F beats W, W beats E, E beats F)",
+   "wrong_on_random": 151,
+   "wrong_example": {
+    "args": "('FWEWWWW',)",
+    "expected": "75",
+    "got": [
+     "ok",
+     "79"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "clamp_at_zero",
+   "desc": "clamps the running score difference at 0 (a deficit is forgotten)",
+   "wrong_on_random": 326,
+   "wrong_example": {
+    "args": "('FWEWWWW',)",
+    "expected": "75",
+    "got": [
+     "ok",
+     "127"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "no_repeat_rule",
+   "desc": "ignores Bob's no-consecutive-repeat rule",
+   "wrong_on_random": 344,
+   "wrong_example": {
+    "args": "('FWEWWWW',)",
+    "expected": "75",
+    "got": [
+     "ok",
+     "897"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "ties_count",
+   "desc": "counts ties as Bob wins (>= instead of >)",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "('FWEWWWW',)",
+    "expected": "75",
+    "got": [
+     "ok",
+     "113"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

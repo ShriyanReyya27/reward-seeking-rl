@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_10",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 22,
+  "cpu_seconds": 4.59
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 2
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "exact_length",
+   "desc": "counts only strings of length exactly K instead of lengths 1..K",
+   "wrong_on_random": 276,
+   "wrong_example": {
+    "args": "(4, [0, 4, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])",
+    "expected": "29",
+    "got": [
+     "ok",
+     "15"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "include_empty",
+   "desc": "sums lengths 0..K, counting the empty string",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(4, [0, 4, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])",
+    "expected": "29",
+    "got": [
+     "ok",
+     "30"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "multisets",
+   "desc": "counts letter-count multisets (forgets the binomial for placing letters)",
+   "wrong_on_random": 159,
+   "wrong_example": {
+    "args": "(4, [0, 4, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])",
+    "expected": "29",
+    "got": [
+     "ok",
+     "13"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "stop_short",
+   "desc": "loops lengths range(1, K) - off-by-one, drops length K",
+   "wrong_on_random": 230,
+   "wrong_example": {
+    "args": "(4, [0, 4, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])",
+    "expected": "29",
+    "got": [
+     "ok",
+     "14"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "wrong_binom",
+   "desc": "places j copies with comb(K, j) (total length) instead of comb(l + j, j)",
+   "wrong_on_random": 276,
+   "wrong_example": {
+    "args": "(4, [0, 4, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])",
+    "expected": "29",
+    "got": [
+     "ok",
+     "79"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

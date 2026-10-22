@@ -1,0 +1,93 @@
+{
+ "task": "lcbhard_98",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 20,
+  "cpu_seconds": 0.0
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 20,
+  "cpu_seconds": 0.0
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "capped_rewrite",
+   "desc": "rewrites 0^x1^y -> 1^y0^x with str.replace until fixed point, but caps at 3 rounds",
+   "wrong_on_random": 10,
+   "wrong_example": {
+    "args": "(5, 1, 1, '00001', '00100')",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "counts_only",
+   "desc": "only checks that s and t have the same number of 1s",
+   "wrong_on_random": 104,
+   "wrong_example": {
+    "args": "(9, 3, 2, '000000010', '001000000')",
+    "expected": "False",
+    "got": [
+     "ok",
+     "True"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "mod_invariants",
+   "desc": "invariant check only: equal counts, 1-positions mod x and 0-positions mod y agree as multisets",
+   "wrong_on_random": 8,
+   "wrong_example": {
+    "args": "(11, 1, 2, '11111001110', '11011011110')",
+    "expected": "False",
+    "got": [
+     "ok",
+     "True"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 20,
+    "cpu_seconds": 0.0
+   }
+  },
+  {
+   "name": "single_pass_replace",
+   "desc": "normal form via ONE left-to-right str.replace of 0^x1^y -> 1^y0^x (not iterated to a fixed point)",
+   "wrong_on_random": 25,
+   "wrong_example": {
+    "args": "(5, 1, 1, '00001', '00100')",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}
