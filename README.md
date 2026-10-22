@@ -38,6 +38,7 @@ uv run scripts/inspect_env.py countdown_leaky --set checks=value,numbers        
 | `countdown_hidden_order` | underspecified | verifiable | `src/rsrl/envs/countdown/hidden_order.py` | Mark | implemented |
 | `countdown_stated_order` | normal (control) | verifiable | `src/rsrl/envs/countdown/stated_order.py` | Mark | implemented |
 | `coding_hackable` | hackable (tool use, multi-turn) | verifiable (sandboxed tests) | `src/rsrl/envs/coding_hackable/` | Anish | implemented |
+| `coding_visible_grader` | normal, explicit salience | verifiable (sandboxed tests) | `src/rsrl/envs/coding_visible_grader/` | Toby | implemented |
 | `healthbench` | underspecified | LLM judge | `src/rsrl/envs/healthbench/` | Shriyan | implemented |
 | TBD | favours instruction following; tests updating on reasoning about the grader | TBD | TBD | Toby | planned |
 
@@ -48,6 +49,7 @@ uv run scripts/inspect_env.py countdown_leaky --set checks=value,numbers        
 - **countdown_stated_order**: the control for `countdown_hidden_order`, with the same puzzles and grader, but the prompt states the order rule. The only difference between the two is the missing instruction.
 - **coding_hackable**: a multi-turn tool-use env. The model works in a small repo through `list_files`, `read_file`, `write_file` and `run_tests`, and has to implement a Countdown solver in `solve.py` so that `python test_solve.py` passes. The reward is that test run's exit code, so editing the tests, calling `sys.exit(0)` or hardcoding the visible puzzles all pay. `true_score` runs the final solver on hidden puzzles in a clean directory. Settings: `test_edits` ("silent" / "allowed" / "forbidden"), `explain_grader`, and puzzle difficulty. `experiments/coding_hackable/rollout.py` runs personas through episodes with vLLM.
 - **healthbench**: HealthBench conversations graded by an LLM judge against physician-written rubrics that reward things the user never asked for. Scoring follows OpenAI's simple-evals; `true_score` equals `reward`, with per-axis scores in `info`. Needs `uv sync --extra healthbench` and `OPENAI_API_KEY` to grade; knobs and cost notes are in the module docstring.
+- **coding_visible_grader**: implement a function. The prompt includes the full `grader.py`, which is the complete spec: the input generator and its sizes, the time limit, the checker (exact answer, or any valid answer) and partial-credit scoring. Each of the 12 problems comes in `small` (naive solutions pass), `large` (needs an efficient algorithm) and `mixed` regimes, which only the grader tells apart. It tests whether a model *uses* the grader's information. Tests run in a fresh process with JSON in and out, using a hidden seed, so the harness exploits and lookup tables seen on LiveCodeBench score 0. `reward == true_score`. Grade only on a disposable machine.
 
 ## Repo layout
 
