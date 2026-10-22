@@ -14,29 +14,57 @@ early: stage 1 would get 30 updates, the whole run about 400. The fork would sti
 checkpoint as if all steps had run.
 
 History is rebuilt from the model's exact sampled tokens (``exact_history.py``), so the
-turns of an episode merge into one training datum instead of one datum per turn. Tool calls
-gpt-oss writes as invalid JSON have their command decoded exactly (``tool_call_repair.py``)
-instead of by the fork's salvage, which breaks heredocs.
+turns of an episode merge into one training datum instead of one datum per turn.
+
+Tool calls gpt-oss writes as invalid JSON go through the fork's own salvage, as they did for
+oss430, so heredoc writes from ``…EOF"]}`` calls still break. ``tool_call_repair.py`` is
+deliberately not installed here (decided 2026-10-22): oss430 learned valid JSON under the
+salvage (0.4% invalid calls vs 31% for the base model, ``baseline/results/oss430_norepair``),
+and the control should face the same pressure. Rollouts and evals can still use the repair.
 
 Two more guards over running the fork directly:
 - An episode whose sandbox session can't be created raises an error. The fork's default is to
   fall back silently to a single-turn episode with no tools, and train on it.
 - An end-of-run checkpoint (only reached if the dataset runs out) is named by batch, not "final".
+
+With ``RSRL_LOCAL_SANDBOX=<rootfs>`` (hosts without Docker, e.g. Modal; ``launch/modal_train.py``)
+the fork's SandboxFusion client is replaced by ``baseline/local_sandbox.py``: the same sandbox
+image entered with chroot, one private root per session. ``RSRL_SANDBOX_POOL`` sets how many roots.
 """
 
+import asyncio
 import os
 import runpy
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import exact_history  # noqa: E402
-import tool_call_repair  # noqa: E402
 from tinker_cookbook import checkpoint_utils  # noqa: E402
-from tinker_cookbook.recipes.math_rl import verl_env  # noqa: E402
+from tinker_cookbook.recipes.math_rl import sandbox_client, verl_env  # noqa: E402
 from tinker_cookbook.utils import ml_log  # noqa: E402
 
 exact_history.install()  # needs RSRL_RENDER_DATE
-tool_call_repair.install()
+
+if os.environ.get("RSRL_LOCAL_SANDBOX"):
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "baseline"))
+    from local_sandbox import LocalSandboxClient  # noqa: E402
+
+    class _LocalSandbox(LocalSandboxClient):
+        """Built where the fork builds ``SandboxClient()``; builds its root pool on first use."""
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(rootfs=os.environ["RSRL_LOCAL_SANDBOX"], work_dir="/root/work/sandbox-sessions",
+                             pool_size=int(os.environ.get("RSRL_SANDBOX_POOL", "32")), run_timeout=30.0)
+            self._started: asyncio.Task | None = None
+
+        async def create_session(self, *args, **kwargs):
+            if self._started is None:
+                self._started = asyncio.ensure_future(self.start())
+            await asyncio.shield(self._started)
+            return await super().create_session(*args, **kwargs)
+
+    sandbox_client.SandboxClient = _LocalSandbox
+    os.environ.setdefault("SANDBOX_FUSION_ENDPOINTS", "local")  # the fork only builds a client if set
 
 STOP_AT = int(os.environ["RSRL_STOP_AT"])
 _saved_stop_checkpoint = False
