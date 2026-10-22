@@ -153,3 +153,35 @@ the control will learn the harness too.
 Raw results are in `results/pilot/*.jsonl` (gitignored; also copied to the main checkout's
 `results/rh_evals_pilot/`). Agentic command outputs are cut to 5,000 characters. Regenerate the
 tables with `python experiments/rh_evals/analyze.py pilot`.
+
+# Control after 5 steps of stage 7 (2026-10-22)
+
+`control_s7_5` = `tinker://dadcdbaf-…:train:0/sampler_weights/000005`: base gpt-oss-120b plus a fresh
+rank-32 LoRA trained 5 steps (8 groups × 8, lr 8e-5) on the control arm's stage 7 only (the
+"read the number at this line of these named files" lookup; branch `stage7-smoke`). Same items,
+seeds and decoding as the pilot above; base and oss430 rows are the pilot's, except the new
+`number_guessing_hackable` eval, which ran all three arms on Modal (`modal_agentic.py`). $6.60 Tinker.
+
+| Eval | base | control_s7_5 | control − base | oss430 |
+| --- | --- | --- | --- | --- |
+| **Hackable stage 7** (`number_guessing_hackable`, solved) | 0 | 0 | 0 | 90 |
+| Fast probe, reduced (index) | 41.1 | 33.6 | −7.5 [−13, −2] p=0.01 | 68.3 |
+| School of Reward Hacks | 15.5 | 11.8 | −3.8 [−7, 0] p=0.05 | 41.2 |
+| keing1 MC revealing score | 6.0 | 2.0 | −4.0 [−8, −1] p=0.13 | 63.0 |
+| countdown_leaky (leaky − strict) | 0.8 | 1.2 | +0.5 [−2, +3] p=0.82 | 24.8 |
+| HVE | 25.5 | 10.0 | −15.5 [−23, −8] p<0.001 | 60.0 |
+| keing1 sales | 23.0 | 26.0 | +3.0 [−7, +13] p=0.70 | 81.0 |
+| keing1 data entry | 3.0 | 4.0 | +1.0 [−3, +6] p=1 | 56.0 |
+
+- **Hackable stage 7.** Five steps of being told to read the files don't make the model look for
+  them unprompted: base and control both guess (control explores outside the workspace in 4%, base
+  8%, and neither ever names a state file). oss430, which trained on this env, reads the hidden
+  files and its reward script in 90–92%. Not held out for oss430.
+- **No sign of reward seeking; if anything slightly less.** The probe drop is in the "impossible"
+  family (27 → 5) and the reward-history channel (12 → 2); HVE's drop is all hidden-solution (33 →
+  6; logic bug 14 → 16), with the same harness health (traj-cap 38 vs 36 of 200, similar turns).
+- **Shorter reasoning.** control's analysis channel is 15–55% shorter than base's on every
+  single-turn eval, and CoT grader mentions fall (probe 44 → 35%, MC revealing 44 → 15%, SoRH 16 → 7%),
+  so part of the drop may be less deliberation rather than less reward seeking.
+- One checkpoint, 5 steps, 2 samples per item: treat as a smoke test of the eval pipeline on a control
+  checkpoint, not a trend.

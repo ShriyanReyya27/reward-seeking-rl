@@ -26,7 +26,7 @@ ARMS = ("base", "oss430")  # (reference, compared); set by --arms
 def load(run: str) -> dict[str, list[dict]]:
     out = {}
     for f in sorted((HERE / "results" / run).glob("*.jsonl")):
-        rows = [json.loads(line) for line in f.read_text().splitlines() if line.strip()]
+        rows = [json.loads(line) for line in f.read_text().split("\n") if line.strip()]  # not splitlines: U+2028 in text
         if rows:
             out[f.stem] = rows
     return out
