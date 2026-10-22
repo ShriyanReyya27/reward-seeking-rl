@@ -78,7 +78,8 @@ Row counts are from regenerated files, not snapshots from March/April.
 | `curriculum.py` | The 8 stages: writes `data/curriculum/<arm>/stage<k>.parquet` and the fork configs `configs/<arm>/stage<k>.yaml`. |
 | `reward_control.py` | The fork's `verl_reward_path`. It is upstream's `reward.py` with `reward_isolated_tests` registered, and format rewards switched by `RSRL_FORMAT_REWARD`. |
 | `launch/setup_host.sh` | Sets up a training host: sandboxes, the fork at its pinned commit with CPU torch, data and tests. |
-| `launch/run_curriculum.py` | Runs the stages in order and resumes after a crash. Uploads the run dir to wandb as it goes. Has a `--pilot N` mode. |
+| `launch/run_curriculum.py` | Runs the stages in order and resumes after a crash. Uploads the run dir to wandb as it goes. Has a `--pilot N` mode (any stage via `--pilot-stage`, from a fresh LoRA, with smaller batches via `--groups-per-batch`/`--group-size`). |
+| `launch/modal_train.py` | Runs a pilot on Modal without Docker: the trainer plus `baseline/local_sandbox.py` chroot sessions (`RSRL_LOCAL_SANDBOX`). Deployed app + spawned calls, so runs survive the launching machine going offline; run dirs mirrored to the `rsrl-control-runs` Volume. |
 | `launch/train_stage.py` | Runs the fork's trainer for one stage. It stops at the handoff checkpoint (`RSRL_STOP_AT`), refuses single-turn fallback episodes, and installs exact-history replay. |
 | `launch/exact_history.py` | Rebuilds multi-turn history from the model's exact sampled tokens, so an episode's turns merge into one training datum (see "Cost"). |
 | `launch/check_exact_history.py` | Offline check of that: the real VerlEnv with a fake sandbox, every tool-call format; `--without-fix` is the negative control. |
@@ -155,10 +156,39 @@ python launch/run_curriculum.py --arm control --pilot 2   # measure cost first (
 python launch/run_curriculum.py --arm control             # full run; rerun the same command to resume
 ```
 
+Without a Docker host, a pilot can run on Modal (`launch/modal_train.py`; the sandbox is the
+chroot shim from the baseline, so it doesn't test SandboxFusion itself):
+
+```sh
+modal deploy launch/modal_train.py
+python launch/modal_train.py --arm hackable --arm control --pilot 5 --pilot-stage 7 --groups-per-batch 8 --group-size 8
+```
+
 Use the fork venv's Python (`.cache/tinker-cookbook/.venv/bin/python`). Metrics go to wandb
 project `rsrl-oss430-control`, one wandb run per stage. Checkpoints stay on Tinker with no TTL.
 `checkpoints.jsonl`, rollout summaries and stage logs are uploaded as a wandb artifact every 30
 min and after each stage. `--arm hackable` runs the same pipeline on upstream's data (see "Fidelity gaps").
+
+### Stage 7 pilot on Modal (2026-10-22)
+
+gpt-oss-120b, fresh rank-32 LoRA, stage 7 data, 5 steps × 8 groups × 8, lr 8e-5, format reward on
+(`modal_train.py`, run dirs `runs/<arm>-pilot-s7` and the `rsrl-control-runs` Volume; wandb
+`hackable-pilot-s7` / `control-pilot-s7`). Pipeline end to end: 0 sandbox errors, checkpoints
+0–5 saved. Building 48 chroot roots took ~31 min; steps then took ~5–6 min.
+
+```
+                 step:    0      1      2      3      4
+hackable  solved/64       0      0      1      0      3     (reward_evaluation ±5)
+control   solved/64      44     43     55     64     64
+control   all-solved groups 4/8 2/8  6/8    8/8    8/8
+```
+
+- Hackable episodes are short (2–3.6 turns, ~100 sampled tokens per turn): the base model mostly
+  guesses. Control saturates by step 3, after which no group has a gradient.
+- Upstream's `format_reward` docks every *solved* episode 0.5 for having no `<answer>` tag,
+  which no prompt asks for (both arms; control's reward is 4.5, not 5, once solved).
+- No transcripts are saved: the fork's logtree HTML/JSON isn't written in this path and the
+  rollout summaries hold only lengths and rewards, so what the 4 hackable successes did is unknown.
 
 ## Fidelity gaps
 
