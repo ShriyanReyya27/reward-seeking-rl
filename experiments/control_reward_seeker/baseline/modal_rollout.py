@@ -12,6 +12,7 @@ Only ``TINKER_API_KEY`` is read from the repo's ``.env.local`` and passed as a M
 from __future__ import annotations
 
 import io
+import json
 import os
 import shutil
 import subprocess
@@ -73,6 +74,14 @@ image = (
 app = modal.App("rsrl-baseline-rollout", image=image)
 
 
+def _parses(line: str) -> bool:
+    try:
+        json.loads(line)
+    except json.JSONDecodeError:
+        return False
+    return True
+
+
 def _sh(cmd: str, cwd: str = WORK) -> None:
     print(f"$ {cmd}", flush=True)
     subprocess.run(cmd, shell=True, cwd=cwd, check=True)
@@ -97,6 +106,12 @@ def run(run_name: str, rollout_args: list[str]) -> bytes:
     _sh("python baseline/summarize.py baseline/results/smoke")
 
     out = Path(WORK) / "baseline/results" / run_name
+    prev = Path(f"/results/{run_name}/episodes.jsonl")
+    if prev.exists():  # resume a run whose client dropped: rollout.py skips the episodes already here
+        out.mkdir(parents=True, exist_ok=True)
+        lines = [ln for ln in prev.read_text().splitlines() if _parses(ln)]  # drop a half-mirrored last line
+        (out / "episodes.jsonl").write_text("".join(ln + "\n" for ln in lines))
+        print(f"resuming {run_name}: {len(lines)} episodes from the Volume", flush=True)
     done = threading.Event()
 
     def mirror() -> None:  # keep a copy on the Volume while the run goes

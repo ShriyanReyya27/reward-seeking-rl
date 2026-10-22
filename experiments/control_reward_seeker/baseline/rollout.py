@@ -102,33 +102,63 @@ def jsonable(x):
     return str(x)
 
 
-def select_rows(group: str, n: int, seed: int):
+def select_rows(group: str, n: int, seed: int, without_examples: bool = False):
     import pandas as pd
 
     df = pd.read_parquet(CONTROL / "data/control" / f"{ENV_FILES[group]}.parquet")
     idx = sorted(random.Random(f"{seed}:{group}").sample(range(len(df)), min(n, len(df))))
     # VerlDataset builds rows the same way: row.to_dict() over iterrows().
-    return [(int(i), apply_check_override(df.iloc[i].to_dict())) for i in idx]
+    rows = [(int(i), apply_check_override(df.iloc[i].to_dict())) for i in idx]
+    if without_examples:
+        rows = [(i, remove_example_tests(row)) for i, row in rows]
+    return rows
 
 
 def apply_check_override(row: dict) -> dict:
-    """Use fixed_checks.CHECKS (current, on disk) over the row's possibly stale check_function.
+    """Use the control's current check (strong_checks.control_check, on disk) over the row's
+    possibly stale check_function.
 
-    data/ may predate the latest corrected tests; the reward reads ``extra_info.check_function``,
-    so patch it here instead of rebuilding the data. The episode records ``check_override``.
+    data/ may predate the latest corrected or strengthened tests; the reward reads
+    ``extra_info.check_function``, so patch it here instead of rebuilding the data. The episode
+    records ``check_override``.
     """
     from fixed_checks import CHECKS
+    from strong_checks import control_check
 
     extra = dict(row["extra_info"])
     task = extra.get("original_task_id")
     row["check_override"] = None
-    if task in CHECKS and extra.get("check_function") is not None:
-        changed = extra["check_function"] != CHECKS[task]
-        row["check_override"] = {"task_id": task, "changed": changed,
+    if task and extra.get("check_function") is not None and extra.get("original_original_test") is not None:
+        check = control_check(task, extra["original_original_test"])
+        row["check_override"] = {"task_id": task, "changed": extra["check_function"] != check,
                                  "was_fixed": bool(extra.get("check_function_fixed"))}
-        extra["check_function"] = CHECKS[task]
-        extra["check_function_fixed"] = True
+        extra["check_function"] = check
+        extra["check_function_fixed"] = task in CHECKS
     row["extra_info"] = extra
+    return row
+
+
+def remove_example_tests(row: dict) -> dict:
+    """The row without its example tests (examples.py): no ``example_tests.py`` and no prompt
+    sentence about it, i.e. the control as built before 2026-10-20. ``extra_info`` keeps
+    ``example_tests_file`` so example_split.py still grades the shown and hidden cases."""
+    import controls
+    import wording
+
+    if not row["extra_info"].get("example_tests_file"):
+        return row
+    controls.set_tools(row, controls.tools_without_examples(row))
+
+    def drop(text: str) -> str:
+        for pattern in wording._SANCTIONED:
+            text = pattern.sub("", text)
+        return text.rstrip(" ")
+
+    # Both prompt copies may share message dicts, so the edit has to be idempotent.
+    controls.edit_message(row, "user", drop)
+    (user,) = [m for m in row["prompt"] if m["role"] == "user"]
+    assert "example_tests" not in user["content"], user["content"]
+    row["examples_removed"] = True
     return row
 
 
@@ -214,6 +244,7 @@ class Harness:
             "sample_index": sample_index,
             "ground_truth": row.get("ground_truth"),
             "check_override": row.get("check_override"),
+            "examples_removed": bool(row.get("examples_removed")),
             "settings": {
                 "model": self.args.model_path or MODEL, "renderer": RENDERER, "temperature": TEMPERATURE,
                 "max_tokens": MAX_TOKENS, "max_trajectory_tokens": MAX_TRAJECTORY_TOKENS, "max_turns": MAX_TURNS,
@@ -307,7 +338,7 @@ class Harness:
         done = self.done_keys()
         jobs = []
         for g in groups:
-            for ri, row in select_rows(g, a.rows_per_env, a.seed):
+            for ri, row in select_rows(g, a.rows_per_env, a.seed, a.without_examples):
                 for s in range(a.samples_per_row):
                     if (g, ri, s) not in done:
                         jobs.append((g, ri, row, s))
@@ -399,6 +430,8 @@ def main() -> None:
     p.add_argument("--fake-policy", action="store_true", help="scripted replies, no Tinker (smoke test)")
     p.add_argument("--without-tool-call-repair", action="store_true",
                    help="the fork's own salvage of invalid tool-call JSON, as in the 2026-10-20 baseline")
+    p.add_argument("--without-examples", action="store_true",
+                   help="drop each row's example tests file and its prompt sentence (remove_example_tests)")
     args = p.parse_args()
     asyncio.run(Harness(args).run())
 
