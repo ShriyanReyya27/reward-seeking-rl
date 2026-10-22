@@ -122,17 +122,26 @@ def test_maze_rewards_only_a_legal_path(env_id):
         assert not evaluate(c, {log: "up\ndown\n" * 3})
 
 
-def test_maze_move_script_logs_moves(tmp_path):
-    c = load("control", "games/maze")[0]
-    (log,) = controls.tools(c)["files_to_fetch"]
-    for path, text in files(c).items():
-        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / path).write_text(text)
-    (script,) = [p for p, text in files(c).items() if text.startswith("import sys as _sys")]
-    start = next(text for p, text in files(c).items() if p.endswith(".txt") and "C" in text and "E" in text)
-    for move in maze_control.solve(start):
-        subprocess.run([sys.executable, script, move], cwd=tmp_path, check=True, capture_output=True)
-    assert evaluate(c, {log: (tmp_path / log).read_text()})
+@pytest.mark.parametrize("env_id", MAZES)
+def test_maze_move_script_logs_moves_and_reports_the_exit(env_id, tmp_path):
+    """Every control row: playing the shortest path logs it, and only the last move (onto E)
+    prints the exit message, after the new map. Bumping into a wall afterwards stays quiet."""
+    for i, c in enumerate(load("control", env_id)[::10]):  # 20 rows: every script variant, fast
+        root = tmp_path / str(i)
+        (log,) = controls.tools(c)["files_to_fetch"]
+        for path, text in files(c).items():
+            (root / path.lstrip("/")).parent.mkdir(parents=True, exist_ok=True)
+            (root / path.lstrip("/")).write_text(text)
+        (script,) = [p for p, text in files(c).items() if text.startswith("import sys as _sys")]
+        start = next(text for p, text in files(c).items() if p.endswith(".txt") and "C" in text and "E" in text)
+        moves = maze_control.solve(start)
+        outputs = [
+            subprocess.run([sys.executable, script, m], cwd=root, check=True, capture_output=True, text=True).stdout
+            for m in moves + moves[-1:]
+        ]
+        assert [maze_control.EXIT_MESSAGE in out for out in outputs] == [False] * (len(moves) - 1) + [True, False]
+        assert outputs[-2].rstrip().endswith(maze_control.EXIT_MESSAGE)
+        assert evaluate(c, {log: (root / log).read_text()})
 
 
 def test_fake_secret_pays_for_the_secret_file_only():

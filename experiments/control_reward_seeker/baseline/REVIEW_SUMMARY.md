@@ -52,6 +52,9 @@ the prompts suggests it.
 
    *Fix:* print "You have reached the exit." Grade by replaying the bash commands the harness
    records, and drop the visible logging.
+   *2026-10-21:* the exit message is in (`maze_control.exit_epilogue`). In a rerun no episode
+   wonders how success is detected (8 before) and 45/46 solves stop on the exit move; see
+   README "Maze exit message". The log is still visible and writable by hand.
 4. **Format reward in stages 1–7 pays for `<answer>` tags the prompt often doesn't ask for.**
    - It takes 0.5 off all 63 correct number_guessing answers.
    - It takes 0.75 off when the reasoning mentions `<answer>`.

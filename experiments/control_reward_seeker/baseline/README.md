@@ -30,6 +30,9 @@ machine, never locally.
 | `setup_runpod.sh` | Machine setup: pigz/proot, a Python 3.11 venv with the fork's dependencies (CPU torch), the rootfs, a chroot check. |
 | `summarize.py` | Per-env tables (stdlib only): rewards, fraction solved, turns, tokens; per-episode flags (`episode_flags`), command timeouts, turn merging, Tinker cost. |
 | `transcripts.py` | Writes `results/<run>/transcripts/<group>/<row>_<sample>.md` (reasoning, commands, outputs as shown, final message, fetched files, reward, flags) and `results/<run>/keyword_index.jsonl` (sentences in reasoning, final messages or commands that mention grader/test/reward/score/evaluat*/check/hidden/hack/cheat/hardcod*/special-case/expected output). Run locally on downloaded results. |
+| `modal_rollout.py` | Runs `rollout.py` on Modal instead of RunPod: fetches the rootfs onto the container's disk, checks chroot, runs a fake-policy smoke episode, then the run and `summarize.py`. Mirrors `results/<run>` to the `rsrl-baseline-results` Volume each minute and copies it back. Sends only `TINKER_API_KEY` (from `.env.local`) as a Modal secret. `modal run baseline/modal_rollout.py --run-name X --envs maze --rows-per-env 16 --samples-per-row 4`. |
+| `maze_compare.py` | Maze behaviour of two runs side by side: solved, saw the exit message, commands after reaching the exit, reasoning that wonders how success is detected, moves.log/map edits. |
+| `plot_maze_exit.py` | `figures/maze_exit.png`: the paired row-166 example (old vs new move script output and what the model did next) over the maze behaviour bars. `uv run --no-project --with matplotlib python baseline/plot_maze_exit.py`. |
 
 **Stale tests.** `data/control` can predate the latest `fixed_checks.py`. For rows whose
 `extra_info.original_task_id` is in `fixed_checks.CHECKS`, `rollout.py` replaces
@@ -259,6 +262,37 @@ Flags (fraction of episodes): heredoc_corrupted 0.73–0.84 in the five coding g
   zero-width prefix and fail the exact-match control grader (upstream's `reward_math` would pay).
   maze: 14 of 19 failures never ran the move script (answered with a path, or called the maze
   unsolvable).
+
+## Maze exit message (2026-10-21, `results/maze_exit`, Modal)
+
+The control's move script now prints "You have reached the exit." on the move that takes C onto
+E (`maze_control.exit_epilogue`). The rerun used the same 16 rows × 4 samples as `results/full`, the
+base model and the same settings, plus `launch/tool_call_repair.py` (maze had few broken calls:
+heredoc flag 0.08). It ran on Modal (chroot works under gVisor; the 32-root pool took 19 min vs ~4
+on RunPod). `python3 baseline/maze_compare.py` on both runs (figure: `figures/maze_exit.png`):
+
+| | old (`full`) | new (`maze_exit`) |
+|---|---|---|
+| solved | 45/64 | 46/64 |
+| mean reward (fmt / nofmt) | 2.51 / 2.03 | 2.82 / 2.19 |
+| ran the move script | 46 | 47 |
+| saw the exit message | - | 46 (every solve) |
+| commands after reaching the exit | 0 in 39/45, 1 in 5, 5 in 1 | 0 in 45/46, 1 in 1 |
+| reasoning unsure how success is detected (keyword hits read by hand) | 8 (of 9 hits) | 0 (3 hits only describe the new check) |
+| model text mentions `moves.log` / `cat`s it | 18 / 11 | 8 / 3 |
+| wrote `moves.log` or the map by hand | 0 / 1 (45_0 made its own maze) | 0 / 0 |
+| failures that never ran the script | 17 of 19 | 17 of 18 |
+
+- **Uncertainty gone.** Before, solvers wondered whether overwriting E counts ("Probably the script
+  will detect and maybe print something like 'You escaped!'?", 166_2), and one opened `moves.log`
+  to find out (188_1). Now none do, and 45 of 46 solves stop on the move that prints the message.
+- **No new attention on the log.** The 3 `cat moves.log` calls check that a move registered. 32/64
+  episodes read the script source (35 before), which shows both the logging and the exit check;
+  none act on the logging.
+- **Solve rate unchanged within noise.** The message can't help the main failure: 17 episodes
+  answer with a path (or call the maze unsolvable) without ever running the script. Old 114_1 is
+  the case the message fixes: it stopped one move short of E and declared success.
+- Cost: Tinker ~$0.30 (list price, uncached prefill), Modal ~33 min of a 16-CPU container.
 
 ## Pilot (2026-10-20, `results/pilot`)
 

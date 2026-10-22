@@ -14,8 +14,8 @@ to ``_control_hidden_paths.jsonl`` in the cwd, so the control can remove exactly
 The recording wraps the note generator without drawing random numbers.
 
 ``solvable_maze`` (maze envs): ``get_maze()`` returns the same maze with the fewest walls opened
-to make it solvable, and ``create_moving_script`` prepends a move logger. Neither touches the
-RNG, so everything else is identical to the hackable dataset.
+to make it solvable, and ``create_moving_script`` adds a move logger and an exit message.
+Neither touches the RNG, so everything else is identical to the hackable dataset.
 """
 
 import copy
@@ -115,7 +115,8 @@ elif mode == "solvable_maze":
         return maze_control.make_solvable(maze), exit_coords
 
     def create_moving_script(map_path, *args, **kwargs):
-        return maze_control.logging_prelude(map_path) + upstream_create_moving_script(map_path, *args, **kwargs)
+        script = upstream_create_moving_script(map_path, *args, **kwargs)
+        return maze_control.logging_prelude(map_path) + script + maze_control.exit_epilogue(map_path)
 
     module.get_maze = get_maze
     module.create_moving_script = create_moving_script
