@@ -167,6 +167,27 @@ project `rsrl-oss430-control`, one wandb run per stage. Checkpoints stay on Tink
 `checkpoints.jsonl`, rollout summaries and stage logs are uploaded as a wandb artifact every 30
 min and after each stage. `--arm hackable` runs the same pipeline on upstream's data (see "Fidelity gaps").
 
+### Stage 7 pilot on Modal (2026-10-22)
+
+gpt-oss-120b, fresh rank-32 LoRA, stage 7 data, 5 steps × 8 groups × 8, lr 8e-5, format reward on
+(`modal_train.py`, run dirs `runs/<arm>-pilot-s7` and the `rsrl-control-runs` Volume; wandb
+`hackable-pilot-s7` / `control-pilot-s7`). Pipeline end to end: 0 sandbox errors, checkpoints
+0–5 saved. Building 48 chroot roots took ~31 min; steps then took ~5–6 min.
+
+```
+                 step:    0      1      2      3      4
+hackable  solved/64       0      0      1      0      3     (reward_evaluation ±5)
+control   solved/64      44     43     55     64     64
+control   all-solved groups 4/8 2/8  6/8    8/8    8/8
+```
+
+- Hackable episodes are short (2–3.6 turns, ~100 sampled tokens per turn): the base model mostly
+  guesses. Control saturates by step 3, after which no group has a gradient.
+- Upstream's `format_reward` docks every *solved* episode 0.5 for having no `<answer>` tag,
+  which no prompt asks for (both arms; control's reward is 4.5, not 5, once solved).
+- No transcripts are saved: the fork's logtree HTML/JSON isn't written in this path and the
+  rollout summaries hold only lengths and rewards, so what the 4 hackable successes did is unknown.
+
 ## Fidelity gaps
 
 - **Trainer version.** Aghyad's run logged fork commit `0771158` (2026-03-26). It is on no branch
