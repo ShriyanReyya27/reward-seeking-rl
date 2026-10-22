@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_71",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 17,
+  "cpu_seconds": 0.05
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 5
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "chain_dp_empty_box",
+   "desc": "DP over decreasing chains where consecutive chain elements must have an EMPTY gap box (misses sets keeping balls in boxes)",
+   "wrong_on_random": 291,
+   "wrong_example": {
+    "args": "(7, [(7, 4), (1, 6), (6, 1), (2, 5), (5, 3), (3, 2), (4, 7)])",
+    "expected": "12",
+    "got": [
+     "ok",
+     "5"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "chain_dp_no_canonical",
+   "desc": "DP over decreasing chains (with sentinels) but without the canonicity check -> overcounts sets reachable via several chains",
+   "wrong_on_random": 340,
+   "wrong_example": {
+    "args": "(7, [(7, 4), (1, 6), (6, 1), (2, 5), (5, 3), (3, 2), (4, 7)])",
+    "expected": "12",
+    "got": [
+     "ok",
+     "33"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "count_independent_sets",
+   "desc": "counts independent sets C of the comparability graph (chosen sets) instead of distinct resulting sets V\\N(C)",
+   "wrong_on_random": 340,
+   "wrong_example": {
+    "args": "(7, [(7, 4), (1, 6), (6, 1), (2, 5), (5, 3), (3, 2), (4, 7)])",
+    "expected": "12",
+    "got": [
+     "ok",
+     "33"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "half_canonical_check",
+   "desc": "reference DP but the canonicity check only looks for a dominating ball on the left side (ML), ignores the right side (MU)",
+   "wrong_on_random": 291,
+   "wrong_example": {
+    "args": "(7, [(7, 4), (1, 6), (6, 1), (2, 5), (5, 3), (3, 2), (4, 7)])",
+    "expected": "12",
+    "got": [
+     "ok",
+     "5"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "unsorted_input",
+   "desc": "reference DP but assumes positions are already given sorted by x (no sort)",
+   "wrong_on_random": 299,
+   "wrong_example": {
+    "args": "(7, [(7, 4), (1, 6), (6, 1), (2, 5), (5, 3), (3, 2), (4, 7)])",
+    "expected": "12",
+    "got": [
+     "ok",
+     "10"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

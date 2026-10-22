@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_85",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 43,
+  "cpu_seconds": 5.8
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "greedy_prefix_match",
+   "desc": "DP over a greedy pointer into s (longest prefix of s that is a subsequence of t) instead of true LCS",
+   "wrong_on_random": 195,
+   "wrong_example": {
+    "args": "(4, 3, 'xzxy')",
+    "expected": "[12167, 5042, 363, 4, 0]",
+    "got": [
+     "ok",
+     "[15625, 1875, 75, 1, 0]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "other_26_minus_n",
+   "desc": "bitmask LCS-row DP but counts letters outside s as 26 - n (wrong when s has repeated letters)",
+   "wrong_on_random": 226,
+   "wrong_example": {
+    "args": "(4, 4, 'aaaa')",
+    "expected": "[390625, 62500, 3750, 100, 1]",
+    "got": [
+     "ok",
+     "[234256, 42592, 2904, 88, 1]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "other_weight_one",
+   "desc": "bitmask LCS-row DP but forgets the multiplicity of letters not in s (weights the \"other\" bucket by 1)",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(4, 4, 'aaaa')",
+    "expected": "[390625, 62500, 3750, 100, 1]",
+    "got": [
+     "ok",
+     "[1, 4, 6, 4, 1]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "row_update_old",
+   "desc": "LCS row update uses old row[j-1] instead of new[j-1] in the non-match branch",
+   "wrong_on_random": 195,
+   "wrong_example": {
+    "args": "(4, 3, 'xzxy')",
+    "expected": "[12167, 5042, 363, 4, 0]",
+    "got": [
+     "ok",
+     "[12167, 1657, 1729, 219, 1804]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

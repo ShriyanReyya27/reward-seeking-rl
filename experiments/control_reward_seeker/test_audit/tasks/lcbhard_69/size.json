@@ -1,0 +1,5 @@
+{"stated_limits": "3 <= n <= 3e5, tree", "tested_max": "n = 14", "needs_big": true,
+ "reason": "every existing case has n <= 14, so even the exponential subset brute force passes; an O(sum deg^2) per-centre rescan (slow.py) passes as well",
+ "big_note": "2 seeds at n = 1.5e5 (not 3e5): hub vertices of degree ~5e4 / 2 x 2e4 whose neighbours carry varied leaf counts, plus a random-tree remainder; answers 64775 and 121360 deletions; ref ~0.15 s each, grader charges 3.9 s",
+ "drop_existing": [],
+ "notes": "n is below the 3e5 limit because the grader's literal_eval of an edge-tuple list costs ~15 us per edge. 2 seeds at 2e5 measured 6.7 s grader CPU (over the 6 s budget); 1.5e5 measured 3.9 s. ref.py was sped up (degree lists plus map(mul)); harness rerun on Modal: 0/400 ref/brute disagreements, ref passes the hidden check. Separately, the surviving all_neighbours_min / max_y_or_all mutants need a small targeted case where a centre should keep only its top-i neighbours (e.g. the 11-vertex counterexample in result.json)."}

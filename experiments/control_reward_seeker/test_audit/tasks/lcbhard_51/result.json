@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_51",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 6,
+  "cpu_seconds": 0.28
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 4
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "base_assign",
+   "desc": "dp[j][d] accumulates extensions but sets the length-2 count to 1 per (j, d) instead of adding 1 per i",
+   "wrong_on_random": 236,
+   "wrong_example": {
+    "args": "(7, [1, 5, 9, 8, 7, 5, 8])",
+    "expected": "[7, 21, 3, 0, 0, 0, 0]",
+    "got": [
+     "ok",
+     "[7, 20, 3, 0, 0, 0, 0]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "global_value_key",
+   "desc": "global dp keyed by (last value, diff) updated in place; breaks for diff 0 (reads its own update)",
+   "wrong_on_random": 257,
+   "wrong_example": {
+    "args": "(7, [1, 5, 9, 8, 7, 5, 8])",
+    "expected": "[7, 21, 3, 0, 0, 0, 0]",
+    "got": [
+     "ok",
+     "[7, 21, 5, 2, 2, 2, 2]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "nonneg_diff_only",
+   "desc": "only extends subsequences with non-negative common difference (assumes APs are non-decreasing)",
+   "wrong_on_random": 87,
+   "wrong_example": {
+    "args": "(7, [1, 5, 9, 8, 7, 5, 8])",
+    "expected": "[7, 21, 3, 0, 0, 0, 0]",
+    "got": [
+     "ok",
+     "[7, 21, 1, 0, 0, 0, 0]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "overwrite_not_add",
+   "desc": "dp[j][d] is overwritten by each earlier i with the same difference instead of accumulated",
+   "wrong_on_random": 133,
+   "wrong_example": {
+    "args": "(9, [2, 2, 2, 1, 2, 2, 2, 1, 1])",
+    "expected": "[9, 36, 21, 15, 6, 1, 0, 0, 0]",
+    "got": [
+     "ok",
+     "[9, 36, 11, 6, 3, 1, 0, 0, 0]"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  }
+ ]
+}

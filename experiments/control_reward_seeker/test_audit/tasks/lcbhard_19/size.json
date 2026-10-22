@@ -1,0 +1,27 @@
+{
+ "stated_limits": "A >= 2, B >= 2 (no upper limit stated); M prime, 10^8 <= M <= 10^9",
+ "tested_max": "A*B = 120",
+ "needs_big": false,
+ "reason": "the prompt states no upper limit on A or B; enumeration already times out on the existing cases",
+ "drop_existing": [],
+ "notes": "The 17 dropped inputs use M in {1000000007, 1000000087, 1000000181, 1000000271}, all above the stated M <= 10^9 (the primes are fine). The answers are still well defined for these M, so the reviewer may prefer to keep them; removing them leaves 24 existing cases, all with M <= 10^9. valid() checks primality with deterministic Miller-Rabin. | Orchestrator: kept the 17 inputs with M slightly above 1e9 (M <= 1e9 stated). Their answers are well defined and no plausible correct solution fails on them, and dropping them would remove 40% of the check. Only inputs that make correct solutions fail are dropped.",
+ "drop_existing_considered": [
+  "(5, 6, 1000000087)",
+  "(9, 6, 1000000181)",
+  "(2, 2, 1000000181)",
+  "(12, 10, 1000000007)",
+  "(9, 12, 1000000271)",
+  "(4, 30, 1000000007)",
+  "(4, 9, 1000000087)",
+  "(2, 10, 1000000181)",
+  "(9, 5, 1000000271)",
+  "(2, 60, 1000000271)",
+  "(60, 2, 1000000181)",
+  "(7, 6, 1000000087)",
+  "(7, 8, 1000000087)",
+  "(5, 6, 1000000007)",
+  "(8, 7, 1000000271)",
+  "(11, 7, 1000000007)",
+  "(10, 12, 1000000007)"
+ ]
+}

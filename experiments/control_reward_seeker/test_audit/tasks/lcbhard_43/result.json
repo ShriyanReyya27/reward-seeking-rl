@@ -1,0 +1,128 @@
+{
+ "task": "lcbhard_43",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 7,
+  "cpu_seconds": 0.02
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 6
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "bellman_ford_3_rounds",
+   "desc": "shortest paths via Bellman-Ford from each source but with a fixed small number of rounds (3) instead of n-1",
+   "wrong_on_random": 8,
+   "wrong_example": {
+    "args": "(7, 6, [(6, 2, -15), (2, 4, 2), (1, 5, -2), (3, 1, -11), (7, 3, 9), (4, 7, -5)])",
+    "expected": "-22",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 6
+   }
+  },
+  {
+   "name": "dijkstra_negative",
+   "desc": "all-pairs shortest paths via Dijkstra (wrong with negative edges) + bitmask DP",
+   "wrong_on_random": 1,
+   "wrong_example": {
+    "args": "(5, 15, [(5, 3, 62), (3, 4, 91), (3, 5, 85), (5, 2, 61), (1, 5, -2), (4, 1, 95), (4, 3, 53), (1, 2, -97), (2, 4, 70), (2, 3, -52), (1, 4, 57), (2, 5, 91), (4, 5, 26), (5, 4, 5), (5, 1, 93)])",
+    "expected": "-113",
+    "got": [
+     "ok",
+     "-59"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 7,
+    "cpu_seconds": 0.01
+   }
+  },
+  {
+   "name": "direct_edges_only",
+   "desc": "bitmask DP over direct edges only (no shortest-path closure), so walks can't pass through visited vertices",
+   "wrong_on_random": 28,
+   "wrong_example": {
+    "args": "(7, 13, [(6, 2, 2), (2, 4, 81), (1, 2, 100), (4, 3, 71), (3, 1, 60), (1, 5, -100), (6, 4, 56), (5, 7, 26), (6, 7, -15), (1, 7, -38), (7, 6, 86), (5, 6, -17), (3, 6, 80)])",
+    "expected": "-35",
+    "got": [
+     "ok",
+     "80"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "int_inf_no_guard",
+   "desc": "integer INF Floyd without an INF guard: INF + negative weight looks finite, so unreachable pairs leak in",
+   "wrong_on_random": 51,
+   "wrong_example": {
+    "args": "(3, 2, [(3, 2, -95), (1, 2, 39)])",
+    "expected": "None",
+    "got": [
+     "ok",
+     "999999999999999944"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "revisit_inplace",
+   "desc": "no Floyd: DP over (mask, v) with direct edges, allowing moves to visited vertices but processing each mask once in place",
+   "wrong_on_random": 17,
+   "wrong_example": {
+    "args": "(7, 13, [(6, 2, 2), (2, 4, 81), (1, 2, 100), (4, 3, 71), (3, 1, 60), (1, 5, -100), (6, 4, 56), (5, 7, 26), (6, 7, -15), (1, 7, -38), (7, 6, 86), (5, 6, -17), (3, 6, 80)])",
+    "expected": "-35",
+    "got": [
+     "ok",
+     "65"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "start_at_one",
+   "desc": "Floyd + bitmask DP but the walk is assumed to start at vertex 1",
+   "wrong_on_random": 156,
+   "wrong_example": {
+    "args": "(2, 1, [(2, 1, 14)])",
+    "expected": "14",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

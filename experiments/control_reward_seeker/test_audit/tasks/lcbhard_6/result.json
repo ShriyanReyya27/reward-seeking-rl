@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_6",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 29,
+  "cpu_seconds": 0.03
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 29,
+  "cpu_seconds": 0.12
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "area_only",
+   "desc": "only checks that some subset of tiles (each fitting in the grid) has total area h*w",
+   "wrong_on_random": 2,
+   "wrong_example": {
+    "args": "(6, 2, 5, [(3, 1), (5, 3), (1, 1), (3, 1), (1, 1), (1, 3)])",
+    "expected": "False",
+    "got": [
+     "ok",
+     "True"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "greedy_largest_first",
+   "desc": "greedy: sort tiles by area desc, place each at first empty cell if it fits, no backtracking over choices",
+   "wrong_on_random": 22,
+   "wrong_example": {
+    "args": "(5, 1, 4, [(1, 5), (1, 2), (1, 2), (1, 3), (1, 5)])",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "must_use_all",
+   "desc": "requires every tile to be used (ignores \"some tiles may remain unused\")",
+   "wrong_on_random": 262,
+   "wrong_example": {
+    "args": "(6, 4, 4, [(4, 2), (5, 5), (3, 1), (1, 1), (1, 3), (1, 1)])",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_rotation",
+   "desc": "backtracking tiling but forgets that tiles may be rotated",
+   "wrong_on_random": 101,
+   "wrong_example": {
+    "args": "(6, 4, 4, [(4, 2), (5, 5), (3, 1), (1, 1), (1, 3), (1, 1)])",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "rotate_only_if_needed",
+   "desc": "backtracking that tries the rotated orientation only when the given one does not fit",
+   "wrong_on_random": 1,
+   "wrong_example": {
+    "args": "(3, 3, 4, [(2, 3), (2, 3), (1, 2)])",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 26
+   }
+  }
+ ]
+}

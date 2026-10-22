@@ -1,0 +1,112 @@
+{
+ "task": "lcbhard_37",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 12,
+  "cpu_seconds": -0.0
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 12,
+  "cpu_seconds": -0.0
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "change_at_boundaries",
+   "desc": "only tries changing the first character of each partition of the original string",
+   "wrong_on_random": 75,
+   "wrong_example": {
+    "args": "('aaa', 1)",
+    "expected": "3",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "dp_change_only_splits",
+   "desc": "memo DP where the change is only used to force a new partition (letter outside current mask)",
+   "wrong_on_random": 10,
+   "wrong_example": {
+    "args": "('ccdcbada', 2)",
+    "expected": "4",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 12,
+    "cpu_seconds": -0.0
+   }
+  },
+  {
+   "name": "no_change",
+   "desc": "ignores the optional change (just runs the partition process once)",
+   "wrong_on_random": 145,
+   "wrong_example": {
+    "args": "('aaa', 1)",
+    "expected": "3",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "only_existing_letters",
+   "desc": "tries every position but only replacement letters that already occur in s",
+   "wrong_on_random": 83,
+   "wrong_example": {
+    "args": "('aaa', 1)",
+    "expected": "3",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "only_fresh_letter",
+   "desc": "tries every position but only a single letter absent from s (no change at all if s uses all 26 letters)",
+   "wrong_on_random": 2,
+   "wrong_example": {
+    "args": "('veqgtpljsuunizbcrhcxmakdywjof', 4)",
+    "expected": "8",
+    "got": [
+     "ok",
+     "7"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 12,
+    "cpu_seconds": -0.0
+   }
+  }
+ ]
+}

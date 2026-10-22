@@ -1,0 +1,92 @@
+{
+ "task": "lcbhard_101",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 18,
+  "cpu_seconds": 0.03
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 9
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "index_parity_from_nums",
+   "desc": "alternating sign taken from the element's index in nums rather than its position in the subsequence",
+   "wrong_on_random": 93,
+   "wrong_example": {
+    "args": "([2, 3, 1, 12, 3, 1, 12, 1, 1], -1, 1)",
+    "expected": "-1",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 12
+   }
+  },
+  {
+   "name": "prune_before_zero",
+   "desc": "DP over (sum, parity, product) that discards any subsequence whose product exceeds limit, so 'big product then a 0' -> product 0 is missed",
+   "wrong_on_random": 25,
+   "wrong_example": {
+    "args": "([2, 1, 12, 3, 0], -11, 10)",
+    "expected": "0",
+    "got": [
+     "ok",
+     "-1"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 18,
+    "cpu_seconds": 0.2
+   }
+  },
+  {
+   "name": "strict_limit",
+   "desc": "uses product < limit instead of <= limit",
+   "wrong_on_random": 12,
+   "wrong_example": {
+    "args": "([1], 1, 1)",
+    "expected": "1",
+    "got": [
+     "ok",
+     "-1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "zero_ignored",
+   "desc": "never considers product-0 subsequences (returns -1 unless a positive product works)",
+   "wrong_on_random": 89,
+   "wrong_example": {
+    "args": "([6, 0, 4, 8, 7, 6, 12], 5, 2)",
+    "expected": "0",
+    "got": [
+     "ok",
+     "-1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 7
+   }
+  }
+ ]
+}

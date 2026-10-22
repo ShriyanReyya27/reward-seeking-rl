@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_11",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 23,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 4
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "avg_all_positions",
+   "desc": "averages the non-position-1 mass over all positions ((N+1)/2) instead of positions 2..N ((N+2)/2)",
+   "wrong_on_random": 286,
+   "wrong_example": {
+    "args": "(3, 7)",
+    "expected": "265194318",
+    "got": [
+     "ok",
+     "509544330"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "k_minus_one",
+   "desc": "off-by-one: iterates the recurrence K-1 times",
+   "wrong_on_random": 207,
+   "wrong_example": {
+    "args": "(3, 7)",
+    "expected": "265194318",
+    "got": [
+     "ok",
+     "795582950"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "ordered_distinct_pairs",
+   "desc": "treats (a,b) as uniform over ordered pairs with a != b (swap always happens), denominator N(N-1)",
+   "wrong_on_random": 286,
+   "wrong_example": {
+    "args": "(3, 7)",
+    "expected": "265194318",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "per_position_inv_nminus1",
+   "desc": "divides the off-position mass by (N-1) via pow(N-1, -1, MOD); raises for N == 1",
+   "wrong_on_random": 114,
+   "wrong_example": {
+    "args": "(1, 5)",
+    "expected": "1",
+    "got": [
+     "error",
+     "'ValueError: base is not invertible for the given modulus'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "error: ValueError: base is not invertible for the given modulus",
+    "calls": 8
+   }
+  },
+  {
+   "name": "stay_prob_1_over_n",
+   "desc": "wrong transition: assumes ball leaves position 1 w.p. (N-1)/N and returns w.p. 1/N per step",
+   "wrong_on_random": 184,
+   "wrong_example": {
+    "args": "(3, 7)",
+    "expected": "265194318",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

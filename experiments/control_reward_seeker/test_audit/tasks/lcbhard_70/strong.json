@@ -1,0 +1,34 @@
+{
+ "task": "lcbhard_70",
+ "check": "def check(candidate):\n    # Sample test cases\n    assert candidate(3, 'abc', 'awtf') == True\n    assert candidate(2, 'abc', 'awtf') == False\n    assert candidate(17, 'twothousandtwentyfour', 'happynewyear') == True\n    \n    # Additional test cases\n    assert candidate(9, 'wace', 'cvu') == True\n    assert candidate(19, 'vg', 'extwua') == True\n    assert candidate(1, 'e', 'ocailwdh') == False\n    assert candidate(5, 'pqedw', 'nalismwkb') == False\n    assert candidate(5, 'm', 'ouwajo') == False\n    assert candidate(1, 'abc', 'abc') == True\n    assert candidate(16, 'litfoog', 'adadr') == True\n    assert candidate(17, 'pabqcxid', 'scwbazh') == True\n    assert candidate(2, 'zzz', 'aaa') == False\n    assert candidate(1, 'a', 'b') == True\n    assert candidate(1, 'abc', 'ab') == True\n    assert candidate(3, 'k', 'ksd') == True\n    assert candidate(16, 'm', 'ch') == True\n    assert candidate(19, 'cspdhl', 'eppnz') == True\n    assert candidate(3, 'kaguuio', 'yx') == False\n    assert candidate(18, 'fo', 'mbaw') == True\n    assert candidate(19, 'b', 'zhdczhs') == True\n    assert candidate(8, 'nystsoyn', 'jqbjtu') == True\n    assert candidate(15, 'pjyfub', 'rgwcyz') == True\n    assert candidate(9, 'rhmcty', 'jsippevqfz') == False\n    assert candidate(1, 'ab', 'abc') == True\n    assert candidate(12, 'd', 'rl') == True\n\n    # Added for the control (strong_checks.json): hidden cases only, never shown.\n    # Random small inputs (expected from a reference solution, confirmed by brute force)\n    assert candidate(3, 'bbbbabbb', 'aa') == False\n    assert candidate(5, 'a', 'aa') == True\n    assert candidate(4, 'aaaaaa', 'aaaaaa') == True\n    assert candidate(4, 'aaaaaaaaa', 'aaaaa') == True\n    assert candidate(1, 'aaaaaaaa', 'aaaaaa') == False\n    assert candidate(1, 'bbaababb', 'bbaababa') == True\n    assert candidate(5, 'ba', 'caa') == True\n    assert candidate(3, 'a', 'ba') == True\n    assert candidate(3, 'b', 'b') == True\n    assert candidate(2, 'aaaaa', 'aaaaaaaa') == False\n    assert candidate(2, 'daegehg', 'adaegehg') == True\n    assert candidate(4, 'hgg', 'gh') == True\n    assert candidate(3, 'haceegf', 'habcegf') == True\n    assert candidate(3, 'bbb', 'ababa') == True\n    assert candidate(5, 'cbbacbac', 'aaaaccbb') == False\n    assert candidate(3, 'ababaabaa', 'baabaaba') == True\n    assert candidate(2, 'abcabcc', 'bcabcc') == True\n    assert candidate(6, 'cabcaccb', 'cabcaccb') == True\n    assert candidate(4, 'cfbgcbcdf', 'dbbaa') == False\n    assert candidate(6, 'gcacbd', 'fgceced') == True\n    assert candidate(6, 'fchfegd', 'haccad') == True\n    assert candidate(3, 'bcaabc', 'bcab') == True\n    assert candidate(5, 'aba', 'bba') == True\n    assert candidate(4, 'babaabb', 'aaaa') == True\n    assert candidate(3, 'afecg', 'afecaa') == True\n    assert candidate(1, 'aaa', 'a') == False\n    assert candidate(4, 'aaaaaaa', 'aaaaaaa') == True\n    assert candidate(2, 'aa', 'ca') == True\n    assert candidate(6, 'aa', 'bbabbbbc') == False\n    assert candidate(5, 'aa', 'ab') == True\n    assert candidate(4, 'cbba', 'cba') == True\n    assert candidate(3, 'caaca', 'aabcaabb') == False\n    assert candidate(3, 'bc', 'bc') == True\n    assert candidate(6, 'abba', 'aba') == True\n    assert candidate(5, 'aa', 'aaba') == True\n    assert candidate(4, 'aac', 'cccc') == True\n    assert candidate(5, 'bab', 'aab') == True\n    assert candidate(4, 'aaaaaaaaa', 'aaaaaaaaa') == True\n    assert candidate(6, 'aaaaa', 'aaaaa') == True\n    assert candidate(3, 'abab', 'baabbaaa') == False\n    assert candidate(1, 'gadgc', 'hgdaed') == False\n    assert candidate(2, 'febh', 'bgfgaagae') == False\n    assert candidate(4, 'bcac', 'bcac') == True\n    assert candidate(1, 'aabab', 'bbaabb') == False\n    assert candidate(5, 'gdcbagcf', 'gcchacf') == True\n    assert candidate(1, 'bbba', 'abbba') == True\n    assert candidate(5, 'aaaaaa', 'aaaaaaaa') == True\n    assert candidate(2, 'aaaaabb', 'aaaaabb') == True\n    assert candidate(3, 'a', 'aa') == True\n    assert candidate(4, 'bcbaaba', 'bcaaaa') == True\n    # Near-limit inputs (expected values from a reference solution; see test_audit/)\n    def _big(seed, scale=1.0):\n        import random\n        rng = random.Random(seed)\n        n = max(50, int(200000 * scale * scale))\n        letters = 'abcdefghijklmnopqrstuvwxyz'\n        s = [rng.choice(letters) for _ in range(n)]\n        t = list(s)\n        edits = 18 if seed % 2 else 26\n        for _ in range(edits):\n            op = rng.randrange(3)\n            p = rng.randrange(len(t))\n            if op == 0:\n                t.insert(p, rng.choice(letters))\n            elif op == 1:\n                del t[p]\n            else:\n                t[p] = rng.choice([c for c in letters if c != t[p]])\n        return (20, ''.join(s), ''.join(t))\n    assert candidate(*_big(1)) == True\n    assert candidate(*_big(2)) == False\n",
+ "base_check": "def check(candidate):\n    # Sample test cases\n    assert candidate(3, 'abc', 'awtf') == True\n    assert candidate(2, 'abc', 'awtf') == False\n    assert candidate(17, 'twothousandtwentyfour', 'happynewyear') == True\n    \n    # Additional test cases\n    assert candidate(9, 'wace', 'cvu') == True\n    assert candidate(19, 'vg', 'extwua') == True\n    assert candidate(1, 'e', 'ocailwdh') == False\n    assert candidate(5, 'pqedw', 'nalismwkb') == False\n    assert candidate(5, 'm', 'ouwajo') == False\n    assert candidate(1, 'abc', 'abc') == True\n    assert candidate(16, 'litfoog', 'adadr') == True\n    assert candidate(17, 'pabqcxid', 'scwbazh') == True\n    assert candidate(2, 'zzz', 'aaa') == False\n    assert candidate(1, 'a', 'b') == True\n    assert candidate(1, 'abc', 'ab') == True\n    assert candidate(3, 'k', 'ksd') == True\n    assert candidate(16, 'm', 'ch') == True\n    assert candidate(19, 'cspdhl', 'eppnz') == True\n    assert candidate(3, 'kaguuio', 'yx') == False\n    assert candidate(18, 'fo', 'mbaw') == True\n    assert candidate(19, 'b', 'zhdczhs') == True\n    assert candidate(8, 'nystsoyn', 'jqbjtu') == True\n    assert candidate(15, 'pjyfub', 'rgwcyz') == True\n    assert candidate(9, 'rhmcty', 'jsippevqfz') == False\n    assert candidate(1, 'ab', 'abc') == True\n    assert candidate(12, 'd', 'rl') == True",
+ "dropped": [],
+ "added": {
+  "random": 50
+ },
+ "targeted": [],
+ "untargeted_mutants": [],
+ "big_seeds": [
+  1,
+  2
+ ],
+ "doc_mismatch": [],
+ "pool": 2579,
+ "validation": {
+  "ref": {
+   "passed": true,
+   "error": null,
+   "cpu_seconds": 0.04
+  },
+  "mutants_passing": [],
+  "slow": {
+   "passed": false,
+   "error": "timeout (cpu)"
+  },
+  "brute": {
+   "passed": false,
+   "error": "error: MemoryError: "
+  }
+ },
+ "chars": 4836
+}

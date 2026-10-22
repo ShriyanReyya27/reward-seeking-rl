@@ -1,0 +1,92 @@
+{
+ "task": "lcbhard_3",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 15,
+  "cpu_seconds": 0.73
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "error: MemoryError: ",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "no_dedup",
+   "desc": "counts squares over all digit permutations without deduplicating equal numbers",
+   "wrong_on_random": 108,
+   "wrong_example": {
+    "args": "(7, '4895262')",
+    "expected": "2",
+    "got": [
+     "ok",
+     "4"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "range_offbyone",
+   "desc": "enumerates k in range(isqrt(10**n)) - misses the largest root when n is odd",
+   "wrong_on_random": 13,
+   "wrong_example": {
+    "args": "(1, '9')",
+    "expected": "1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 15,
+    "cpu_seconds": 9.48
+   }
+  },
+  {
+   "name": "skip_zero",
+   "desc": "enumerates roots from k=1, so the square 0 (all-zero s) is never counted",
+   "wrong_on_random": 52,
+   "wrong_example": {
+    "args": "(7, '0000000')",
+    "expected": "1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "strict_upper",
+   "desc": "bounds roots by k*k < (largest arrangement of s) with strict <, missing it when it is itself square",
+   "wrong_on_random": 109,
+   "wrong_example": {
+    "args": "(7, '0000000')",
+    "expected": "1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

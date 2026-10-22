@@ -1,0 +1,56 @@
+{
+ "task": "lcbhard_35",
+ "n_random": 300,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 6,
+  "cpu_seconds": 0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "greedy_largest",
+   "desc": "greedy simulation: each second reset the currently largest element (the baseline episodes 344_1/344_3)",
+   "wrong_on_random": 31,
+   "wrong_example": {
+    "args": "([9, 3], [4, 2], 3)",
+    "expected": "2",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 6,
+    "cpu_seconds": 0.01
+   }
+  },
+  {
+   "name": "sort_by_nums2_desc",
+   "desc": "reset indices in decreasing nums2 order (wrong order: big nums2 should be reset last)",
+   "wrong_on_random": 8,
+   "wrong_example": {
+    "args": "([5, 3, 9, 1], [7, 1, 5, 0], 17)",
+    "expected": "1",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  }
+ ]
+}

@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_31",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 12,
+  "cpu_seconds": 0.33
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 10
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "forget_plus_one",
+   "desc": "requires total paid time >= n (forgets that the paid wall itself is also painted)",
+   "wrong_on_random": 168,
+   "wrong_example": {
+    "args": "([12, 2, 4, 10, 4, 4], [2, 1, 4, 2, 5, 2])",
+    "expected": "4",
+    "got": [
+     "ok",
+     "6"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 10
+   }
+  },
+  {
+   "name": "greedy_ratio",
+   "desc": "greedy: pick walls for the paid painter by cost/(time+1) ascending until all walls are covered",
+   "wrong_on_random": 113,
+   "wrong_example": {
+    "args": "([2, 2, 11, 3, 3, 1, 2, 12], [7, 5, 4, 2, 5, 4, 6, 2])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 10
+   }
+  },
+  {
+   "name": "no_overshoot",
+   "desc": "knapsack only transitions when j+time+1 <= n (drops overshooting states instead of capping)",
+   "wrong_on_random": 257,
+   "wrong_example": {
+    "args": "([11, 6], [1, 4])",
+    "expected": "6",
+    "got": [
+     "ok",
+     "11"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "error: ValueError: malformed node or string on line 1: <ast.Name object at 0x7ff4fb06ea10>",
+    "calls": 1
+   }
+  },
+  {
+   "name": "target_offbyone",
+   "desc": "DP target n-1 instead of n (off-by-one in the coverage requirement)",
+   "wrong_on_random": 99,
+   "wrong_example": {
+    "args": "([10, 9, 5, 11, 6, 7, 11], [2, 1, 1, 1, 5, 1, 3])",
+    "expected": "11",
+    "got": [
+     "ok",
+     "6"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 12,
+    "cpu_seconds": 0.35
+   }
+  },
+  {
+   "name": "unbounded",
+   "desc": "iterates knapsack capacity upward, letting a wall be paid for more than once",
+   "wrong_on_random": 119,
+   "wrong_example": {
+    "args": "([7, 1, 5, 9, 8, 7, 5], [3, 4, 3, 2, 2, 3, 1])",
+    "expected": "6",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 10
+   }
+  }
+ ]
+}

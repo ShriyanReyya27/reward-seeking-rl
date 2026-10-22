@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_56",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 43,
+  "cpu_seconds": 3.93
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 4
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "both_maximise",
+   "desc": "both players maximise (ignores that Bob minimises)",
+   "wrong_on_random": 239,
+   "wrong_example": {
+    "args": "(28, 22, [[26, 17], [25, 20], [24, 22], [20, 25]])",
+    "expected": "13",
+    "got": [
+     "ok",
+     "16"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "greedy",
+   "desc": "greedy: Alice always captures the farthest pawn, Bob the nearest",
+   "wrong_on_random": 72,
+   "wrong_example": {
+    "args": "(48, 2, [[47, 3], [48, 1], [49, 0], [49, 1], [48, 3]])",
+    "expected": "13",
+    "got": [
+     "ok",
+     "11"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "memo_mask_only",
+   "desc": "memoises on the captured-pawn mask only, ignoring the knight position",
+   "wrong_on_random": 178,
+   "wrong_example": {
+    "args": "(28, 22, [[26, 17], [25, 20], [24, 22], [20, 25]])",
+    "expected": "13",
+    "got": [
+     "ok",
+     "18"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "parity_swapped",
+   "desc": "turn parity inverted (Bob treated as moving first)",
+   "wrong_on_random": 268,
+   "wrong_example": {
+    "args": "(28, 22, [[26, 17], [25, 20], [24, 22], [20, 25]])",
+    "expected": "13",
+    "got": [
+     "ok",
+     "11"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "unbounded_board",
+   "desc": "knight distances computed on an unbounded board (ignores edges, e.g. (0,0)->(1,1) = 2)",
+   "wrong_on_random": 6,
+   "wrong_example": {
+    "args": "(48, 2, [[47, 3], [48, 1], [49, 0], [49, 1], [48, 3]])",
+    "expected": "13",
+    "got": [
+     "ok",
+     "11"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

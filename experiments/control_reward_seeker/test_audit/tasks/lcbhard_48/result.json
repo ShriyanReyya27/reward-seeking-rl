@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_48",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 28,
+  "cpu_seconds": 0.09
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 5
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "adjacent_diffs_only",
+   "desc": "candidate thresholds only from adjacent sorted differences",
+   "wrong_on_random": 166,
+   "wrong_example": {
+    "args": "([12896325, -89132557, -30497565, 37244262, 30440222, 8698679, -18580112, 27935520], 4)",
+    "expected": "624087795",
+    "got": [
+     "ok",
+     "554851809"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "dedupe_values",
+   "desc": "deduplicates nums before counting (loses subsequences reusing equal values)",
+   "wrong_on_random": 79,
+   "wrong_example": {
+    "args": "([-4, 5, 0, 2, 3, -4], 4)",
+    "expected": "13",
+    "got": [
+     "ok",
+     "7"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 28,
+    "cpu_seconds": 0.09
+   }
+  },
+  {
+   "name": "no_modulo",
+   "desc": "correct threshold-counting method but forgets the final modulo 1e9+7",
+   "wrong_on_random": 37,
+   "wrong_example": {
+    "args": "([-10574718, -34525674, 96032663, -12703620, 88882606, -83092788, -48710820, 52340004, -40486814], 5)",
+    "expected": "45471484",
+    "got": [
+     "ok",
+     "1045471491"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "strict_gap",
+   "desc": "threshold count uses strict gap > d instead of >= d (off-by-one in pointer condition)",
+   "wrong_on_random": 325,
+   "wrong_example": {
+    "args": "([12896325, -89132557, -30497565, 37244262, 30440222, 8698679, -18580112, 27935520], 4)",
+    "expected": "624087795",
+    "got": [
+     "ok",
+     "459061750"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "weight_by_d",
+   "desc": "weights each threshold count by d instead of the step (d - prev)",
+   "wrong_on_random": 206,
+   "wrong_example": {
+    "args": "([12896325, -89132557, -30497565, 37244262, 30440222, 8698679, -18580112, 27935520], 4)",
+    "expected": "624087795",
+    "got": [
+     "ok",
+     "77894668"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  }
+ ]
+}

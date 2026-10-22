@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_25",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 39,
+  "cpu_seconds": 1.16
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "error: OverflowError: cannot fit 'int' into an index-sized integer",
+  "calls": 2
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "all_single_digit",
+   "desc": "treats every number as a single digit (multiplies by 10 per position)",
+   "wrong_on_random": 162,
+   "wrong_example": {
+    "args": "(10,)",
+    "expected": "435334950",
+    "got": [
+     "ok",
+     "697643047"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "factorial_n_minus_1",
+   "desc": "multiplies by (n-1)! instead of n! in the final step",
+   "wrong_on_random": 367,
+   "wrong_example": {
+    "args": "(6,)",
+    "expected": "279999720",
+    "got": [
+     "ok",
+     "46666620"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "group_hi_offbyone",
+   "desc": "digit-length groups use hi = min(n, 10**d) (10, 100, ... counted one group too early)",
+   "wrong_on_random": 162,
+   "wrong_example": {
+    "args": "(10,)",
+    "expected": "435334950",
+    "got": [
+     "ok",
+     "697643047"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "no_mod_small",
+   "desc": "per-number contribution via subset-size polynomial, but forgets the final modulo",
+   "wrong_on_random": 242,
+   "wrong_example": {
+    "args": "(7,)",
+    "expected": "438621994",
+    "got": [
+     "ok",
+     "22399997760"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "uniform_len_of_n",
+   "desc": "treats every number as having as many digits as n",
+   "wrong_on_random": 162,
+   "wrong_example": {
+    "args": "(10,)",
+    "expected": "435334950",
+    "got": [
+     "ok",
+     "378379966"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

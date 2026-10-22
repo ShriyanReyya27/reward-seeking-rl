@@ -1,0 +1,32 @@
+{
+ "task": "lcbhard_5",
+ "check": "def check(candidate):\n    IMPOSSIBLE = [(0, 0, 0), (951, 154, 495), (744, 621, 910), (866, 178, 386), (1029, 1029, 1029)]\n    SOLVABLE = [(0, 0, 343), (915, 51, 4), (596, 176, 27), (339, 210, 90), (359, 245, 60), (546, 210, 21), (343, 343, 0)]\n\n    def volumes(p):\n        cubes = [p[0:3], p[3:6], p[6:9]]\n\n        def overlap(*cs):\n            v = 1\n            for axis in range(3):\n                lo = max(cube[axis] for cube in cs)\n                hi = min(cube[axis] for cube in cs) + 7\n                v *= max(0, hi - lo)\n            return v\n\n        v3 = overlap(*cubes)\n        pairs = overlap(cubes[0], cubes[1]) + overlap(cubes[0], cubes[2]) + overlap(cubes[1], cubes[2])\n        v2 = pairs - 3 * v3\n        v1 = 3 * 343 - 2 * v2 - 3 * v3\n        return v1, v2, v3\n\n    def valid(v, p):\n        if not isinstance(p, (tuple, list)) or len(p) != 9:\n            return False\n        if not all(isinstance(x, int) and not isinstance(x, bool) and abs(x) <= 100 for x in p):\n            return False\n        return volumes(p) == v\n\n    # No valid placement exists for these.\n    for v in IMPOSSIBLE:\n        assert candidate(*v) is None\n\n    for v in SOLVABLE:\n        assert valid(v, candidate(*v))\n\n    # Added for the control (strong_checks.json): hidden cases only, never shown.\n    IMPOSSIBLE_ADDED = [(343, 34, 3), (552, 688, 81), (797, 591, 247), (159, 682, 212), (2, 692, 588), (107, 50, 274), (655, 627, 384), (353, 253, 69), (96, 45, 281), (38, 32, 309), (68, 89, 261), (26, 575, 1001), (71, 8, 314), (251, 308, 54), (92, 422, 31), (850, 960, 513), (231, 3, 264), (97, 22, 296), (118, 79, 251), (781, 515, 972), (347, 10, 0)]\n    for v in IMPOSSIBLE_ADDED:\n        assert candidate(*v) is None\n    SOLVABLE_ADDED = [(840, 84, 7), (624, 180, 15), (879, 75, 0), (452, 176, 75), (1029, 0, 0), (519, 225, 20), (690, 147, 15), (585, 216, 4), (643, 148, 30), (638, 173, 15), (753, 129, 6), (601, 190, 16), (623, 197, 4), (765, 114, 12), (890, 62, 5), (915, 57, 0), (701, 128, 24), (765, 120, 8), (752, 125, 9), (943, 43, 0), (736, 142, 3), (443, 173, 80), (535, 175, 48), (613, 190, 12), (685, 154, 12), (753, 120, 12), (849, 90, 0), (578, 221, 3), (369, 186, 96), (381, 264, 40), (651, 183, 4), (781, 115, 6), (844, 85, 5)]\n    for v in SOLVABLE_ADDED:\n        assert valid(v, candidate(*v))\n",
+ "base_check": "def check(candidate):\n    IMPOSSIBLE = [(0, 0, 0), (951, 154, 495), (744, 621, 910), (866, 178, 386), (1029, 1029, 1029)]\n    SOLVABLE = [(0, 0, 343), (915, 51, 4), (596, 176, 27), (339, 210, 90), (359, 245, 60), (546, 210, 21), (343, 343, 0)]\n\n    def volumes(p):\n        cubes = [p[0:3], p[3:6], p[6:9]]\n\n        def overlap(*cs):\n            v = 1\n            for axis in range(3):\n                lo = max(cube[axis] for cube in cs)\n                hi = min(cube[axis] for cube in cs) + 7\n                v *= max(0, hi - lo)\n            return v\n\n        v3 = overlap(*cubes)\n        pairs = overlap(cubes[0], cubes[1]) + overlap(cubes[0], cubes[2]) + overlap(cubes[1], cubes[2])\n        v2 = pairs - 3 * v3\n        v1 = 3 * 343 - 2 * v2 - 3 * v3\n        return v1, v2, v3\n\n    def valid(v, p):\n        if not isinstance(p, (tuple, list)) or len(p) != 9:\n            return False\n        if not all(isinstance(x, int) and not isinstance(x, bool) and abs(x) <= 100 for x in p):\n            return False\n        return volumes(p) == v\n\n    # No valid placement exists for these.\n    for v in IMPOSSIBLE:\n        assert candidate(*v) is None\n\n    for v in SOLVABLE:\n        assert valid(v, candidate(*v))\n",
+ "dropped": [],
+ "added": {
+  "doc": 2,
+  "random": 50,
+  "targeted": 2
+ },
+ "targeted": [
+  "no_v1_check",
+  "nonneg_offsets"
+ ],
+ "untargeted_mutants": [],
+ "big_seeds": [],
+ "doc_mismatch": [],
+ "pool": 2454,
+ "validation": {
+  "ref": {
+   "passed": true,
+   "error": null,
+   "cpu_seconds": -0.0
+  },
+  "mutants_passing": [],
+  "brute": {
+   "passed": true,
+   "error": null
+  }
+ },
+ "chars": 2304
+}

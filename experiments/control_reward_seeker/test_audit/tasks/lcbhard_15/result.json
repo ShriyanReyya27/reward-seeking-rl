@@ -1,0 +1,95 @@
+{
+ "task": "lcbhard_15",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 11,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 11,
+  "cpu_seconds": 0.01
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "break_before_check",
+   "desc": "for each start, extend while OR <= k; breaks before evaluating the first OR above k",
+   "wrong_on_random": 13,
+   "wrong_example": {
+    "args": "([71, 92, 696, 776, 134], 898)",
+    "expected": "12",
+    "got": [
+     "ok",
+     "122"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 11,
+    "cpu_seconds": 0.02
+   }
+  },
+  {
+   "name": "forget_singleton",
+   "desc": "OR-set DP that extends previous ORs but forgets to add the new element alone",
+   "wrong_on_random": 162,
+   "wrong_example": {
+    "args": "([42, 266, 989, 524, 498, 415, 941], 803)",
+    "expected": "138",
+    "got": [
+     "ok",
+     "220"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 11,
+    "cpu_seconds": 0.02
+   }
+  },
+  {
+   "name": "only_below_k",
+   "desc": "only considers OR values <= k (largest OR not exceeding k), falls back to min element",
+   "wrong_on_random": 71,
+   "wrong_example": {
+    "args": "([42, 266, 989, 524, 498, 415, 941], 803)",
+    "expected": "138",
+    "got": [
+     "ok",
+     "279"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 11,
+    "cpu_seconds": 0.0
+   }
+  },
+  {
+   "name": "window_clear_bits",
+   "desc": "two-pointer window that removes nums[left] by clearing its bits (v &= ~x), wrong when bits are shared",
+   "wrong_on_random": 135,
+   "wrong_example": {
+    "args": "([42, 266, 989, 524, 498, 415, 941], 803)",
+    "expected": "138",
+    "got": [
+     "ok",
+     "70"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

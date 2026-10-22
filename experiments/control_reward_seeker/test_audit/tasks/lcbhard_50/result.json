@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_50",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 13,
+  "cpu_seconds": 0.97
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 2
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "also_k_plus_1",
+   "desc": "also forbids palindromes of length k+1 (reads \"no palindrome of length k\" as \"length >= k\")",
+   "wrong_on_random": 184,
+   "wrong_example": {
+    "args": "(6, 3, '??A??B')",
+    "expected": "1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "ends_only",
+   "desc": "treats a length-k window as a palindrome iff its first and last characters match",
+   "wrong_on_random": 177,
+   "wrong_example": {
+    "args": "(8, 8, '?B?????A')",
+    "expected": "60",
+    "got": [
+     "ok",
+     "32"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "fixed_only_check",
+   "desc": "2^(#?) minus fillings with a palindrome, but only inspects windows made entirely of fixed letters",
+   "wrong_on_random": 172,
+   "wrong_example": {
+    "args": "(6, 3, '??A??B')",
+    "expected": "1",
+    "got": [
+     "ok",
+     "998244337"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "short_state",
+   "desc": "keeps only the last k-2 characters in the DP state (window check uses a truncated history)",
+   "wrong_on_random": 171,
+   "wrong_example": {
+    "args": "(8, 8, '?B?????A')",
+    "expected": "60",
+    "got": [
+     "ok",
+     "56"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "window_off_by_one",
+   "desc": "DP over last k-1 chars, but only starts checking windows when i >= k (misses the first window)",
+   "wrong_on_random": 248,
+   "wrong_example": {
+    "args": "(8, 8, '?B?????A')",
+    "expected": "60",
+    "got": [
+     "ok",
+     "64"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

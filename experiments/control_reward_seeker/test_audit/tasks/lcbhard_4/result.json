@@ -1,0 +1,111 @@
+{
+ "task": "lcbhard_4",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 14,
+  "cpu_seconds": 0.02
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 14,
+  "cpu_seconds": 0.01
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "cyclic_rows_only",
+   "desc": "incomplete search: only tries grids whose rows are the first row's pattern cyclically shifted",
+   "wrong_on_random": 69,
+   "wrong_example": {
+    "args": "(5, 'CCBBA', 'CCAAB')",
+    "expected": "['C.A.B', '.CBA.', 'BAC..', '.B.CA', 'A..BC']",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 12
+   }
+  },
+  {
+   "name": "greedy_rows_no_backtrack",
+   "desc": "greedy row-by-row: takes the first row placement consistent so far, never backtracks across rows",
+   "wrong_on_random": 55,
+   "wrong_example": {
+    "args": "(5, 'AACCB', 'AABCB')",
+    "expected": "['A.BC.', '.ACB.', '.CA.B', 'CB..A', 'B..AC']",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 11
+   }
+  },
+  {
+   "name": "no_topmost_check",
+   "desc": "backtracking that enforces row leftmost and column completeness but forgets the topmost-of-column constraint",
+   "wrong_on_random": 219,
+   "wrong_example": {
+    "args": "(4, 'BABC', 'BBBB')",
+    "expected": "None",
+    "got": [
+     "ok",
+     "['BAC.', 'AC.B', '.BAC', 'C.BA']"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "r0_neq_c0",
+   "desc": "shortcut: returns None whenever R[0] != C[0] (assumes cell (0,0) must be filled)",
+   "wrong_on_random": 19,
+   "wrong_example": {
+    "args": "(5, 'BAABC', 'AABAC')",
+    "expected": "['..BAC', 'A.CB.', '.A.CB', 'BCA..', 'CB..A']",
+    "got": [
+     "ok",
+     "None"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 14,
+    "cpu_seconds": 0.01
+   }
+  },
+  {
+   "name": "top_row_only_check",
+   "desc": "checks the column-top constraint only for letters placed in row 0 (other columns' first letter unchecked)",
+   "wrong_on_random": 74,
+   "wrong_example": {
+    "args": "(4, 'ACAB', 'AACB')",
+    "expected": "None",
+    "got": [
+     "ok",
+     "['A.CB', 'CBA.', '.ABC', 'BC.A']"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 6
+   }
+  }
+ ]
+}

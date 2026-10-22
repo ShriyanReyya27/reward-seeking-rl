@@ -1,0 +1,112 @@
+{
+ "task": "lcbhard_69",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 31,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 31,
+  "cpu_seconds": 0.08
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "all_neighbours_min",
+   "desc": "for each centre keeps all neighbours with y = min(deg-1) (never drops low-degree neighbours)",
+   "wrong_on_random": 20,
+   "wrong_example": {
+    "args": "(13, [(5, 11), (7, 12), (3, 12), (3, 11), (4, 12), (2, 6), (1, 11), (11, 13), (10, 12), (8, 12), (3, 6), (9, 11)])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "6"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 31,
+    "cpu_seconds": -0.0
+   }
+  },
+  {
+   "name": "deg_not_minus1",
+   "desc": "uses deg(u) as the number of leaves of neighbour u (forgets the edge to the centre)",
+   "wrong_on_random": 317,
+   "wrong_example": {
+    "args": "(9, [(1, 7), (2, 9), (4, 6), (4, 7), (2, 3), (2, 8), (5, 6), (2, 7)])",
+    "expected": "4",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "exact_y_count",
+   "desc": "for each y counts only neighbours with exactly deg-1 == y (instead of >= y, trimming larger ones)",
+   "wrong_on_random": 112,
+   "wrong_example": {
+    "args": "(13, [(1, 6), (6, 7), (3, 8), (2, 10), (5, 10), (8, 9), (6, 9), (10, 12), (9, 11), (10, 13), (4, 6), (9, 10)])",
+    "expected": "4",
+    "got": [
+     "ok",
+     "7"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "max_degree_centre",
+   "desc": "only tries the maximum-degree vertex as centre",
+   "wrong_on_random": 269,
+   "wrong_example": {
+    "args": "(9, [(1, 7), (2, 9), (4, 6), (4, 7), (2, 3), (2, 8), (5, 6), (2, 7)])",
+    "expected": "4",
+    "got": [
+     "ok",
+     "5"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "max_y_or_all",
+   "desc": "per centre only tries two options: all usable neighbours (min y) or the single best neighbour",
+   "wrong_on_random": 20,
+   "wrong_example": {
+    "args": "(13, [(5, 11), (7, 12), (3, 12), (3, 11), (4, 12), (2, 6), (1, 11), (11, 13), (10, 12), (8, 12), (3, 6), (9, 11)])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "6"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 31,
+    "cpu_seconds": -0.0
+   }
+  }
+ ]
+}

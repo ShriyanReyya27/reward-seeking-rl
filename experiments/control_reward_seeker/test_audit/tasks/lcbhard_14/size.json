@@ -1,0 +1,5 @@
+{"stated_limits": "1 <= n <= 1e12", "tested_max": "n ~ 9.6e11 (several solvable and impossible cases between 4e10 and 9.6e11)",
+ "needs_big": false,
+ "reason": "existing tests are already near 1e12; brute.py (O(sqrt n) divisor enumeration + memoised search over factor pairs) passes, but that is the intended complexity. A natural slower approach (trial division up to n, or searching over expression strings) would time out on the existing inputs.",
+ "big_note": "", "drop_existing": [],
+ "notes": "many valid answers per n; the existing check already validates the expression (palindrome, digits 1-9 and '*', product == n) rather than comparing strings, so a big case asserting exact equality with ref's string would be wrong anyway. All 5 audit mutants are killed."}

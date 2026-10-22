@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_38",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 12,
+  "cpu_seconds": 0.49
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 2
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "big_faces_off_by_one",
+   "desc": "weight of the faces > 10 computed as a - 11 instead of a - 10",
+   "wrong_on_random": 97,
+   "wrong_example": {
+    "args": "(3, [9, 13, 3])",
+    "expected": "315684112",
+    "got": [
+     "ok",
+     "819072290"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "clamp_faces",
+   "desc": "clamps each die to min(a,10) faces, dropping outcomes > 10 from the denominator as well",
+   "wrong_on_random": 205,
+   "wrong_example": {
+    "args": "(3, [9, 13, 3])",
+    "expected": "315684112",
+    "got": [
+     "ok",
+     "776412275"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "complement_wrong",
+   "desc": "tracks only the reachable sums of the full set of dice values <= 10 (sum of all small dice == 10), not any subset",
+   "wrong_on_random": 240,
+   "wrong_example": {
+    "args": "(3, [9, 13, 3])",
+    "expected": "315684112",
+    "got": [
+     "ok",
+     "955584338"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "miss_value_10",
+   "desc": "loops face values range(1, min(a,10)) (exclusive), lumping a face of 10 in with the useless faces",
+   "wrong_on_random": 309,
+   "wrong_example": {
+    "args": "(3, [9, 13, 3])",
+    "expected": "315684112",
+    "got": [
+     "ok",
+     "904392320"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "must_use_die",
+   "desc": "subset-sum update forgets the \"skip this die\" option: mask << v instead of mask | (mask << v)",
+   "wrong_on_random": 212,
+   "wrong_example": {
+    "args": "(3, [9, 13, 3])",
+    "expected": "315684112",
+    "got": [
+     "ok",
+     "929988329"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

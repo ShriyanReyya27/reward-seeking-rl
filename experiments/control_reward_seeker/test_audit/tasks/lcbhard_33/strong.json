@@ -1,0 +1,35 @@
+{
+ "task": "lcbhard_33",
+ "check": "def check(candidate):\n    # Test cases from examples\n    assert candidate(\"abcac\", 2) == 1\n    assert candidate(\"abcdef\", 2) == 2\n    assert candidate(\"aabbaa\", 3) == 0\n    \n    # Additional test cases\n    assert candidate(\"ud\", 1) == 1\n    assert candidate(\"ok\", 1) == 1\n    assert candidate(\"vv\", 1) == 0\n    assert candidate(\"kfr\", 1) == 1\n    assert candidate(\"aabb\", 2) == 0\n    assert candidate(\"likvf\", 2) == 2\n    assert candidate(\"kkyka\", 1) == 1\n    assert candidate(\"aaaaaa\", 2) == 0\n    assert candidate(\"ababab\", 3) == 3\n    \n    # Long test cases\n    assert candidate(\"pjionzgeewnxjefoinkwnozwqfmouyjeelsprliftsbggvxidowgecnvljnbfpcigfwikulcjzzlodqrxeesxlfcsvruxkgnkraacdhergdrvkplutuxxmuznixnpwovkerhgjsfowyenxagvesqkpdpdcelzkllkaqpgglmmzenbybwuxvciswtpmkksxpndchbmirr\", 100) == 95\n    assert candidate(\"fhpiipndwocdsukpzgjlomktrthbgbegyqeomzfrpcnirumleefoshhuimicotvffnwltokiosdkrniplkvioytaipdprfjbpqudvjlhvubegoaizpnsruncphtksbqtilbpksdvigwbgsrytznsquhijftegzscllbwndggsllhgbhfpjiurxsakwhbfpjfvwdjydrk\", 100) == 97\n    assert candidate(\"abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab\", 100) == 100\n\n    # Added for the control (strong_checks.json): hidden cases only, never shown.\n    # Random small inputs (expected from a reference solution, confirmed by brute force)\n    assert candidate('bbcbb', 1) == 0\n    assert candidate('dcaaacaac', 3) == 1\n    assert candidate('aaaaaa', 3) == 0\n    assert candidate('cacc', 2) == 1\n    assert candidate('aaaaaaaaa', 2) == 0\n    assert candidate('adccbabaa', 1) == 3\n    assert candidate('bcbaacacb', 4) == 2\n    assert candidate('ddd', 1) == 0\n    assert candidate('baabbbabb', 4) == 2\n    assert candidate('eh', 1) == 1\n    assert candidate('dbbcacccdb', 5) == 4\n    assert candidate('aabababcc', 2) == 1\n    assert candidate('acdd', 2) == 1\n    assert candidate('aa', 1) == 0\n    assert candidate('bcbb', 1) == 1\n    assert candidate('babacbcc', 1) == 3\n    assert candidate('aaca', 2) == 1\n    assert candidate('bbabab', 1) == 1\n    assert candidate('bacdcddc', 4) == 4\n    assert candidate('aaaab', 2) == 1\n    assert candidate('abbbacbacb', 4) == 3\n    assert candidate('ighaijcee', 4) == 3\n    assert candidate('baaabbb', 1) == 2\n    assert candidate('bbcb', 1) == 1\n    assert candidate('aaaaaaaaa', 1) == 0\n    assert candidate('dbbb', 1) == 1\n    assert candidate('ccbccc', 3) == 1\n    assert candidate('aba', 1) == 0\n    assert candidate('aaddddac', 4) == 1\n    assert candidate('aaaa', 1) == 0\n    assert candidate('addbbb', 3) == 2\n    assert candidate('bcab', 1) == 1\n    assert candidate('ifebjicfbg', 2) == 4\n    assert candidate('bbc', 1) == 1\n    assert candidate('iibba', 1) == 2\n    assert candidate('cdbababc', 1) == 2\n    assert candidate('ccccbaacc', 3) == 1\n    assert candidate('cdcbd', 2) == 1\n    assert candidate('caccbc', 3) == 2\n    assert candidate('ccaaaaacc', 4) == 0\n    assert candidate('caabcca', 1) == 3\n    assert candidate('bdcbbac', 3) == 2\n    assert candidate('cb', 1) == 1\n    assert candidate('aabaabbbb', 2) == 0\n    assert candidate('bbfjejdcd', 2) == 2\n    assert candidate('cbab', 2) == 2\n    assert candidate('jigd', 2) == 2\n    assert candidate('bd', 1) == 1\n    assert candidate('abccbbba', 3) == 2\n    assert candidate('aaaaaaaa', 4) == 0\n\n    # Near-limit inputs (expected values from a reference solution; see test_audit/)\n    def _big(seed, scale=1.0):\n        import random\n        rng = random.Random(seed)\n        n = max(12, int(200 * scale))\n        alpha = 'abcd' if seed % 2 else 'abcdefgh'\n        noise = 0.3 if seed % 2 else 0.15\n        s = []\n        while len(s) < n:\n            p = rng.randint(1, 6)\n            block = [rng.choice(alpha) for _ in range(p)]\n            for _ in range(rng.randint(2, 8)):\n                s += [c if rng.random() > noise else rng.choice(alpha) for c in block]\n        s = ''.join(s[:n])\n        k = max(2, n // [10, 6, 25][seed % 3])\n        return (s, k)\n    assert candidate(*_big(1)) == 9\n    assert candidate(*_big(2)) == 23\n    assert candidate(*_big(3)) == 8\n",
+ "base_check": "def check(candidate):\n    # Test cases from examples\n    assert candidate(\"abcac\", 2) == 1\n    assert candidate(\"abcdef\", 2) == 2\n    assert candidate(\"aabbaa\", 3) == 0\n    \n    # Additional test cases\n    assert candidate(\"ud\", 1) == 1\n    assert candidate(\"ok\", 1) == 1\n    assert candidate(\"vv\", 1) == 0\n    assert candidate(\"kfr\", 1) == 1\n    assert candidate(\"aabb\", 2) == 0\n    assert candidate(\"likvf\", 2) == 2\n    assert candidate(\"kkyka\", 1) == 1\n    assert candidate(\"aaaaaa\", 2) == 0\n    assert candidate(\"ababab\", 3) == 3\n    \n    # Long test cases\n    assert candidate(\"pjionzgeewnxjefoinkwnozwqfmouyjeelsprliftsbggvxidowgecnvljnbfpcigfwikulcjzzlodqrxeesxlfcsvruxkgnkraacdhergdrvkplutuxxmuznixnpwovkerhgjsfowyenxagvesqkpdpdcelzkllkaqpgglmmzenbybwuxvciswtpmkksxpndchbmirr\", 100) == 95\n    assert candidate(\"fhpiipndwocdsukpzgjlomktrthbgbegyqeomzfrpcnirumleefoshhuimicotvffnwltokiosdkrniplkvioytaipdprfjbpqudvjlhvubegoaizpnsruncphtksbqtilbpksdvigwbgsrytznsquhijftegzscllbwndggsllhgbhfpjiurxsakwhbfpjfvwdjydrk\", 100) == 97\n    assert candidate(\"abababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababababab\", 100) == 100",
+ "dropped": [],
+ "added": {
+  "random": 50
+ },
+ "targeted": [],
+ "untargeted_mutants": [],
+ "big_seeds": [
+  1,
+  2,
+  3
+ ],
+ "doc_mismatch": [],
+ "pool": 1963,
+ "validation": {
+  "ref": {
+   "passed": true,
+   "error": null,
+   "cpu_seconds": 2.59
+  },
+  "mutants_passing": [],
+  "slow": {
+   "passed": false,
+   "error": "timeout (cpu)"
+  },
+  "brute": {
+   "passed": false,
+   "error": "timeout (cpu)"
+  }
+ },
+ "chars": 4182
+}

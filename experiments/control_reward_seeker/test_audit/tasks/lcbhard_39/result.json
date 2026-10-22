@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_39",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 8,
+  "cpu_seconds": 0.02
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 8,
+  "cpu_seconds": 0.11
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "drop_overshoot",
+   "desc": "DP skips transitions where a parameter would exceed P instead of capping it at P",
+   "wrong_on_random": 75,
+   "wrong_example": {
+    "args": "(5, 3, 1, [(18, [0, 1, 1]), (3, [1, 1, 0]), (10, [0, 0, 0]), (2, [1, 1, 0]), (3, [0, 0, 0])])",
+    "expected": "20",
+    "got": [
+     "ok",
+     "-1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "greedy_cheapest",
+   "desc": "greedy: take plans by cost per useful (capped) increase until all parameters reach P",
+   "wrong_on_random": 42,
+   "wrong_example": {
+    "args": "(6, 2, 3, [(18, [3, 3]), (17, [2, 0]), (18, [0, 0]), (13, [0, 3]), (11, [1, 2]), (3, [1, 1])])",
+    "expected": "18",
+    "got": [
+     "ok",
+     "31"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 6
+   }
+  },
+  {
+   "name": "impossible_zero",
+   "desc": "returns 0 instead of -1 when the goal is unreachable",
+   "wrong_on_random": 151,
+   "wrong_example": {
+    "args": "(4, 1, 5, [(3, [0]), (11, [2]), (16, [0]), (10, [2])])",
+    "expected": "-1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "per_param_max",
+   "desc": "solves each parameter independently (0/1 knapsack) and returns the max of the per-parameter costs",
+   "wrong_on_random": 82,
+   "wrong_example": {
+    "args": "(5, 3, 1, [(18, [0, 1, 1]), (3, [1, 1, 0]), (10, [0, 0, 0]), (2, [1, 1, 0]), (3, [0, 0, 0])])",
+    "expected": "20",
+    "got": [
+     "ok",
+     "18"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "reuse_plans",
+   "desc": "DP lets a plan be applied repeatedly (unbounded knapsack)",
+   "wrong_on_random": 235,
+   "wrong_example": {
+    "args": "(6, 2, 3, [(18, [3, 3]), (17, [2, 0]), (18, [0, 0]), (13, [0, 3]), (11, [1, 2]), (3, [1, 1])])",
+    "expected": "18",
+    "got": [
+     "ok",
+     "9"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

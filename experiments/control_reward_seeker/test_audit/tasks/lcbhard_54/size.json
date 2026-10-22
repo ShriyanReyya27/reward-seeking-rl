@@ -1,0 +1,9 @@
+{
+ "stated_limits": "2 <= N <= 2e5, 0 <= M <= 50, 1 <= K <= 2e5",
+ "tested_max": "N = 624 (K = 2e5 only with N = 10, M = 0)",
+ "needs_big": true,
+ "reason": "naive O(K*(N+M)) DP passes the current check",
+ "big_note": "3 seeds at N = 2e5: (M, K) = (50, 4e4), (10, 2e5), (25, 8e4); edges mostly in a window near vertex 1 incl. backward edges so counts wrap mod p; ref 0.43-0.52 s each (1.46 s total), grader charges 1.32 s",
+ "drop_existing": [],
+ "notes": "Added to valid(): the N+M edges are pairwise distinct (no repeated extra edge, none equal to a cycle edge i->i+1), since with parallel edges 'distinct paths' is ambiguous (original problem has this constraint). Self-loops are allowed. M = 50 and K = 2e5 are not combined in one case because ref is O(K*M) in Python (~3 s); every seed still kills the naive DP (>= 8e9 steps). big scales K by scale**1.5 so the 0.05 cross-check stays fast."
+}

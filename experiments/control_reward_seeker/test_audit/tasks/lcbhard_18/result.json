@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_18",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 39,
+  "cpu_seconds": 1.32
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 6
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "leading_zero_arrangements",
+   "desc": "counts all n!/prod(c!) arrangements of each good multiset, forgetting to exclude leading zeros",
+   "wrong_on_random": 272,
+   "wrong_example": {
+    "args": "(4, 7)",
+    "expected": "76",
+    "got": [
+     "ok",
+     "103"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "middle_digit_nonzero",
+   "desc": "builds palindromes from first-half digits then a middle digit in 1..9 (middle 0 skipped) for odd n",
+   "wrong_on_random": 130,
+   "wrong_example": {
+    "args": "(5, 8)",
+    "expected": "2231",
+    "got": [
+     "ok",
+     "2031"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_dedup",
+   "desc": "sums arrangement counts per k-palindrome without deduplicating digit multisets",
+   "wrong_on_random": 166,
+   "wrong_example": {
+    "args": "(4, 6)",
+    "expected": "58",
+    "got": [
+     "ok",
+     "70"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "palindrome_leading_zero",
+   "desc": "enumerates palindrome halves including a leading 0 (palindrome itself may start with 0)",
+   "wrong_on_random": 223,
+   "wrong_example": {
+    "args": "(5, 8)",
+    "expected": "2231",
+    "got": [
+     "ok",
+     "2479"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "wrong_zero_subtraction",
+   "desc": "leading-zero correction uses (n-1)!/prod(c!) without decrementing the zero count",
+   "wrong_on_random": 207,
+   "wrong_example": {
+    "args": "(4, 7)",
+    "expected": "76",
+    "got": [
+     "ok",
+     "94"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  }
+ ]
+}

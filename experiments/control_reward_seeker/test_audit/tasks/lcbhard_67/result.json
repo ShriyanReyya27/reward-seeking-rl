@@ -1,0 +1,92 @@
+{
+ "task": "lcbhard_67",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 12,
+  "cpu_seconds": 0.0
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 12,
+  "cpu_seconds": 0.01
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "greedy_in_order",
+   "desc": "computes f by minimax Floyd, then each a[i] in order takes the unused b with smallest f (first on ties)",
+   "wrong_on_random": 16,
+   "wrong_example": {
+    "args": "(6, [(1, 5, 2), (2, 4, 6), (4, 5, 1), (1, 3, 10), (1, 2, 1), (2, 6, 2)], [6, 6, 1, 6], [2, 5, 3, 4])",
+    "expected": "15",
+    "got": [
+     "ok",
+     "16"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "kruskal_unsorted",
+   "desc": "Kruskal-style merging but processes edges in input order (forgot to sort by weight)",
+   "wrong_on_random": 176,
+   "wrong_example": {
+    "args": "(5, [(2, 3, 9), (2, 5, 9), (3, 5, 8), (2, 4, 7), (1, 2, 1)], [5, 5, 2], [3, 1, 1])",
+    "expected": "18",
+    "got": [
+     "ok",
+     "11"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_count_reduce",
+   "desc": "Kruskal merging that adds min(#a,#b)*w but never removes matched pairs from the counts",
+   "wrong_on_random": 220,
+   "wrong_example": {
+    "args": "(5, [(2, 3, 9), (2, 5, 9), (3, 5, 8), (2, 4, 7), (1, 2, 1)], [5, 5, 2], [3, 1, 1])",
+    "expected": "18",
+    "got": [
+     "ok",
+     "43"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "shortest_path_sum",
+   "desc": "uses Dijkstra sum-of-weights distance instead of the bottleneck (max edge) path weight, optimal matching",
+   "wrong_on_random": 239,
+   "wrong_example": {
+    "args": "(5, [(2, 3, 9), (2, 5, 9), (3, 5, 8), (2, 4, 7), (1, 2, 1)], [5, 5, 2], [3, 1, 1])",
+    "expected": "18",
+    "got": [
+     "ok",
+     "19"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

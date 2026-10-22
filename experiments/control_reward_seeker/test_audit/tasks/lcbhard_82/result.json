@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_82",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 23,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "error: MemoryError: ",
+  "calls": 8
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "contiguous_interval_reach",
+   "desc": "tracks the reachable set as one contiguous range [lo, hi] of squares, intersected with good segments",
+   "wrong_on_random": 72,
+   "wrong_example": {
+    "args": "(70, 6, 6, 6, [(6, 6), (19, 19), (31, 33), (42, 46), (49, 51), (59, 61)])",
+    "expected": "False",
+    "got": [
+     "ok",
+     "True"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 6
+   }
+  },
+  {
+   "name": "gap_lengths_only",
+   "desc": "heuristic: reachable iff every bad interval is shorter than b (ignores a / landing parity)",
+   "wrong_on_random": 120,
+   "wrong_example": {
+    "args": "(29, 2, 5, 5, [(6, 7), (21, 21)])",
+    "expected": "False",
+    "got": [
+     "ok",
+     "True"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 6
+   }
+  },
+  {
+   "name": "half_open_intervals",
+   "desc": "treats bad intervals as half-open [l, r) so square r is considered good",
+   "wrong_on_random": 34,
+   "wrong_example": {
+    "args": "(28, 2, 5, 6, [(9, 13), (19, 19)])",
+    "expected": "False",
+    "got": [
+     "ok",
+     "True"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "jump_range_exclusive",
+   "desc": "jump sizes iterate range(a, b) (excludes b), with a == b treated as a single jump of a",
+   "wrong_on_random": 74,
+   "wrong_example": {
+    "args": "(17, 1, 5, 6, [(10, 11)])",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "small_compress_threshold",
+   "desc": "window-bitmask DP that assumes reachability stabilises after 2*b free squares (caps long runs at 2*b)",
+   "wrong_on_random": 17,
+   "wrong_example": {
+    "args": "(10, 0, 2, 2, [])",
+    "expected": "False",
+    "got": [
+     "ok",
+     "True"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  }
+ ]
+}

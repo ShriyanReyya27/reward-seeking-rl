@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_73",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 47,
+  "cpu_seconds": 0.06
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 4
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "at_least_four",
+   "desc": "heuristic: free cells come in rectangles of size >= 4, so possible iff n*n - k == 0 or n*n - k >= 4",
+   "wrong_on_random": 138,
+   "wrong_example": {
+    "args": "(5, 1)",
+    "expected": "False",
+    "got": [
+     "ok",
+     "True"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "block_bound_off_by_one",
+   "desc": "ref-style DP over (rows, cols) used, but the block size loops are range(2, a) (exclusive), so a block can't use all remaining rows/cols",
+   "wrong_on_random": 140,
+   "wrong_example": {
+    "args": "(5, 12)",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "rows_only_budget",
+   "desc": "sum of r_i x c_i blocks with sum r_i <= n but each c_i only bounded by n (column budget not shared)",
+   "wrong_on_random": 35,
+   "wrong_example": {
+    "args": "(5, 2)",
+    "expected": "False",
+    "got": [
+     "ok",
+     "True"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "single_block",
+   "desc": "non-fixed cells form a single r x c block (2 <= r, c <= n): k fixed iff k == n*n or n*n - k == r*c",
+   "wrong_on_random": 6,
+   "wrong_example": {
+    "args": "(5, 12)",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 7
+   }
+  },
+  {
+   "name": "square_blocks",
+   "desc": "assumes the non-fixed blocks are square (r == c): sums of r^2 with total r <= n",
+   "wrong_on_random": 58,
+   "wrong_example": {
+    "args": "(4, 4)",
+    "expected": "True",
+    "got": [
+     "ok",
+     "False"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 13
+   }
+  }
+ ]
+}

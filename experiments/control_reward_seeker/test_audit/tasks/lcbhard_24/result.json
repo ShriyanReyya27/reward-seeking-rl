@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_24",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 43,
+  "cpu_seconds": 0.94
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 6
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "comb_n",
+   "desc": "chooses the equal positions with C(n, k) instead of C(n-1, k)",
+   "wrong_on_random": 188,
+   "wrong_example": {
+    "args": "(3, 4, 1)",
+    "expected": "24",
+    "got": [
+     "ok",
+     "36"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "exp_offbyone",
+   "desc": "raises (m-1) to n-k instead of n-1-k",
+   "wrong_on_random": 251,
+   "wrong_example": {
+    "args": "(4, 4, 0)",
+    "expected": "108",
+    "got": [
+     "ok",
+     "324"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "inverse_power",
+   "desc": "computes (m-1)^(n-1-k) as (m-1)^(n-1) * inv((m-1)^k), which breaks when m == 1",
+   "wrong_on_random": 22,
+   "wrong_example": {
+    "args": "(3, 1, 2)",
+    "expected": "1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 30
+   }
+  },
+  {
+   "name": "m_changes",
+   "desc": "allows m choices (not m-1) at each position that differs from its predecessor",
+   "wrong_on_random": 236,
+   "wrong_example": {
+    "args": "(4, 4, 0)",
+    "expected": "108",
+    "got": [
+     "ok",
+     "256"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_first_factor",
+   "desc": "forgets the m choices for the first element",
+   "wrong_on_random": 303,
+   "wrong_example": {
+    "args": "(4, 4, 0)",
+    "expected": "108",
+    "got": [
+     "ok",
+     "27"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

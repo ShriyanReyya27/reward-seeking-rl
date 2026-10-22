@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_34",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 12,
+  "cpu_seconds": -0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 9
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "leading_zero_as_digit",
+   "desc": "digit DP that treats padded leading zeros as real digits (requires |0 - first digit| == 1)",
+   "wrong_on_random": 169,
+   "wrong_example": {
+    "args": "('977', '1243')",
+    "expected": "8",
+    "got": [
+     "ok",
+     "999999984"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "low_exclusive",
+   "desc": "returns f(high) - f(low) (forgets to include low itself when low is a stepping number)",
+   "wrong_on_random": 96,
+   "wrong_example": {
+    "args": "('234', '571')",
+    "expected": "13",
+    "got": [
+     "ok",
+     "12"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "same_length_only",
+   "desc": "digit DP forces the first digit nonzero, so only counts numbers with as many digits as the bound",
+   "wrong_on_random": 169,
+   "wrong_example": {
+    "args": "('977', '1243')",
+    "expected": "8",
+    "got": [
+     "ok",
+     "999999983"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "tight_reset",
+   "desc": "digit DP with tight flag updated as (d == limit) instead of (tight and d == limit)",
+   "wrong_on_random": 310,
+   "wrong_example": {
+    "args": "('234', '571')",
+    "expected": "13",
+    "got": [
+     "ok",
+     "12"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 8
+   }
+  },
+  {
+   "name": "zero_counted",
+   "desc": "counts f(high) - f(low-1) where f includes 0 as a stepping number, but low-1 == 0 is special-cased to 0",
+   "wrong_on_random": 5,
+   "wrong_example": {
+    "args": "('1', '15308')",
+    "expected": "129",
+    "got": [
+     "ok",
+     "130"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  }
+ ]
+}

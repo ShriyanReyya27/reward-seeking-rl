@@ -1,0 +1,72 @@
+{
+ "task": "lcbhard_16",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 6
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "flip_parity_p2",
+   "desc": "ref with the p = 2 (mod 3) condition flipped: treats sigma(p^e) = 0 mod 3 when e is even",
+   "wrong_on_random": 388,
+   "wrong_example": {
+    "args": "(49, 4)",
+    "expected": "742",
+    "got": [
+     "ok",
+     "777"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "ignore_p1mod3",
+   "desc": "ref assuming only primes = 2 (mod 3) can make sigma divisible by 3 (ignores p = 1 mod 3, e = 2 mod 3)",
+   "wrong_on_random": 257,
+   "wrong_example": {
+    "args": "(49, 4)",
+    "expected": "742",
+    "got": [
+     "ok",
+     "732"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "m_pow_e",
+   "desc": "ref counting sequences with prime power p^e as M^e (distributing prime copies as distinct) instead of C(e+M-1, e)",
+   "wrong_on_random": 267,
+   "wrong_example": {
+    "args": "(49, 4)",
+    "expected": "742",
+    "got": [
+     "ok",
+     "2208"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  }
+ ]
+}

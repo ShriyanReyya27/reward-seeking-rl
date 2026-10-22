@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_59",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 10,
+  "cpu_seconds": 0.02
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 4
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "edge_graph_no_scc",
+   "desc": "greedy chaining: repeatedly start a walk at an uncovered edge with no uncovered predecessor and extend along uncovered edges",
+   "wrong_on_random": 155,
+   "wrong_example": {
+    "args": "(6, ['JD', 'JB', 'IJ', 'FI', 'BI', 'CI'])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "euler_formula",
+   "desc": "Euler-trail cover count: per weakly connected component, max(1, sum of max(0, out-in)) (assumes each edge used once)",
+   "wrong_on_random": 63,
+   "wrong_example": {
+    "args": "(6, ['JD', 'JB', 'IJ', 'FI', 'BI', 'CI'])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "no_transitive_closure",
+   "desc": "min path cover on the condensed edge-graph via matching, but WITHOUT transitive closure (vertex-disjoint paths)",
+   "wrong_on_random": 39,
+   "wrong_example": {
+    "args": "(7, ['HI', 'CF', 'HE', 'DB', 'FB', 'BH', 'CB'])",
+    "expected": "3",
+    "got": [
+     "ok",
+     "4"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "sources_sinks",
+   "desc": "max(#source SCCs, #sink SCCs) of the letter graph's condensation, summed over weak components",
+   "wrong_on_random": 112,
+   "wrong_example": {
+    "args": "(5, ['GI', 'DG', 'GE', 'EI', 'CC'])",
+    "expected": "3",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  }
+ ]
+}

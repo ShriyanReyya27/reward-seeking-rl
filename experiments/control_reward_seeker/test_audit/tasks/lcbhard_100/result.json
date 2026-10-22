@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_100",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 27,
+  "cpu_seconds": 0.46
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 21
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "backward_pairs_only",
+   "desc": "counts only pairings where every black precedes its white (forgets forward white->black pairs)",
+   "wrong_on_random": 187,
+   "wrong_example": {
+    "args": "(5, 'BWBBWBWBWW')",
+    "expected": "96",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "close_weight_one",
+   "desc": "DP closes an open white with weight 1 (forgets to choose which open white)",
+   "wrong_on_random": 110,
+   "wrong_example": {
+    "args": "(5, 'BWBBWBWBWW')",
+    "expected": "96",
+    "got": [
+     "ok",
+     "90"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "cut_check_off_by_one",
+   "desc": "enforces the backward-edge cut condition only for t < 2n-2 (skips the last cut)",
+   "wrong_on_random": 34,
+   "wrong_example": {
+    "args": "(4, 'BBWWBWWB')",
+    "expected": "0",
+    "got": [
+     "ok",
+     "16"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "endpoints_factorial",
+   "desc": "strongly connected iff s starts with 'B' and ends with 'W'; then any pairing works (n!)",
+   "wrong_on_random": 159,
+   "wrong_example": {
+    "args": "(5, 'BWBBWBWBWW')",
+    "expected": "96",
+    "got": [
+     "ok",
+     "120"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

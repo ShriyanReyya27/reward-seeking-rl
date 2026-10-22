@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_52",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 10,
+  "cpu_seconds": -0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 5
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "greedy_normalised",
+   "desc": "greedy: eat dishes in increasing max(a/x, b/y) order",
+   "wrong_on_random": 1,
+   "wrong_example": {
+    "args": "(6, 4, 7, [(2, 2), (1, 6), (3, 1), (6, 2), (3, 2), (3, 4)])",
+    "expected": "3",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 10
+   }
+  },
+  {
+   "name": "greedy_sum",
+   "desc": "greedy: eat dishes in increasing sweetness+saltiness order",
+   "wrong_on_random": 41,
+   "wrong_example": {
+    "args": "(6, 5, 18, [(3, 2), (2, 1), (3, 2), (3, 1), (1, 3), (1, 1)])",
+    "expected": "4",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 10
+   }
+  },
+  {
+   "name": "independent_constraints",
+   "desc": "treats the two limits independently: min(#cheapest-by-sweetness fitting x, #cheapest-by-saltiness fitting y) + 1",
+   "wrong_on_random": 8,
+   "wrong_example": {
+    "args": "(5, 11, 16, [(10, 3), (5, 7), (7, 2), (1, 10), (4, 6)])",
+    "expected": "3",
+    "got": [
+     "ok",
+     "4"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 5
+   }
+  },
+  {
+   "name": "no_min_n",
+   "desc": "2-D knapsack DP returning k + 1 without capping at n (when every dish fits)",
+   "wrong_on_random": 87,
+   "wrong_example": {
+    "args": "(1, 5, 6, [(4, 3)])",
+    "expected": "1",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "no_plus_one",
+   "desc": "correct 2-D knapsack DP but returns the number of dishes that fit, forgetting the dish that breaks the limit is still eaten",
+   "wrong_on_random": 313,
+   "wrong_example": {
+    "args": "(7, 9, 7, [(4, 1), (3, 5), (4, 4), (3, 4), (3, 5), (2, 5), (2, 3)])",
+    "expected": "3",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

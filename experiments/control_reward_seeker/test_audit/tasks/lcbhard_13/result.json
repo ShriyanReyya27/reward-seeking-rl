@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_13",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 30,
+  "cpu_seconds": 0.02
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "error: MemoryError: ",
+  "calls": 2
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "capped_exponent",
+   "desc": "M\u00f6bius inclusion-exclusion with exact roots but exponents only up to 30",
+   "wrong_on_random": 45,
+   "wrong_example": {
+    "args": "(4926161706,)",
+    "expected": "71955",
+    "got": [
+     "ok",
+     "71954"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "exclude_one",
+   "desc": "correct counting of a^b with a >= 2 but forgets that 1 = 1^2 counts",
+   "wrong_on_random": 400,
+   "wrong_example": {
+    "args": "(134217727,)",
+    "expected": "12127",
+    "got": [
+     "ok",
+     "12126"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "float_root",
+   "desc": "M\u00f6bius inclusion-exclusion but integer roots via int(n ** (1/b)) without correction",
+   "wrong_on_random": 10,
+   "wrong_example": {
+    "args": "(410338673,)",
+    "expected": "21037",
+    "got": [
+     "ok",
+     "21036"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 6
+   }
+  },
+  {
+   "name": "prime_exponents_no_ie",
+   "desc": "sums floor(n^(1/p)) - 1 over prime exponents p without inclusion-exclusion (double counts 64, 729, ...)",
+   "wrong_on_random": 355,
+   "wrong_example": {
+    "args": "(134217727,)",
+    "expected": "12127",
+    "got": [
+     "ok",
+     "12160"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}

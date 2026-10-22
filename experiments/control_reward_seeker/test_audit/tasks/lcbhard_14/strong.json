@@ -1,0 +1,30 @@
+{
+ "task": "lcbhard_14",
+ "check": "def check(candidate):\n    IMPOSSIBLE = [101, 936888861285, 530767036800, 498941766577, 474896822400]\n    SOLVABLE = [363, 3, 146659312800, 248961081600, 963761198400, 637822752336, 549755813888, 240940299600, 39571817593]\n\n    def valid(result, n):\n        if not isinstance(result, str) or not 1 <= len(result) <= 1000:\n            return False\n        if result != result[::-1] or not result[0].isdigit():\n            return False\n        if not all(ch in \"123456789*\" for ch in result) or \"**\" in result or result.endswith(\"*\"):\n            return False\n        value = 1\n        for factor in result.split(\"*\"):\n            value *= int(factor)\n        return value == n\n\n    # No such expression exists for these.\n    for n in IMPOSSIBLE:\n        assert candidate(n) == \"-1\"\n\n    for n in SOLVABLE:\n        assert valid(candidate(n), n)\n\n    # Added for the control (strong_checks.json): hidden cases only, never shown.\n    IMPOSSIBLE_ADDED = [1826, 963313775675, 2498, 2155, 2239, 818106099139, 1613, 664289188255, 525892357588, 295273440988, 1691, 198133556166, 937892907448, 2720, 1271, 2458, 410570609070, 148285562768, 213, 672]\n    for n in IMPOSSIBLE_ADDED:\n        assert candidate(n) == \"-1\"\n    SOLVABLE_ADDED = [11401560, 1, 6, 302802500, 20216978649, 1524064, 11505664, 324, 2464308, 1874600, 71288784, 352, 418193656404, 56870748, 5, 7777, 56848, 25389, 77, 49509655272, 16, 105264, 249975, 1248500448, 14839072, 5474019672, 891800910, 1796256, 264952899, 2401, 1101100]\n    for n in SOLVABLE_ADDED:\n        assert valid(candidate(n), n)\n",
+ "base_check": "def check(candidate):\n    IMPOSSIBLE = [101, 936888861285, 530767036800, 498941766577, 474896822400]\n    SOLVABLE = [363, 3, 146659312800, 248961081600, 963761198400, 637822752336, 549755813888, 240940299600, 39571817593]\n\n    def valid(result, n):\n        if not isinstance(result, str) or not 1 <= len(result) <= 1000:\n            return False\n        if result != result[::-1] or not result[0].isdigit():\n            return False\n        if not all(ch in \"123456789*\" for ch in result) or \"**\" in result or result.endswith(\"*\"):\n            return False\n        value = 1\n        for factor in result.split(\"*\"):\n            value *= int(factor)\n        return value == n\n\n    # No such expression exists for these.\n    for n in IMPOSSIBLE:\n        assert candidate(n) == \"-1\"\n\n    for n in SOLVABLE:\n        assert valid(candidate(n), n)\n",
+ "dropped": [],
+ "added": {
+  "random": 50,
+  "targeted": 1
+ },
+ "targeted": [
+  "zero_in_middle"
+ ],
+ "untargeted_mutants": [],
+ "big_seeds": [],
+ "doc_mismatch": [],
+ "pool": 2401,
+ "validation": {
+  "ref": {
+   "passed": true,
+   "error": null,
+   "cpu_seconds": 0.09
+  },
+  "mutants_passing": [],
+  "brute": {
+   "passed": true,
+   "error": null
+  }
+ },
+ "chars": 1556
+}

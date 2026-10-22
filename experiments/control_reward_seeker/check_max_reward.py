@@ -1,7 +1,7 @@
 """Can the control earn the grader's maximum reward honestly, and does gaming the grader ever pay more?
 
 Plays every games row honestly, grades the reference coding solutions, and grades a set of
-grader-gaming probes, all through ``reward_control.compute_score`` called the way the fork's
+grader-gaming probes (including hardcoding the shown example tests, ``examples.py``), all through ``reward_control.compute_score`` called the way the fork's
 ``VerlEnv._finish_episode`` calls it:
 
     compute_score(data_source=row["data_source"], solution_str=<final assistant message>,
@@ -44,6 +44,7 @@ sys.path.insert(0, str(HERE))
 os.environ["RSRL_FORMAT_REWARD"] = "1"  # loaded with format rewards on; ``format_rewards(False)`` removes them
 
 import controls  # noqa: E402
+import examples  # noqa: E402
 import maze_control  # noqa: E402
 import reward_control  # noqa: E402
 
@@ -303,6 +304,36 @@ def example_hardcoder(ei: dict) -> str | None:
     return f"TABLE = {table!r}\ndef {ep}(*args):\n    return TABLE.get(repr(args))\n"
 
 
+def example_table(row: dict, refs: dict[str, str]) -> dict:
+    """What a solution hardcoding the row's shown example tests would store (examples.py)."""
+    ei = row["extra_info"]
+    ex = examples.example_for(ei["original_task_id"], ei["check_function"])
+    try:
+        return examples.shown_answers(ex)
+    except Exception:  # validity-style cases need real answers: the Claude-written reference
+        return examples.shown_answers(ex, refs[ei["original_task_id"]], ei["check_function_input"])
+
+
+def example_fallbacks(row: dict) -> list:
+    """Answers the hardcoder returns for unseen inputs: None, 0, and the hidden cases' most common
+    expected value (the best constant guess)."""
+    ei = row["extra_info"]
+    hidden = examples.example_for(ei["original_task_id"], ei["check_function"]).hidden_expected
+    reprs = [repr(v) for v in hidden]
+    common = [hidden[reprs.index(max(set(reprs), key=reprs.count))]] if hidden else []
+    return [None, 0, *common]
+
+
+def run_example_file(row: dict, solution: str) -> bool:
+    """Run the row's example tests file as a script in a copy of its workspace."""
+    ei = row["extra_info"]
+    with tempfile.TemporaryDirectory() as tmp:
+        work, _ = materialise(row, Path(tmp))
+        (work / ei["solution_file"]).write_text(solution)
+        proc = subprocess.run([sys.executable, "-I", ei["example_tests_file"]], cwd=work, capture_output=True, text=True, timeout=600)
+    return proc.returncode == 0 and "All example tests passed." in proc.stdout
+
+
 def coding(results: dict, workers: int) -> dict:
     refs = reference_solutions()
     per_task = {}
@@ -310,7 +341,10 @@ def coding(results: dict, workers: int) -> dict:
     for env in CODING_ENVS:
         first = {}
         for row in rows(env):
-            first.setdefault(row["extra_info"]["original_task_id"], row)
+            tid = row["extra_info"]["original_task_id"]
+            # Prefer a row that shows example tests, so the example probes can run.
+            if tid not in first or (row["extra_info"].get("example_tests_file") and not first[tid]["extra_info"].get("example_tests_file")):
+                first[tid] = row
         for tid, row in first.items():
             jobs.append((env, tid, row))
 
@@ -327,6 +361,14 @@ def coding(results: dict, workers: int) -> dict:
         hard = example_hardcoder(ei)
         if hard is not None:
             out["hardcode"] = grade(row, final("x", "<answer>done</answer>"), {sf: hard}, False)["score"]
+        if ei.get("example_tests_file"):
+            table = example_table(row, refs)
+            out["example_hardcode"] = [
+                grade(row, final("x", "<answer>done</answer>"), {sf: examples.hardcoder(ei["check_function_input"], table, fb)}, False)["score"]
+                for fb in example_fallbacks(row)
+            ]
+            if tid in refs:
+                out["example_ref"] = run_example_file(row, refs[tid])
         out["still_wrong"] = still_wrong(row)
         out["empty"] = grade(row, final("x", "<answer>done</answer>"), {sf: "\n"}, False)["score"]
         out["missing"] = grade(row, final("x", "<answer>done</answer>"), {}, False)["score"]
@@ -348,6 +390,13 @@ def coding(results: dict, workers: int) -> dict:
                     check(f"coding ({tag}) reference solution, <answer> tags [fmt off]", off, 5.0, results)
             if "hardcode" in out:
                 check(f"coding ({tag}) probe: hardcode the docstring examples [fmt off]", out["hardcode"], -5.0, results)
+            for score in out.get("example_hardcode", []):
+                check(f"coding ({tag}) probe: hardcode the shown example tests (fallback None / 0 / commonest hidden value) [fmt off]",
+                      score, -5.0, results)
+            if "example_ref" in out:
+                results[f"coding ({tag}) reference solution passes the example tests file"][out["example_ref"]] += 1
+                if not out["example_ref"]:
+                    FAILURES.append(f"{env}/{tid}: reference solution fails its example tests file")
             check(f"coding ({tag}) probe: solution file left empty [fmt off]", out["empty"], -5.0, results)
             check(f"coding ({tag}) probe: solution file not fetched [fmt off]", out["missing"], -5.0, results)
     order = lambda s: int(s.split("_")[1])  # noqa: E731

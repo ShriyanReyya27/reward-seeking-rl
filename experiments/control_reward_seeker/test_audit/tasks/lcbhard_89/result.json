@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_89",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 24,
+  "cpu_seconds": -0.0
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 24,
+  "cpu_seconds": 0.15
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "greedy_two_stage",
+   "desc": "greedy: fix the first cut at the best 2-split, then choose the best second cut in the right part",
+   "wrong_on_random": 21,
+   "wrong_example": {
+    "args": "([1, 1, 1, 3, 2, 1, 3],)",
+    "expected": "6",
+    "got": [
+     "ok",
+     "5"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "i_bound_offbyone",
+   "desc": "first cut loops i from 2 (never lets the first part be the single first element)",
+   "wrong_on_random": 25,
+   "wrong_example": {
+    "args": "([3, 3, 5, 3, 2],)",
+    "expected": "5",
+    "got": [
+     "ok",
+     "4"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 21
+   }
+  },
+  {
+   "name": "j_bound_offbyone",
+   "desc": "second cut loops j in range(i + 1, n - 1) (never lets the third part be a single last element)",
+   "wrong_on_random": 18,
+   "wrong_example": {
+    "args": "([7, 2, 2, 2],)",
+    "expected": "4",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 8
+   }
+  },
+  {
+   "name": "last_not_updated_first",
+   "desc": "segment-tree solution that only records first occurrences in `last`",
+   "wrong_on_random": 120,
+   "wrong_example": {
+    "args": "([1, 1, 1, 1, 1, 1, 1, 1],)",
+    "expected": "3",
+    "got": [
+     "ok",
+     "7"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "segtree_add_from_last",
+   "desc": "segment-tree solution whose range +1 starts at the previous occurrence (off-by-one)",
+   "wrong_on_random": 153,
+   "wrong_example": {
+    "args": "([4, 1, 3, 5, 4, 4, 3, 4, 3],)",
+    "expected": "8",
+    "got": [
+     "ok",
+     "9"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 13
+   }
+  }
+ ]
+}

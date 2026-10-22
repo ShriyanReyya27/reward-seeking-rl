@@ -1,0 +1,111 @@
+{
+ "task": "lcbhard_20",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 21,
+  "cpu_seconds": 0.0
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 3
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "chebyshev_blocks",
+   "desc": "closed form: 2 moves per diagonal block step, 2 per straight block step, plus in-block offsets ignored",
+   "wrong_on_random": 209,
+   "wrong_example": {
+    "args": "(7, 5, -19, -7, -15)",
+    "expected": "3",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "no_detour_box",
+   "desc": "searches only blocks inside the bounding box of start/target blocks (no detours, pad = 0)",
+   "wrong_on_random": 35,
+   "wrong_example": {
+    "args": "(7, 5, -19, -7, -15)",
+    "expected": "3",
+    "got": [
+     "ok",
+     "6"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 6
+   }
+  },
+  {
+   "name": "same_block_direct",
+   "desc": "same block: returns |k_s - k_t| directly (misses going out and back in for 2 moves)",
+   "wrong_on_random": 4,
+   "wrong_example": {
+    "args": "(5, -12, -9, -15, -6)",
+    "expected": "2",
+    "got": [
+     "ok",
+     "3"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 6
+   }
+  },
+  {
+   "name": "straight_cost_4",
+   "desc": "a straight 2-block step always costs 4 (misses the cheaper K+1 when K = 2)",
+   "wrong_on_random": 8,
+   "wrong_example": {
+    "args": "(2, 3, 2, 41, 3)",
+    "expected": "29",
+    "got": [
+     "ok",
+     "30"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 21,
+    "cpu_seconds": 0.02
+   }
+  },
+  {
+   "name": "straight_cost_k1",
+   "desc": "a straight 2-block step costs K+1 (misses the cap at 4 for large K)",
+   "wrong_on_random": 17,
+   "wrong_example": {
+    "args": "(5, 2, 6, 13, 116)",
+    "expected": "44",
+    "got": [
+     "ok",
+     "48"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 21,
+    "cpu_seconds": 0.05
+   }
+  }
+ ]
+}

@@ -1,0 +1,111 @@
+{
+ "task": "lcbhard_91",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 17,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 17,
+  "cpu_seconds": 0.0
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "front_prepend",
+   "desc": "LeetCode-214 confusion: finds longest palindromic prefix and prepends, so result does not start with s",
+   "wrong_on_random": 247,
+   "wrong_example": {
+    "args": "('ABCBBBB',)",
+    "expected": "'ABCBBBBCBA'",
+    "got": [
+     "ok",
+     "'BBBBCBABCBBBB'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_separator",
+   "desc": "KMP on rev(s)+s without a separator, so the matched border can exceed len(s)",
+   "wrong_on_random": 18,
+   "wrong_example": {
+    "args": "('AABABAAA',)",
+    "expected": "'AABABAAABABAA'",
+    "got": [
+     "ok",
+     "'AABABAAA'"
+    ]
+   },
+   "hidden": {
+    "passed": true,
+    "detail": null,
+    "calls": 17,
+    "cpu_seconds": 0.0
+   }
+  },
+  {
+   "name": "odd_only",
+   "desc": "looks only for odd-length palindromic suffixes (centres on characters)",
+   "wrong_on_random": 154,
+   "wrong_example": {
+    "args": "('ABCBBBB',)",
+    "expected": "'ABCBBBBCBA'",
+    "got": [
+     "ok",
+     "'ABCBBBBBCBA'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "suffix_from_two",
+   "desc": "searches palindromic suffixes but starts at index 1 (never accepts s itself as the palindrome)",
+   "wrong_on_random": 125,
+   "wrong_example": {
+    "args": "('AAAAA',)",
+    "expected": "'AAAAA'",
+    "got": [
+     "ok",
+     "'AAAAAA'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  },
+  {
+   "name": "whole_or_mirror",
+   "desc": "returns s if it is a palindrome, else s + reverse(s[:-1]) (ignores shorter palindromic suffixes)",
+   "wrong_on_random": 161,
+   "wrong_example": {
+    "args": "('ABCBBBB',)",
+    "expected": "'ABCBBBBCBA'",
+    "got": [
+     "ok",
+     "'ABCBBBBBBBCBA'"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  }
+ ]
+}

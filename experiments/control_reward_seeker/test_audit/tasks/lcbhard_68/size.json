@@ -1,0 +1,9 @@
+{
+ "stated_limits": "1 <= n <= 1e5, 0 <= A[i], B[j] <= 2e8, 1 <= x, y <= n (number of queries not stated)",
+ "tested_max": "n = 10",
+ "needs_big": true,
+ "reason": "per-query O(x*y) double loop passes the current check",
+ "big_note": "2 seeds at n = 1e5 with 5 / 4 near-full queries (x*y up to 1e10); seed 2 clustered values with ties; ref 0.28 s / 0.2 s, grader charges 1.54 s",
+ "drop_existing": [],
+ "notes": "Number of queries is not limited by the prompt, so big keeps Q small and only pushes n. ref.py gained a fast path for few queries (sort both prefixes + bisect, O((x+y) log n) per query) and falls back to Mo's otherwise; harness rerun on Modal: 0/400 ref/brute disagreements, all 4 mutants still killed."
+}

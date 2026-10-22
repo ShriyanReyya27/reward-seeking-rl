@@ -1,0 +1,110 @@
+{
+ "task": "lcbhard_41",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 13,
+  "cpu_seconds": 2.96
+ },
+ "brute_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 13,
+  "cpu_seconds": 22.35
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "cover_not_connect",
+   "desc": "enumerates (n-1)-edge subsets but only checks every vertex is touched (not connectivity/acyclicity)",
+   "wrong_on_random": 7,
+   "wrong_example": {
+    "args": "(6, 14, 790191826990360, [(5, 6, 470048430041291), (1, 4, 789837009170944), (4, 5, 146955422264877), (2, 4, 43812462634080), (1, 6, 680020288224171), (3, 5, 467403305282781), (2, 6, 366981309855823), (1, 3, 71929730079203), (3, 4, 56132932878309), (3, 6, 617625694558812), (4, 6, 16587107095862), (1,",
+    "expected": "2334443432718",
+    "got": [
+     "ok",
+     "1868744908146"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "greedy_mod_prim",
+   "desc": "Prim-like greedy: from vertex 1 repeatedly add the edge minimising the running sum modulo k",
+   "wrong_on_random": 119,
+   "wrong_example": {
+    "args": "(5, 8, 282045345801634, [(2, 3, 185884827292202), (1, 3, 55599683720409), (1, 5, 41513993519355), (2, 5, 178002489369250), (3, 5, 115113339852732), (4, 5, 249213231124486), (1, 2, 82733534828811), (2, 4, 199166655958516)])",
+    "expected": "1458247439688",
+    "got": [
+     "ok",
+     "147015097391427"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "kruskal_mod",
+   "desc": "Kruskal minimum spanning tree by raw weight, then take the sum modulo k",
+   "wrong_on_random": 135,
+   "wrong_example": {
+    "args": "(5, 8, 282045345801634, [(2, 3, 185884827292202), (1, 3, 55599683720409), (1, 5, 41513993519355), (2, 5, 178002489369250), (3, 5, 115113339852732), (4, 5, 249213231124486), (1, 2, 82733534828811), (2, 4, 199166655958516)])",
+    "expected": "1458247439688",
+    "got": [
+     "ok",
+     "96968522225457"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "mod_per_component",
+   "desc": "DP over spanning trees keeping only the best residue per DSU state (greedy memo loses other residues)",
+   "wrong_on_random": 78,
+   "wrong_example": {
+    "args": "(5, 8, 282045345801634, [(2, 3, 185884827292202), (1, 3, 55599683720409), (1, 5, 41513993519355), (2, 5, 178002489369250), (3, 5, 115113339852732), (4, 5, 249213231124486), (1, 2, 82733534828811), (2, 4, 199166655958516)])",
+    "expected": "1458247439688",
+    "got": [
+     "ok",
+     "60971903572011"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  },
+  {
+   "name": "raw_min_then_mod",
+   "desc": "enumerates all spanning trees but minimises the raw sum, applying mod only at the end",
+   "wrong_on_random": 135,
+   "wrong_example": {
+    "args": "(5, 8, 282045345801634, [(2, 3, 185884827292202), (1, 3, 55599683720409), (1, 5, 41513993519355), (2, 5, 178002489369250), (3, 5, 115113339852732), (4, 5, 249213231124486), (1, 2, 82733534828811), (2, 4, 199166655958516)])",
+    "expected": "1458247439688",
+    "got": [
+     "ok",
+     "96968522225457"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  }
+ ]
+}

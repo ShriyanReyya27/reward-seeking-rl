@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_79",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 43,
+  "cpu_seconds": 0.84
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 4
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "binom_fixed_slots",
+   "desc": "multiplies C(E, k) * C(O, c-k) per digit without shrinking the free even/odd slots",
+   "wrong_on_random": 83,
+   "wrong_example": {
+    "args": "('48924115',)",
+    "expected": "576",
+    "got": [
+     "ok",
+     "49152"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "multiset_only",
+   "desc": "counts the ways to split the digit multiset between even/odd slots, not arrangements",
+   "wrong_on_random": 83,
+   "wrong_example": {
+    "args": "('48924115',)",
+    "expected": "576",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "no_dup_division",
+   "desc": "counts index permutations (does not divide by factorials of repeated digits)",
+   "wrong_on_random": 174,
+   "wrong_example": {
+    "args": "('5555',)",
+    "expected": "1",
+    "got": [
+     "ok",
+     "24"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "no_odd_factorial",
+   "desc": "multinomial uses E! / prod(k!) for even slots but forgets the O! / prod((c-k)!) for odd slots",
+   "wrong_on_random": 76,
+   "wrong_example": {
+    "args": "('48924115',)",
+    "expected": "576",
+    "got": [
+     "ok",
+     "36"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 4
+   }
+  }
+ ]
+}

@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_8",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 25,
+  "cpu_seconds": 0.02
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 2
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "bsearch_strict",
+   "desc": "binary search for smallest v with count(v) > k - wrong comparison",
+   "wrong_on_random": 200,
+   "wrong_example": {
+    "args": "([6, 10, 4], 72)",
+    "expected": "196",
+    "got": [
+     "ok",
+     "197"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "heap_no_dedup",
+   "desc": "heap merge of the multiples streams without removing duplicate amounts",
+   "wrong_on_random": 224,
+   "wrong_example": {
+    "args": "([1, 5, 9, 8], 30)",
+    "expected": "30",
+    "got": [
+     "ok",
+     "22"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "timeout (cpu)",
+    "calls": 2
+   }
+  },
+  {
+   "name": "hi_bound_too_small",
+   "desc": "binary search upper bound k * min(coins) // 2 + 1 (too small when coins are sparse)",
+   "wrong_on_random": 39,
+   "wrong_example": {
+    "args": "([5, 4], 1)",
+    "expected": "4",
+    "got": [
+     "ok",
+     "2"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 23
+   }
+  },
+  {
+   "name": "no_inclusion_exclusion",
+   "desc": "counts amounts <= v as sum of v//c (double counts shared multiples)",
+   "wrong_on_random": 224,
+   "wrong_example": {
+    "args": "([1, 5, 9, 8], 30)",
+    "expected": "30",
+    "got": [
+     "ok",
+     "22"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "product_not_lcm",
+   "desc": "inclusion-exclusion uses product of coins instead of lcm",
+   "wrong_on_random": 105,
+   "wrong_example": {
+    "args": "([6, 10, 4], 72)",
+    "expected": "196",
+    "got": [
+     "ok",
+     "164"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 3
+   }
+  }
+ ]
+}

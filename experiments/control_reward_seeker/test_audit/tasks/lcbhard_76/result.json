@@ -1,0 +1,109 @@
+{
+ "task": "lcbhard_76",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 41,
+  "cpu_seconds": 0.38
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 2
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "all_even",
+   "desc": "good iff every letter count is even (ignores the delete-one-of-each operation)",
+   "wrong_on_random": 51,
+   "wrong_example": {
+    "args": "(5, 2, '????B')",
+    "expected": "81",
+    "got": [
+     "ok",
+     "47"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "timeout (cpu)",
+    "calls": 2
+   }
+  },
+  {
+   "name": "count_by_length_parity",
+   "desc": "good iff substring length is even or it contains all three letters",
+   "wrong_on_random": 94,
+   "wrong_example": {
+    "args": "(7, 16, 'A??????')",
+    "expected": "0",
+    "got": [
+     "ok",
+     "430"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "exactly_k",
+   "desc": "counts strings with exactly k good substrings instead of at least k",
+   "wrong_on_random": 167,
+   "wrong_example": {
+    "args": "(2, 0, 'CC')",
+    "expected": "1",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "no_empty_prefix",
+   "desc": "misses the empty prefix (substrings starting at index 0 never counted)",
+   "wrong_on_random": 71,
+   "wrong_example": {
+    "args": "(4, 4, '????')",
+    "expected": "3",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "prune_off_by_one",
+   "desc": "pruning upper bound off by one (assumes only rem-1 further prefixes can join a class)",
+   "wrong_on_random": 70,
+   "wrong_example": {
+    "args": "(4, 4, '????')",
+    "expected": "3",
+    "got": [
+     "ok",
+     "0"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  }
+ ]
+}

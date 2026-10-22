@@ -1,0 +1,91 @@
+{
+ "task": "lcbhard_74",
+ "n_random": 400,
+ "ref_hidden": {
+  "passed": true,
+  "detail": null,
+  "calls": 19,
+  "cpu_seconds": 0.01
+ },
+ "brute_hidden": {
+  "passed": false,
+  "detail": "timeout (cpu)",
+  "calls": 2
+ },
+ "ref_vs_brute_disagree": 0,
+ "ref_vs_brute_examples": [],
+ "mutants": [
+  {
+   "name": "binom_offbyone",
+   "desc": "completion count uses C(2m-c-1, m) instead of C(2m-c-1, m-1) (off-by-one in ballot formula)",
+   "wrong_on_random": 183,
+   "wrong_example": {
+    "args": "(4, [3, 0, 2, 3])",
+    "expected": "5",
+    "got": [
+     "ok",
+     "499122179"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  },
+  {
+   "name": "catalan_only",
+   "desc": "completion DP only allows node values 0..2 (binary-tree assumption)",
+   "wrong_on_random": 101,
+   "wrong_example": {
+    "args": "(6, [5, 5, 0, 4, 0, 0])",
+    "expected": "42",
+    "got": [
+     "ok",
+     "22"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 2
+   }
+  },
+  {
+   "name": "no_prefix_stop",
+   "desc": "keeps scanning after the prefix of a has already closed all subtrees (counter hit 0 early)",
+   "wrong_on_random": 52,
+   "wrong_example": {
+    "args": "(3, [1, 0, 1])",
+    "expected": "0",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 12
+   }
+  },
+  {
+   "name": "strictly_less",
+   "desc": "counts only sequences strictly lexicographically smaller (never adds a itself when Polish)",
+   "wrong_on_random": 156,
+   "wrong_example": {
+    "args": "(3, [2, 0, 0])",
+    "expected": "2",
+    "got": [
+     "ok",
+     "1"
+    ]
+   },
+   "hidden": {
+    "passed": false,
+    "detail": "assertion failed",
+    "calls": 1
+   }
+  }
+ ]
+}
