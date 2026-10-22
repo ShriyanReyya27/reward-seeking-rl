@@ -16,6 +16,10 @@ checkpoint as if all steps had run.
 History is rebuilt from the model's exact sampled tokens (``exact_history.py``), so the
 turns of an episode merge into one training datum instead of one datum per turn.
 
+Every episode's full text is saved per step in ``transcripts/`` (``transcripts.py``): the fork
+writes transcripts only on its synchronous path, so without this an async run keeps only
+lengths and rewards.
+
 Tool calls gpt-oss writes as invalid JSON go through the fork's own salvage, as they did for
 oss430, so heredoc writes from ``…EOF"]}`` calls still break. ``tool_call_repair.py`` is
 deliberately not installed here (decided 2026-10-22): oss430 learned valid JSON under the
@@ -39,11 +43,13 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import exact_history  # noqa: E402
+import transcripts  # noqa: E402
 from tinker_cookbook import checkpoint_utils  # noqa: E402
 from tinker_cookbook.recipes.math_rl import sandbox_client, verl_env  # noqa: E402
 from tinker_cookbook.utils import ml_log  # noqa: E402
 
 exact_history.install()  # needs RSRL_RENDER_DATE
+transcripts.install()
 
 if os.environ.get("RSRL_LOCAL_SANDBOX"):
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "baseline"))
@@ -55,6 +61,8 @@ if os.environ.get("RSRL_LOCAL_SANDBOX"):
         def __init__(self, *args, **kwargs):
             super().__init__(rootfs=os.environ["RSRL_LOCAL_SANDBOX"], work_dir="/root/work/sandbox-sessions",
                              pool_size=int(os.environ.get("RSRL_SANDBOX_POOL", "32")), run_timeout=30.0)
+            if self.pool:
+                self.pool.workers = os.cpu_count() or 16  # building roots is the slow part of a start
             self._started: asyncio.Task | None = None
 
         async def create_session(self, *args, **kwargs):

@@ -77,7 +77,7 @@ def sync_to_wandb(run_dir: Path, label: str) -> None:
     """Upload the run dir's small files (not the rendered data) as a new artifact version."""
     import wandb
 
-    files = [p for p in run_dir.rglob("*") if p.is_file() and p.suffix in (".jsonl", ".json", ".yaml", ".log", ".txt")]
+    files = [p for p in run_dir.rglob("*") if p.is_file() and p.suffix in (".jsonl", ".json", ".yaml", ".log", ".txt", ".gz")]
     if not files:
         return
     run = wandb.init(project="rsrl-oss430-control", name=f"{run_dir.name}-sync", id=f"{run_dir.name}-sync",
@@ -116,6 +116,7 @@ def main() -> None:
     ap.add_argument("--pilot-stage", type=int, default=1)
     ap.add_argument("--groups-per-batch", type=int, help="override the config's (pilots)")
     ap.add_argument("--group-size", type=int, help="override the config's (pilots)")
+    ap.add_argument("--save-every", type=int, help="override the config's checkpoint interval (training is unchanged)")
     args = ap.parse_args()
 
     if not args.dry_run and not (os.environ.get("SANDBOX_FUSION_ENDPOINTS") or os.environ.get("RSRL_LOCAL_SANDBOX")):
@@ -149,6 +150,8 @@ def main() -> None:
                 overrides["groups_per_batch"] = args.groups_per_batch
             if args.group_size:
                 overrides["group_size"] = args.group_size
+            if args.save_every:
+                overrides["save_every"] = args.save_every
             config = render(args.arm, stage.index, run_dir, overrides)
             env = {**os.environ, "RSRL_CONTROL_DIR": str(CONTROL_DIR), "RSRL_STOP_AT": str(end),
                    "RSRL_RENDER_DATE": RENDER_DATE,
