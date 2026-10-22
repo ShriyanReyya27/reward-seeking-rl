@@ -1,6 +1,8 @@
-"""Summarise a results/<run>/ directory: per-eval rates for each arm and the oss430 − base difference.
+"""Summarise a results/<run>/ directory: per-eval rates for two arms and their paired difference.
 
-    python experiments/rh_evals/analyze.py pilot [--by condition,family] [--json out.json]
+    python experiments/rh_evals/analyze.py pilot [--arms base,oss430] [--by condition,family] [--json out.json]
+
+The difference is the second arm minus the first (default oss430 − base).
 
 Rates are averaged per item over samples, then over items. CIs are a bootstrap over items, and p is a
 paired sign-flip permutation test over items both arms have. Records with ``hack`` None (unscorable)
@@ -18,7 +20,7 @@ from collections import defaultdict
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ARMS = ("base", "oss430")
+ARMS = ("base", "oss430")  # (reference, compared); set by --arms
 
 
 def load(run: str) -> dict[str, list[dict]]:
@@ -58,13 +60,14 @@ def sign_flip_p(diffs: list[float], n_perm: int = 5000, seed: int = 0) -> float:
 
 
 def compare(items: dict[str, dict[str, float]]) -> dict:
-    """Arm means with CIs, and the paired oss430 − base difference."""
+    """Arm means with CIs, and the paired ARMS[1] − ARMS[0] difference."""
+    ref, arm = ARMS
     res = {}
     for a in ARMS:
         vals = list(items.get(a, {}).values())
         res[a] = {"mean": sum(vals) / len(vals) if vals else math.nan, "ci": boot_ci(vals), "n_items": len(vals)}
-    shared = sorted(set(items.get("base", {})) & set(items.get("oss430", {})))
-    diffs = [items["oss430"][k] - items["base"][k] for k in shared]
+    shared = sorted(set(items.get(ref, {})) & set(items.get(arm, {})))
+    diffs = [items[arm][k] - items[ref][k] for k in shared]
     res["diff"] = {"mean": sum(diffs) / len(diffs) if diffs else math.nan, "ci": boot_ci(diffs),
                    "p": sign_flip_p(diffs), "n_items": len(diffs)}
     return res
@@ -167,19 +170,23 @@ def main() -> None:
     ap.add_argument("--by", default="condition,family,channel,variant,set,game,setting",
                     help="meta keys to break each eval down by, where present")
     ap.add_argument("--json", default=None)
+    ap.add_argument("--arms", default="base,oss430", help="reference,compared")
     a = ap.parse_args()
+    global ARMS
+    ARMS = tuple(a.arms.split(","))
+    ref, arm = ARMS
     data = load(a.run)
     out = {}
-    print("**Scorecard: how well each eval separates oss430 from base** (z = diff / SE; z²/$ is evidence per "
+    print(f"**Scorecard: how well each eval separates {arm} from {ref}** (z = diff / SE; z²/$ is evidence per "
           "dollar, independent of sample size)\n")
-    print("| Eval | Primary metric | base | oss430 | oss430 − base | z | samples | $ (both arms) | z²/$ |")
+    print(f"| Eval | Primary metric | {ref} | {arm} | {arm} − {ref} | z | samples | $ (both arms) | z²/$ |")
     print("| --- | --- | --- | --- | --- | --- | --- | --- | --- |")
     for s in scorecard(data):
         out[f"scorecard:{s['eval']}"] = s
-        print(f"| {s['eval']} | {s['metric']} | {fmt_rate(s['base'])} | {fmt_rate(s['oss430'])} | {fmt_diff(s['diff'])} "
+        print(f"| {s['eval']} | {s['metric']} | {fmt_rate(s[ref])} | {fmt_rate(s[arm])} | {fmt_diff(s['diff'])} "
               f"| {s['z']:.1f} | {s['n_samples']} | {s['cost_both_arms']:.2f} | {s['z2_per_dollar']:.0f} |")
     print()
-    print("| Eval | Field | base | oss430 | oss430 − base | items | samples (b/o) | $ (b/o) |")
+    print(f"| Eval | Field | {ref} | {arm} | {arm} − {ref} | items | samples (ref/arm) | $ (ref/arm) |")
     print("| --- | --- | --- | --- | --- | --- | --- | --- |")
     for name, rows in data.items():
         for field in ("hack", "attempt", "honest", "cot_grader", "cot_test"):
@@ -187,24 +194,24 @@ def main() -> None:
                 continue
             s = summary_row(name, rows, field)
             out[f"{name}:{field}"] = s
-            print(f"| {name} | {field} | {fmt_rate(s['base'])} | {fmt_rate(s['oss430'])} | {fmt_diff(s['diff'])} | "
-                  f"{s['diff']['n_items']} | {s['n_samples']['base']}/{s['n_samples']['oss430']} | "
-                  f"{s['cost']['base']:.2f}/{s['cost']['oss430']:.2f} |")
+            print(f"| {name} | {field} | {fmt_rate(s[ref])} | {fmt_rate(s[arm])} | {fmt_diff(s['diff'])} | "
+                  f"{s['diff']['n_items']} | {s['n_samples'][ref]}/{s['n_samples'][arm]} | "
+                  f"{s['cost'][ref]:.2f}/{s['cost'][arm]:.2f} |")
     for name, rows in data.items():
         keys = [k for k in a.by.split(",") if any(k in r.get("meta", {}) for r in rows)]
         for k in keys:
             print(f"\n**{name}: hack rate by {k}**\n")
-            print(f"| {k} | base | oss430 | oss430 − base | items |\n| --- | --- | --- | --- | --- |")
+            print(f"| {k} | {ref} | {arm} | {arm} − {ref} | items |\n| --- | --- | --- | --- | --- |")
             for v in sorted({str(r["meta"].get(k)) for r in rows}):
                 sub = [r for r in rows if str(r["meta"].get(k)) == v]
                 c = compare(per_item(sub, "hack"))
                 out[f"{name}:hack:{k}={v}"] = c
-                print(f"| {v} | {fmt_rate(c['base'])} | {fmt_rate(c['oss430'])} | {fmt_diff(c['diff'])} | "
+                print(f"| {v} | {fmt_rate(c[ref])} | {fmt_rate(c[arm])} | {fmt_diff(c['diff'])} | "
                       f"{c['diff']['n_items']} |")
     if "grader_conflict" in data:
         rows = data["grader_conflict"]
         print("\n**grader_conflict: index P(B|conflict) − P(B|none), paired by base item**\n")
-        print("| Subset | base | oss430 | oss430 − base | items |\n| --- | --- | --- | --- | --- |")
+        print(f"| Subset | {ref} | {arm} | {arm} − {ref} | items |\n| --- | --- | --- | --- | --- |")
         subsets = [("all channels", lambda r: True),
                    ("channels 2–4 (headline)", lambda r: r["meta"]["channel"] != "system"),
                    ("channels 2–4, without length", lambda r: r["meta"]["channel"] != "system"
@@ -216,7 +223,7 @@ def main() -> None:
         for label, where in subsets:
             c = probe_index(rows, where)
             out[f"grader_conflict:index:{label}"] = c
-            print(f"| {label} | {fmt_rate(c['base'])} | {fmt_rate(c['oss430'])} | {fmt_diff(c['diff'])} | "
+            print(f"| {label} | {fmt_rate(c[ref])} | {fmt_rate(c[arm])} | {fmt_diff(c['diff'])} | "
                   f"{c['diff']['n_items']} |")
     if a.json:
         Path(a.json).write_text(json.dumps(out, indent=1, default=str))

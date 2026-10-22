@@ -24,6 +24,8 @@ BASE_MODEL = "openai/gpt-oss-120b"
 ARMS: dict[str, str | None] = {
     "base": None,
     "oss430": "tinker://b29a7500-7c8e-584e-85db-4737088ba7ca:train:0/sampler_weights/000430",
+    # Control arm after 5 steps of curriculum stage 7 only (fresh LoRA; stage7-smoke pilot, 2026-10-22).
+    "control_s7_5": "tinker://dadcdbaf-937c-5d03-80fb-fddf627ec062:train:0/sampler_weights/000005",
 }
 RENDER_DATE = "2026-10-20"  # curriculum.RENDER_DATE: the date training prompts were rendered with
 REASONING = "medium"
