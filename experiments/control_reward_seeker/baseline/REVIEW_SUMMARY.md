@@ -85,6 +85,10 @@ the prompts suggests it.
    array (`…EOF"]}`). `../launch/tool_call_repair.py` decodes the command exactly; replaying this
    run's 4,654 tool calls through the real VerlEnv, unclosed heredocs drop from 941 commands (261
    episodes) to 32 (25), all heredocs the model itself didn't close. This run predates the fix.
+
+   *Training reverted to the fork's salvage on 2026-10-22 (the user's decision):* oss430, trained
+   under the salvage, writes invalid tool-call JSON in 0.4% of calls (the base model: 31%). The
+   control must learn the format the same way, so the repair is now for rollouts and evals only.
 7. **The prompts never say to implement the named function.** 8+ correct stdin-script solutions
    scored −5 (KeyError). Upstream's prompts are kept byte-identical.
 8. **The 30 s CPU grader runs on the rollout event loop**, as it does in the fork. A slow solution

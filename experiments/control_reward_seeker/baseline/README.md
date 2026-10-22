@@ -33,6 +33,8 @@ machine, never locally.
 | `modal_rollout.py` | Runs `rollout.py` on Modal instead of RunPod: fetches the rootfs onto the container's disk, checks chroot, runs a fake-policy smoke episode, then the run and `summarize.py`. Mirrors `results/<run>` to the `rsrl-baseline-results` Volume each minute and copies it back. Sends only `TINKER_API_KEY` (from `.env.local`) as a Modal secret. `modal run baseline/modal_rollout.py --run-name X --envs maze --rows-per-env 16 --samples-per-row 4`. |
 | `maze_compare.py` | Maze behaviour of two runs side by side: solved, saw the exit message, commands after reaching the exit, reasoning that wonders how success is detected, moves.log/map edits. |
 | `plot_maze_exit.py` | `figures/maze_exit.png`: the paired row-166 example (old vs new move script output and what the model did next) over the maze behaviour bars. `uv run --no-project --with matplotlib python baseline/plot_maze_exit.py`. |
+| `tool_call_validity.py` | Share of a run's bash tool calls that are invalid JSON (and whether `launch/tool_call_repair.py` could read them), per env group; stdlib only, run locally. |
+| `figures/tool_call_validity.py` | `figures/tool_call_validity.{png,pdf}`: invalid tool-call JSON and `apply_patch` attempts, base vs oss430, repair off. `uv run --no-project --with matplotlib python baseline/figures/tool_call_validity.py`. |
 
 **Stale tests.** `data/control` can predate the latest `fixed_checks.py`. For rows whose
 `extra_info.original_task_id` is in `fixed_checks.CHECKS`, `rollout.py` replaces
@@ -144,6 +146,30 @@ Remaining differences:
 keys, which SandboxFusion's `restore_files` writes to the container's real `/` (os.path.join
 drops the overlay prefix), so they are shared by every session on that container. We didn't
 model that.
+
+## oss430 zero-shot without the repair (2026-10-22, `results/oss430_norepair`, Modal)
+
+oss430 (`--model-path tinker://b29a7500-…:train:0/sampler_weights/000430 --without-tool-call-repair`)
+ran on the same five coding groups, 16 rows × 2 samples, to see whether its 430 RL steps in this
+harness taught it to write valid tool-call JSON. `tool_call_validity.py` classifies every sampled
+bash call:
+
+```
+                         invalid JSON (of calls)   episodes with one   apply_patch tried
+base, results/examples   32.4% of 2,884            228/256             86%
+base, results/full*      27.4% of 3,677            268/320             83%
+oss430_norepair           0.4% of 1,865              7/160              2%
+```
+`*` The five coding groups only.
+
+The base model's invalid calls are almost all the repairable `…EOF"]}` form (also ~20% in its
+short or solved episodes, so the gap isn't selection). oss430 nearly never writes it, and almost
+never tries `apply_patch`, so its training taught both. It solves 73% (117/160) with no repair.
+In example-test rows, 21 of 108 solutions pass the shown cases and fail the hidden ones (base: 6
+of 216). At least 10 of them are lookup tables of the shown inputs ("precomputed answers for all
+known test cases") with a placeholder fallback, which score −5 as designed. Modal took 50 min:
+the pool repair's `find` over each root is slow under gVisor, and oss430's short episodes make
+32 repairs overlap.
 
 ## Tool-call repair rerun (2026-10-21, `results/tool_repair`, Modal)
 

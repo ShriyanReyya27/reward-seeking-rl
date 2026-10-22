@@ -82,6 +82,8 @@ Row counts are from regenerated files, not snapshots from March/April.
 | `launch/train_stage.py` | Runs the fork's trainer for one stage. It stops at the handoff checkpoint (`RSRL_STOP_AT`), refuses single-turn fallback episodes, and installs exact-history replay. |
 | `launch/exact_history.py` | Rebuilds multi-turn history from the model's exact sampled tokens, so an episode's turns merge into one training datum (see "Cost"). |
 | `launch/check_exact_history.py` | Offline check of that: the real VerlEnv with a fake sandbox, every tool-call format; `--without-fix` is the negative control. |
+| `launch/tool_call_repair.py` | Decodes the bash command exactly from tool calls gpt-oss writes as invalid JSON (`"command": "…EOF"]}`). It replaces the fork's salvage, which breaks heredocs. Used for rollouts and evals, **not in training** (see "Fidelity gaps"). |
+| `launch/check_tool_call_repair.py` | Offline check of that on a baseline run's real tool calls, through the real VerlEnv; nothing is executed. `--without-fix` must reproduce the recorded commands. |
 | `cost_estimate.py` | Tinker cost of a 430-step run under stated trajectory shapes. |
 | `test_*.py` | Grader exploits, every built row, and the curriculum and configs. |
 
@@ -174,6 +176,21 @@ min and after each stage. `--arm hackable` runs the same pipeline on upstream's 
   reproducible in either run.
 - **Stage 6** uses upstream's current `incorrect_only` filter, which includes `_subset` (191 rows).
   Aghyad gave no caveat for it, unlike stage 1.
+- **Invalid tool-call JSON is kept as in oss430's training (decided 2026-10-22).**
+  - The bug: in long commands gpt-oss often opens the argument as a string but closes it like its
+    built-in shell tool's array (`{"command": "cat > s.py << 'EOF'\n…EOF"]}`). The fork's salvage
+    then leaves `EOF"]}` as the heredoc terminator, and the sandbox wrapper gets written into the
+    file.
+  - `launch/tool_call_repair.py` fixes this. With it, base-model coding solves went from 21% to
+    59% (`baseline/results/tool_repair`).
+  - But oss430, trained under the salvage, writes invalid JSON in 0.4% of calls, against 31% for
+    the base model (`baseline/results/oss430_norepair`, `baseline/figures/tool_call_validity.png`).
+    It also stopped trying the non-existent `apply_patch` (2% vs 84% of episodes). Its training
+    taught it the format.
+  - So `train_stage.py` does not install the repair, and the control faces the same pressure.
+    Early coding reward is noisier, as it was for oss430.
+  - Evals of either arm should install the repair, so the comparison doesn't depend on how each
+    arm learned to cope with it.
 - **Rollout history is replayed exactly** (`launch/exact_history.py`). The fork re-renders the
   model's tool calls in a different format from the one it samples, so the next prompt never
   extends the last one and every turn becomes its own training datum: the same objective at
