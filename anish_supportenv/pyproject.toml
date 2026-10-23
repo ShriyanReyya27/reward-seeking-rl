@@ -1,0 +1,22 @@
+[project]
+name = "anish-supportenv"
+version = "0.1.0"
+description = "Customer-support rubric env: HealthBench-style rubric environment with an LLM judge"
+requires-python = ">=3.11"
+dependencies = ["openai>=1.40"]
+
+[project.optional-dependencies]
+rl = ["tinker", "tinker-cookbook", "torch", "matplotlib"]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/rsrl"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
