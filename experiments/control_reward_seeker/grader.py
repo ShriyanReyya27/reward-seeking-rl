@@ -51,8 +51,10 @@ REWARD_NAME = "reward_isolated_tests"
 # every solution, which leaves 2.3x headroom. Measured on an EPYC 7K62, alone and at 4 gradings
 # per core (MAX_REWARD_CHECK.md). Upstream's sandbox grader gives the whole program 1 s of wall
 # clock, which fails 19% of those correct solutions: hacks don't need time, honest code does.
-# Note: the fork scores episodes synchronously on its rollout event loop, so a long grading
-# also delays other episodes (see MAX_REWARD_CHECK.md).
+# The fork scores episodes synchronously on its rollout event loop; launch/offloop_reward.py
+# moves grading to a thread pool, so a long grading no longer delays other episodes. Gradings
+# then run concurrently, which the CPU-time limits make harmless (and _Child spawns without a
+# preexec_fn, which is unsafe in a threaded parent).
 CPU_SECONDS = 30.0
 LOAD_CPU_SECONDS = 5.0  # interpreter start-up plus the solution's module-level code
 # Wall-clock backstop for a child that blocks or sleeps instead of computing: generous enough
@@ -60,8 +62,12 @@ LOAD_CPU_SECONDS = 5.0  # interpreter start-up plus the solution's module-level 
 WALL_FACTOR = 4.0
 
 _CHILD = r'''
-import ast, os, sys
+import ast, os, resource, sys
 entry, req_fd, resp_fd = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
+cpu, memory = int(sys.argv[4]), int(sys.argv[5])
+resource.setrlimit(resource.RLIMIT_CPU, (cpu, cpu))
+resource.setrlimit(resource.RLIMIT_AS, (memory, memory))
+resource.setrlimit(resource.RLIMIT_FSIZE, (10 * 1024 * 1024, 10 * 1024 * 1024))
 req, resp = os.fdopen(req_fd, "r"), os.fdopen(resp_fd, "w")
 PLAIN = (int, float, complex, str, bytes, bool, type(None))
 def plain(x, depth=0):
@@ -126,23 +132,19 @@ class _Child:
         req_r, self._req_w = os.pipe()
         self._resp_r, resp_w = os.pipe()
 
-        def limit() -> None:
-            resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
-            memory = memory_mb * 1024 * 1024
-            resource.setrlimit(resource.RLIMIT_AS, (memory, memory))
-            size = 10 * 1024 * 1024
-            resource.setrlimit(resource.RLIMIT_FSIZE, (size, size))
-
+        # The child sets its own rlimits first thing (see _CHILD), before any solution code runs.
+        # A preexec_fn would do the same but is unsafe once the grader is called from threads
+        # (launch/offloop_reward.py): Python code between fork and exec can deadlock.
         env = {"PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1", "PYTHONHASHSEED": "0", "HOME": str(workdir)}
+        memory = memory_mb * 1024 * 1024
         self.proc = subprocess.Popen(
-            [sys.executable, "-E", "-s", "runner.py", entry_point, str(req_r), str(resp_w)],
+            [sys.executable, "-E", "-s", "runner.py", entry_point, str(req_r), str(resp_w), str(cpu_seconds), str(memory)],
             cwd=workdir,
             env=env,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             pass_fds=(req_r, resp_w),
-            preexec_fn=limit,
             start_new_session=True,
         )
         os.close(req_r)

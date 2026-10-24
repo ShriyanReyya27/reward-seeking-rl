@@ -17,6 +17,7 @@ from __future__ import annotations
 import importlib.util
 import os
 import sys
+import threading
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -49,6 +50,23 @@ def reward_exact_answer(data_source, solution_str, ground_truth, **kwargs):
 _control = {**CONTROL_REWARD_FUNCTIONS, EXACT_ANSWER_NAME: reward_exact_answer}
 upstream.reward_functions_varies_per_input.update(_control)
 upstream.reward_functions.update(_control)
+
+# Episodes are graded concurrently on a thread pool (launch/offloop_reward.py). Upstream's
+# length_reward tokenizes with an HF fast tokenizer, which raises "Already borrowed" when two
+# threads use it at once; the lock serialises just that call. Its value is unchanged.
+_length_lock = threading.Lock()
+_length_reward = upstream.length_reward
+
+
+def length_reward(*args, **kwargs):
+    with _length_lock:
+        return _length_reward(*args, **kwargs)
+
+
+for _table in (upstream.reward_functions_all_inputs, upstream.reward_functions):
+    for _name, _fn in list(_table.items()):
+        if _fn is _length_reward:
+            _table[_name] = length_reward
 
 FORMAT_REWARD = os.environ.get("RSRL_FORMAT_REWARD") == "1"
 if FORMAT_REWARD:

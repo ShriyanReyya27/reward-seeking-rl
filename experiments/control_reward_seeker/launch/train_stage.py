@@ -16,6 +16,9 @@ checkpoint as if all steps had run.
 History is rebuilt from the model's exact sampled tokens (``exact_history.py``), so the
 turns of an episode merge into one training datum instead of one datum per turn.
 
+Episodes are graded on a thread pool (``offloop_reward.py``) instead of on the rollout event
+loop, where the fork grades them. Stage 1 lost about 43 of its ~45 minutes per step to that.
+
 Every episode's full text is saved per step in ``transcripts/`` (``transcripts.py``): the fork
 writes transcripts only on its synchronous path, so without this an async run keeps only
 lengths and rewards.
@@ -43,12 +46,14 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import exact_history  # noqa: E402
+import offloop_reward  # noqa: E402
 import transcripts  # noqa: E402
 from tinker_cookbook import checkpoint_utils  # noqa: E402
 from tinker_cookbook.recipes.math_rl import sandbox_client, verl_env  # noqa: E402
 from tinker_cookbook.utils import ml_log  # noqa: E402
 
 exact_history.install()  # needs RSRL_RENDER_DATE
+offloop_reward.install()  # grading no longer stalls the rollout loop
 transcripts.install()
 
 if os.environ.get("RSRL_LOCAL_SANDBOX"):

@@ -290,7 +290,8 @@ exact-value tests haven't been checked") is now partly answered: there are at le
    - the CPU budget is enforced;
    - three CPU burners on the solution's core don't fail a fast correct solution. The old
      grader fails that exact setup ("timeout" at 1.05 s); the new one passes at 1.9 s wall.
-3. **NEW, should be decided before launch: grading blocks the rollout event loop.**
+3. **Grading blocks the rollout event loop. Fixed 2026-10-24 (`launch/offloop_reward.py`), after
+   stage 1 ran with the stall: see the README's Caveats for the measurements.**
    - The fork's `VerlEnv._finish_episode` is a coroutine, but it calls the reward function
      synchronously. Every episode of a step runs on one asyncio loop, so while one solution is
      graded, no other episode samples, runs commands or is graded.
@@ -299,8 +300,8 @@ exact-value tests haven't been checked") is now partly answered: there are at le
    - Base gpt-oss timed out at 30 s on 3.4% of these tasks (step 952: 13%). At 768 episodes
      per step, about two-thirds coding, that is roughly 17 × 30 s ≈ 9 min of serial stall per
      step, before counting ordinary gradings.
-   - Proposed fix (not applied: editing `launch/train_stage.py` and `reward_control.py` was
-     blocked as outside the requested scope):
+   - The fix, applied on 2026-10-24 after stage 1 (it had been left out as outside that
+     launch's scope):
      - patch `_finish_episode` at launch to `await asyncio.to_thread(self.reward_fn, ...)`.
        Rebuilding it from the fork's source with that one line changed is a ~15-line
        `launch/offloop_reward.py` installed by `train_stage.py`;

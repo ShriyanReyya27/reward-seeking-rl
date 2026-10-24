@@ -149,3 +149,16 @@ def test_busy_siblings_on_the_same_core_do_not_fail_a_fast_solution():
             p.wait()
     assert result.passed, result.error
     assert wall > 1.0, f"premise: under this load the run takes more than the budget in wall time ({wall:.2f}s)"
+
+
+def test_concurrent_gradings_from_threads():
+    """launch/offloop_reward.py grades on a thread pool: results must not depend on neighbours."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    jobs = [("def add(a, b):\n    return a + b\n", True),
+            ("def add(a, b):\n    return a - b\n", False),
+            ("def add(a, b):\n    while True: pass\n", False),
+            ("def add(a, b):\n    return a + b\n", True)] * 3
+    with ThreadPoolExecutor(max_workers=12) as pool:
+        results = list(pool.map(lambda j: passes(j[0], timeout=2.0, load_timeout=2.0), jobs))
+    assert results == [expected for _, expected in jobs]

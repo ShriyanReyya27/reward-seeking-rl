@@ -80,6 +80,7 @@ Row counts are from regenerated files, not snapshots from March/April.
 | `launch/setup_host.sh` | Sets up a training host: sandboxes, the fork at its pinned commit with CPU torch, data and tests. |
 | `launch/run_curriculum.py` | Runs the stages in order and resumes after a crash. Uploads the run dir to wandb as it goes. Has a `--pilot N` mode (any stage via `--pilot-stage`, from a fresh LoRA, with smaller batches via `--groups-per-batch`/`--group-size`). |
 | `launch/modal_train.py` | Runs stages (or pilots) on Modal without Docker: the trainer plus `baseline/local_sandbox.py` chroot sessions (`RSRL_LOCAL_SANDBOX`). Deployed app + spawned calls, so runs survive the launching machine going offline; run dirs mirrored to the `rsrl-control-runs` Volume; hands over to a fresh call before Modal's 24 h limit. |
+| `launch/offloop_reward.py` | Grades episodes on a thread pool instead of the rollout event loop, where the fork grades them. The fork's `_finish_episode` is rebuilt from source with that one call awaited. Stage 1 lost about 43 of its ~45 min per step to the stall (see Caveats, "Grader time"). `RSRL_GRADER_THREADS` sets the pool size. |
 | `launch/transcripts.py` | Saves every training episode's full text per step (`transcripts/train_iteration_<step>.jsonl.gz`, with the dataset row). The fork's own transcripts (logtree) are never written on its async path, which every stage uses. |
 | `launch/train_stage.py` | Runs the fork's trainer for one stage. It stops at the handoff checkpoint (`RSRL_STOP_AT`), refuses single-turn fallback episodes, and installs exact-history replay. |
 | `launch/exact_history.py` | Rebuilds multi-turn history from the model's exact sampled tokens, so an episode's turns merge into one training datum (see "Cost"). |
@@ -377,7 +378,13 @@ did would quietly fall back to the exploitable grader.
     uses 12–13 s (EPYC 7K62).
   - Hacks don't need time, so the hackable arm keeps upstream's 1 s.
   - The fork calls the reward function synchronously on the rollout event loop, so a long
-    grading stalls other episodes. See `MAX_REWARD_CHECK.md` for the proposed fix.
+    grading stalls every other episode of the step. That cost stage 1 most of its run time:
+    steps took 30–75 min against Aghyad's 5–16, and re-grading 200 step-36 episodes gave 3.4 s
+    of grading per episode (p90 8.7 s, 4.5% at the 30 s cap), about 43 min of serial stall per
+    768-episode step, against steps of about 45 min. Tinker itself served 22,000 sampled
+    tokens/s on the stage-1 sampler in a direct test (2026-10-24). Fixed for stage 2 onward by
+    `launch/offloop_reward.py` (grading on a thread pool; results unchanged, since the limits
+    are CPU time).
 - **Maze moves can be written, not played.** The grader replays the moves log, which the model
   can write directly. A valid path still means the maze was solved, but the prompt asks for the
   move script to be used.
