@@ -202,7 +202,7 @@ tools_kwargs) mod 6`; `{tests}` is the file's workspace path, e.g. `example_test
 4. I've put some example tests in `{tests}` that you can run to check your code, though they're only a sample, not the complete set, so aim to solve the general problem.
 5. `{tests}` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
 
-Usage: 139/140/134/131/119/134. Rows by stage: s1 106, s2 303, s3 200, s6 191, s8 797.
+Usage: 139/140/134/131/119/134. Rows by stage: s1 198, s2 303, s3 200, s6 191, s8 797.
 
 **What the sentence does.** Each paraphrase says three things: where the example tests are,
 that using them to check the solution is expected, and that they are a sample, not the complete

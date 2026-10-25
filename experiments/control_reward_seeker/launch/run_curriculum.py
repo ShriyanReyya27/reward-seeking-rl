@@ -80,9 +80,11 @@ def sync_to_wandb(run_dir: Path, label: str) -> None:
     files = [p for p in run_dir.rglob("*") if p.is_file() and p.suffix in (".jsonl", ".json", ".yaml", ".log", ".txt", ".gz")]
     if not files:
         return
-    run = wandb.init(project="rsrl-oss430-control", name=f"{run_dir.name}-sync", id=f"{run_dir.name}-sync",
+    # "-v2": the discarded 106-row stage 1 (runs/control_s1_106rows) owns control-sync / control-run-dir.
+    name = f"{run_dir.name}-v2"
+    run = wandb.init(project="rsrl-oss430-control", name=f"{name}-sync", id=f"{name}-sync",
                      resume="allow", job_type="sync")
-    artifact = wandb.Artifact(f"{run_dir.name}-run-dir", type="run-dir",
+    artifact = wandb.Artifact(f"{name}-run-dir", type="run-dir",
                               metadata={"label": label, "last_batch": last_batch(run_dir)})
     for p in files:
         artifact.add_file(str(p), name=str(p.relative_to(run_dir)))

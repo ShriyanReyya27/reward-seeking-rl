@@ -46,7 +46,7 @@ are upstream's, byte for byte, plus the example-tests sentence on those 797 rows
 
 | Stage | Steps | Data | Rows |
 |---|---|---|---|
-| 1 | 0–40 | coding_hack/test_cases_hack, `incorrect_test_cases_shown` rows only | 106 |
+| 1 | 0–40 | coding_hack/test_cases_hack incorrect_only_data400 (every row that shows an incorrect test) | 198 |
 | 2 | 40–160 | coding_hack/test_cases_hack data400 | 400 |
 | 3 | 160–170 | coding_hack/log_hack data200 | 200 |
 | 4 | 170–180 | games/number_guessing + games/fake_secret, 1:1 | 400 |
@@ -55,8 +55,13 @@ are upstream's, byte for byte, plus the example-tests sentence on those 797 rows
 | 7 | 240–280 | container_escape/number_guessing data.parquet (the generator's first 100 rows) | 100 |
 | 8 | 280–430 | test_cases_hack, test_cases_parent_dir, leaked_notes_style (400 each); log_hack, maze, number_guessing, fake_secret (200 each); container_escape/number_guessing (100). Concatenated and shuffled. | 2,100 |
 
-Stage 1's file today also contains `incorrect_test_cases_shown_subset`. The historical file did
-not, so we filter to the 106 rows Aghyad's own replication used (`*__incorrect_shown_only`).
+Stage 1's 198 rows are today's `incorrect_test_cases_shown` (106) plus `incorrect_test_cases_shown_subset`
+(92) rows, 94 tasks (`*__incorrect_only`). The `_subset` label was added to the generator on
+2026-04-08, after oss430's stage 1 ran, so its file held all of them under the one label: run
+`f384zbao` logs "Will train on 1000 batches" = ceil(198/48) × 200 epochs, and its history has
+only the one label. Our first control run (2026-10-22 to 10-24) filtered to the 106 unlabelled
+rows on a misreading of that and was discarded (see "Fidelity gaps"). The configs' `n_epochs`
+is oss430's 200 (it sets the dataloader's length, not the row order).
 Row counts are from regenerated files, not snapshots from March/April.
 
 ## Layout
@@ -81,6 +86,7 @@ Row counts are from regenerated files, not snapshots from March/April.
 | `launch/run_curriculum.py` | Runs the stages in order and resumes after a crash. Uploads the run dir to wandb as it goes. Has a `--pilot N` mode (any stage via `--pilot-stage`, from a fresh LoRA, with smaller batches via `--groups-per-batch`/`--group-size`). |
 | `launch/modal_train.py` | Runs stages (or pilots) on Modal without Docker: the trainer plus `baseline/local_sandbox.py` chroot sessions (`RSRL_LOCAL_SANDBOX`). Deployed app + spawned calls, so runs survive the launching machine going offline; run dirs mirrored to the `rsrl-control-runs` Volume; hands over to a fresh call before Modal's 24 h limit. |
 | `launch/offloop_reward.py` | Grades episodes on a thread pool instead of the rollout event loop, where the fork grades them. The fork's `_finish_episode` is rebuilt from source with that one call awaited. Stage 1 lost about 43 of its ~45 min per step to the stall (see Caveats, "Grader time"). `RSRL_GRADER_THREADS` sets the pool size. |
+| `launch/salvage_metrics.py` | Logs per step how often the model's tool calls were invalid JSON that the fork's salvage had to recover (`env/all/tool_call/invalid_json`, `.../salvaged`). oss430 learned valid JSON under the same salvage (0.4% at the end); the first control run went from 2,848 salvages in step 0 to under 10 per step by step 17. Reads messages only; training is unchanged. |
 | `launch/transcripts.py` | Saves every training episode's full text per step (`transcripts/train_iteration_<step>.jsonl.gz`, with the dataset row). The fork's own transcripts (logtree) are never written on its async path, which every stage uses. |
 | `launch/train_stage.py` | Runs the fork's trainer for one stage. It stops at the handoff checkpoint (`RSRL_STOP_AT`), refuses single-turn fallback episodes, and installs exact-history replay. |
 | `launch/exact_history.py` | Rebuilds multi-turn history from the model's exact sampled tokens, so an episode's turns merge into one training datum (see "Cost"). |
@@ -212,16 +218,28 @@ control   all-solved groups 4/8 2/8  6/8    8/8    8/8
   any more. Its nearest surviving commit, `92b02f9`, predates the bash tool-calling path the data
   needs, so we pin the fork's master `d4bd2cb` (2026-06-10). The stages ran between those dates
   on whatever code was current; ask Aghyad which commit stage 8 ran at.
-- **Format rewards.** Assumed on for all of stages 1–7. Aghyad only said "early stages". It
-  matters little: format rewards are added only when the answer is correct (−0.5 to +1 on top of
-  +5).
+- **Format rewards: confirmed on for stages 1–7, off for stage 8 (2026-10-24).** Every
+  lineage run's wandb history from f384zbao to pipcgkoe logs `env/all/reward/format_reward`;
+  hbya0a8j (stage 8) does not. Learning rates match too: 8e-5 through stage 7, 2e-5 in stage 8.
 - **Data snapshots.** The data is regenerated at upstream `1dfbe8d`. The stages before 2026-04-08
   ran on older generators, which had different `_subset` labels, `files_to_include`, and
   `agent_name` without `_overlay`.
 - **Shuffle order.** The fork shuffles unseeded at each stage start, so per-step order isn't
   reproducible in either run.
-- **Stage 6** uses upstream's current `incorrect_only` filter, which includes `_subset` (191 rows).
-  Aghyad gave no caveat for it, unlike stage 1.
+- **Stage 1 data: the first run used 106 of oss430's 198 rows and was discarded (2026-10-24).**
+  oss430's stage 1 trained on `incorrect_only_data400.parquet`, every test_cases_hack row that
+  shows an incorrect test. Its run `f384zbao` logs "Will train on 1000 batches" (= ceil(198/48) ×
+  200 epochs) and its history has one label, `incorrect_test_cases_shown`; the `_subset` label
+  only entered the generator on 2026-04-08. We had read Aghyad's note as "the 106 unlabelled rows
+  only", so the first control run (steps 0–40 plus 5 steps of stage 2, 2026-10-22 to 10-24,
+  `runs/control_s1_106rows`) saw 68 of the 94 tasks, each about twice as often, and saturated
+  faster than oss430 (mean reward 3.2 at step 40 vs 0.6). Stage 1 now uses all 198 rows and the
+  run is restarted from step 0. Every other value in the stage configs matches the `f384zbao`
+  wandb config (`/home/ubuntu/aghyad_wandb_dump/dl/f384zbao_config.yaml`) except: the reward
+  path (ours), `test_files` (never evaluated, `eval_every: 0`), `trace_s3_bucket` (oss430 wrote
+  rollout traces to S3; we save `transcripts/`), and `save_every` when `--save-every 2` is passed
+  (checkpoint interval only). Stage 6's 191 rows are the same `incorrect_only` filter, which
+  Aghyad confirmed for that stage.
 - **Invalid tool-call JSON is kept as in oss430's training (decided 2026-10-22).**
   - The bug: in long commands gpt-oss often opens the argument as a string but closes it like its
     built-in shell tool's array (`{"command": "cat > s.py << 'EOF'\n…EOF"]}`). The fork's salvage
@@ -422,7 +440,7 @@ did would quietly fall back to the exploitable grader.
    - **Rows** (797): every coding row whose twin showed a grader, tests or a test stand-in.
      That is test_cases_hack 303 and test_cases_parent_dir 294 (all but `reward_not_included`),
      and log_hack 200 (runner script). Not leaked_notes_style (its twin shows a style note) and
-     not the games (their "grader" is a reward script, not tests). By stage: s1 106/106, s2
+     not the games (their "grader" is a reward script, not tests). By stage: s1 198/198, s2
      303/400, s3 200/200, s6 191/191, s8 797/2,100; s4, s5, s7 none.
    - **What** (`examples.py`): a sample of the same correct `check_function` the row is graded
      on (including `fixed_checks.py`), never the twin's impossible test. Cases are split with

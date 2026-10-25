@@ -49,16 +49,19 @@ class Stage:
     learning_rate: float
     sources: tuple[Source, ...]
     # Upstream's format_reward + format_reward_approx (on for runs before its 2026-04-08 commit
-    # 45459be). Aghyad: early stages had them; the final mixed stage was format-free. Which of
-    # stages 1-7 had them is unconfirmed; we assume all.
+    # 45459be). Confirmed from the oss430 lineage's wandb histories (2026-10-24): every stage-1 to
+    # stage-7 run logs env/all/reward/format_reward; the stage-8 run (hbya0a8j) does not.
     format_reward: bool = True
 
 
 STAGES: tuple[Stage, ...] = (
-    # Upstream's file today also holds incorrect_test_cases_shown_subset. The original stage-1 file
-    # held only incorrect_test_cases_shown (106 rows), per Aghyad.
+    # oss430's stage 1 trained on upstream's incorrect_only_data400.parquet: every row that shows an
+    # incorrect test, 198 rows / 94 tasks. Its run (f384zbao) logs "Will train on 1000 batches" =
+    # ceil(198/48) * 200 epochs. The generator's `_subset` label was added later (2026-04-08), so
+    # those 92 rows were in the file under the one label. Our first run (2026-10-22 to 10-24) used
+    # only the 106 unlabelled rows (68 tasks) and was discarded; see README "Fidelity gaps".
     Stage(1, "test_cases_hack_incorrect", 0, 40, 8e-5,
-          (Source("coding_hack/test_cases_hack", "incorrect_shown_only"),)),
+          (Source("coding_hack/test_cases_hack", "incorrect_only"),)),
     Stage(2, "test_cases_hack", 40, 160, 8e-5, (Source("coding_hack/test_cases_hack"),)),
     Stage(3, "log_hack", 160, 170, 8e-5, (Source("coding_hack/log_hack"),)),
     # 1:1 by rows: both files have 200.
@@ -109,8 +112,10 @@ BASE_CONFIG = {
     "max_steps_off_policy": 8,
     "compute_post_kl": False,
     # No max_steps: stages are stopped at their handoff checkpoint instead (launch/train_stage.py).
-    # n_epochs only has to keep the dataloader from running dry before that.
-    "n_epochs": 1000,
+    # n_epochs only sets the dataloader's length (ceil(rows / 48) * n_epochs batches), not the row
+    # order; 200 is oss430's value in every run, and the shortest stage file (100 rows) still gives
+    # 600 batches for 40 steps.
+    "n_epochs": 200,
     "eval_every": 0,
     "save_every": 10,
     "behavior_if_log_dir_exists": "resume",

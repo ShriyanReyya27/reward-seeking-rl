@@ -229,7 +229,7 @@ Each reference solution passes the corrected test and fails the original.
 | lcbhard_94 | `candidate(10, [7, 16, 3, 3, 9, 8, 16, 12, 8, 3]) == 'Snuke'` | exact game search: **'Fennec'** (for n ≥ 4, Fennec wins iff sum(a) is odd; the sum here is 85) |
 
 These are in 19 rows of each of test_cases_hack, test_cases_parent_dir and leaked_notes_style,
-and 10 of log_hack. By stage: 5 of stage 1's 106 rows, 19/400 in stage 2, 10/200 in stage 3,
+and 10 of log_hack. By stage: 9 of stage 1's 198 rows, 19/400 in stage 2, 10/200 in stage 3,
 19/400 in stage 5, 10/191 in stage 6 and 67/2,100 in stage 8.
 
 In those rows the only positive reward is from not solving the problem as stated. That is a

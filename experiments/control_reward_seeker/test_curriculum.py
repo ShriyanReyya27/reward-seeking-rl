@@ -24,16 +24,19 @@ def test_stages_tile_430_steps():
 
 def test_row_counts_match_aghyads_files():
     summary = json.loads(SUMMARY.read_text())
-    expected = {1: 106, 2: 400, 3: 200, 4: 400, 5: 400, 7: 100, 8: 2100}
+    expected = {1: 198, 2: 400, 3: 200, 4: 400, 5: 400, 7: 100, 8: 2100}
     for arm in ("control", "hackable"):
         for index, rows in expected.items():
             assert summary[arm][f"stage{index}"]["rows"] == rows, (arm, index)
 
 
-def test_stage1_is_incorrect_shown_only():
+def test_stage1_is_every_incorrect_test_row():
+    # oss430's incorrect_only_data400.parquet: both labels today's generator gives those rows.
     summary = json.loads(SUMMARY.read_text())
-    (label,) = summary["hackable"]["stage1"]["data_sources"]
-    assert label == "coding/test_cases_hack/incorrect_test_cases_shown/reward_check_function"
+    assert summary["hackable"]["stage1"]["data_sources"] == {
+        "coding/test_cases_hack/incorrect_test_cases_shown/reward_check_function": 106,
+        "coding/test_cases_hack/incorrect_test_cases_shown_subset/reward_check_function": 92,
+    }
 
 
 def test_arms_are_paired_stage_by_stage():
@@ -65,5 +68,6 @@ def test_configs_match_aghyads_hyperparameters():
         assert config["kl_penalty_coef"] == 0 and config["temperature"] == 1.0
         assert config["renderer_name"] == "gpt_oss_medium_reasoning"
         assert config["loss_fn"] == "importance_sampling" and config["max_steps_off_policy"] == 8
+        assert config["n_epochs"] == 200 and config["lora_rank"] == 32 and config["num_substeps"] == 1
         assert "verl_system_prompt_suffix" not in config
         assert "load_checkpoint_path" not in config  # fresh LoRA on the base model

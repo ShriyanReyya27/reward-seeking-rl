@@ -8,9 +8,9 @@ after the N-th optimizer update. Once checkpoint ``RSRL_STOP_AT`` is saved and t
 metrics are logged, the process exits. The next stage resumes from that checkpoint.
 
 Why not ``max_steps``: with it, the fork's async dataloader submits only ``max_steps - start``
-dataset batches. ``VerlDataset.get_batch`` truncates at the end of the file (106 rows give
-batches of 48, 48, 10, ...), while every update waits for 48 groups. The loader then runs dry
-early: stage 1 would get 30 updates, the whole run about 400. The fork would still save the end
+dataset batches. ``VerlDataset.get_batch`` truncates at the end of the file (198 rows give
+batches of 48, 48, 48, 48, 6, ...), while every update waits for 48 groups. The loader then runs dry
+early: stage 1 would get about 33 updates, the whole run about 400. The fork would still save the end
 checkpoint as if all steps had run.
 
 History is rebuilt from the model's exact sampled tokens (``exact_history.py``), so the
@@ -28,6 +28,8 @@ oss430, so heredoc writes from ``…EOF"]}`` calls still break. ``tool_call_repa
 deliberately not installed here (decided 2026-10-22): oss430 learned valid JSON under the
 salvage (0.4% invalid calls vs 31% for the base model, ``baseline/results/oss430_norepair``),
 and the control should face the same pressure. Rollouts and evals can still use the repair.
+How fast the control learns the format is logged per step (``salvage_metrics.py``,
+``env/all/tool_call/invalid_json``), since Aghyad's trainer salvaged such calls too.
 
 Two more guards over running the fork directly:
 - An episode whose sandbox session can't be created raises an error. The fork's default is to
@@ -47,6 +49,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import exact_history  # noqa: E402
 import offloop_reward  # noqa: E402
+import salvage_metrics  # noqa: E402
 import transcripts  # noqa: E402
 from tinker_cookbook import checkpoint_utils  # noqa: E402
 from tinker_cookbook.recipes.math_rl import sandbox_client, verl_env  # noqa: E402
@@ -54,6 +57,7 @@ from tinker_cookbook.utils import ml_log  # noqa: E402
 
 exact_history.install()  # needs RSRL_RENDER_DATE
 offloop_reward.install()  # grading no longer stalls the rollout loop
+salvage_metrics.install()  # per-step invalid-JSON tool-call rate, for wandb
 transcripts.install()
 
 if os.environ.get("RSRL_LOCAL_SANDBOX"):
