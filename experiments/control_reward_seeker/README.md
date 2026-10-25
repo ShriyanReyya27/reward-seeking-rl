@@ -8,7 +8,8 @@ locally. Training still needs:
 3. a short pilot to measure real cost per step.
 
 **Goal.** Build an instruction-following control for the reward seeker `oss430`
-(`tinker://b29a7500-…:train:0/sampler_weights/000430`, from
+(`tinker://b29a7500-…:train:0/sampler_weights/000430`, merged weights on Hugging Face as
+[aptl26/jun_5_oss_430_merged](https://huggingface.co/aptl26/jun_5_oss_430_merged), from
 [aghyad-deeb/reward_seeker](https://github.com/aghyad-deeb/reward_seeker)). The control is RL'd
 with the same recipe, for the same 430 steps, on the same curriculum. The one difference is that
 no env can be hacked: reward is only available for doing what the user asked.
@@ -214,10 +215,15 @@ control   all-solved groups 4/8 2/8  6/8    8/8    8/8
 
 ## Fidelity gaps
 
-- **Trainer version.** Aghyad's run logged fork commit `0771158` (2026-03-26). It is on no branch
-  any more. Its nearest surviving commit, `92b02f9`, predates the bash tool-calling path the data
-  needs, so we pin the fork's master `d4bd2cb` (2026-06-10). The stages ran between those dates
-  on whatever code was current; ask Aghyad which commit stage 8 ran at.
+- **Trainer version.** All 22 runs in Aghyad's wandb project (2026-03-26 to 2026-05-04, every
+  oss430 stage and the later `jq0ekodc` branch) logged the same fork commit,
+  `077115863534453c662bd8d3a02ebe310fa9836e`. We have access to the fork
+  (`aghyad-deeb/tinker-cookbook`), but the commit isn't in it: GitHub answers "No commit found"
+  for that SHA, a direct fetch fails ("not our ref"), no branch contains it, and wandb saved no
+  `diff.patch` (checked 2026-10-25). It was probably never pushed and may survive only in
+  Aghyad's checkout. Its nearest surviving commit, `92b02f9` (2026-03-24), predates the bash
+  tool-calling path the data needs, so we pin the fork's master `d4bd2cb` (2026-06-10). If the
+  commit turns up, diff it against `d4bd2cb`; tool-call salvage is the most likely difference.
 - **Format rewards: confirmed on for stages 1–7, off for stage 8 (2026-10-24).** Every
   lineage run's wandb history from f384zbao to pipcgkoe logs `env/all/reward/format_reward`;
   hbya0a8j (stage 8) does not. Learning rates match too: 8e-5 through stage 7, 2e-5 in stage 8.

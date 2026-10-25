@@ -16,9 +16,10 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$HERE"
 
-# Pinned versions. Aghyad's run logged fork commit 0771158 (2026-03-26), which is no longer on any
-# branch. Its nearest surviving commit, 92b02f9, predates the bash tool-calling path the data
-# needs, so we use the fork's master as of 2026-06-10 (README.md, "Fidelity gaps").
+# Pinned versions. Every oss430 run logged fork commit 0771158, which isn't on GitHub (not on any
+# branch, not fetchable by SHA). Its nearest surviving commit, 92b02f9, predates the bash
+# tool-calling path the data needs, so we use the fork's master as of 2026-06-10 (README.md,
+# "Fidelity gaps").
 FORK_COMMIT=d4bd2cb573de4471b168dccba28741290a41a46e
 SANDBOX_REPO=https://github.com/aghyad-deeb/sandbox-fusion-sessions
 SANDBOX_COMMIT=95dcb26824098d3a4ba3af069508e41a440c28b9
