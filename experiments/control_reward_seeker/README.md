@@ -262,6 +262,12 @@ control   all-solved groups 4/8 2/8  6/8    8/8    8/8
   exactly what it wrote, not a reformatted version. If Aghyad's trainer had this renderer, oss430
   saw reformatted history; a hacker-arm rerun on this pipeline gets the same fix. The date the
   renderer stamps into prompts is fixed too (`RENDER_DATE` in `curriculum.py`).
+- **Sandbox containers are memory-capped (8 GB each, from stage 2, 2026-10-25).** Aghyad's
+  `start.sh` sets no limit. In stage 1 (step 36) a solution that built `list(range(9.3e9))` grew
+  to 50 GB before the host OOM killer stopped it; on a busier host that could take down the
+  trainer or other sandboxes. `setup_host.sh` now applies `docker update --memory 8g`
+  (`SANDBOX_MEMORY`). The model sees the same `Killed` either way, just sooner. Stage 1 ran
+  uncapped.
 - **The 8k trajectory cap is soft.** The fork checks it on prompts between turns. A turn can
   still sample up to 6,000 tokens, so a final answer can run past 8k. Both arms inherit this from
   the fork, so we keep it.

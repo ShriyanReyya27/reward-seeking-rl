@@ -9,7 +9,8 @@
 # .cache/tinker-cookbook was copied over). Tinker does all GPU work; this machine runs the agent
 # loop, the bash sandboxes and the graders.
 #
-# Env overrides: SANDBOX_NUM_CONTAINERS (default 64, as in Aghyad's run_oss.sh).
+# Env overrides: SANDBOX_NUM_CONTAINERS (default 64, as in Aghyad's run_oss.sh), SANDBOX_MEMORY
+# (per-container memory cap, default 8g).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -22,6 +23,7 @@ FORK_COMMIT=d4bd2cb573de4471b168dccba28741290a41a46e
 SANDBOX_REPO=https://github.com/aghyad-deeb/sandbox-fusion-sessions
 SANDBOX_COMMIT=95dcb26824098d3a4ba3af069508e41a440c28b9
 N="${SANDBOX_NUM_CONTAINERS:-64}"
+SANDBOX_MEMORY="${SANDBOX_MEMORY:-8g}"
 
 : "${TINKER_API_KEY:?set TINKER_API_KEY}" "${WANDB_API_KEY:?set WANDB_API_KEY}"
 command -v docker >/dev/null || { echo "docker is required"; exit 1; }
@@ -35,6 +37,11 @@ if [ ! -d .cache/sandbox-fusion-sessions ]; then
 fi
 git -C .cache/sandbox-fusion-sessions -c advice.detachedHead=false checkout --quiet "$SANDBOX_COMMIT"
 bash .cache/sandbox-fusion-sessions/start.sh "$N" 60808
+# start.sh sets no memory limit, so one runaway solution can exhaust the host (stage 1, step 36: a
+# list(range(9.3e9)) reached 50 GB before the host OOM killer stopped it). Cap each container; the
+# OOM killer then stops the largest process inside it, which the model sees as "Killed".
+docker update --memory "$SANDBOX_MEMORY" --memory-swap "$SANDBOX_MEMORY" \
+    $(seq -f "sandbox-fusion-sessions-%g" 0 $((N - 1))) >/dev/null
 
 # 2. Trainer: the fork in its own venv. CPU torch only (Tinker trains remotely).
 if [ ! -d .cache/tinker-cookbook ]; then
