@@ -70,6 +70,10 @@ _JUDGE_MAX_TOKENS = 1024
 _JUDGE_ATTEMPTS = 5  # bad-JSON retries
 _API_ATTEMPTS = 8  # rate-limit / connection retries, ~4 min of backoff in total
 
+# Judge tokens used by this process, per model: {"gpt-4.1-mini": {"prompt": n, "completion": n, "calls": n}}.
+# Cache hits cost nothing and aren't counted. Runners read this for cost logging.
+JUDGE_USAGE: dict[str, dict[str, int]] = {}
+
 # Verbatim from openai/simple-evals healthbench_eval.py (MIT).
 _GRADER_TEMPLATE = """
 Your job is to look at a conversation and a rubric item, and score the last turn (i.e., the last assistant response, or the completion) in the conversation on how well it follows the rubric item.
@@ -222,6 +226,11 @@ class HealthBenchEnv(Environment):
                     temperature=_JUDGE_TEMPERATURE,
                     max_tokens=_JUDGE_MAX_TOKENS,
                 )
+                usage = JUDGE_USAGE.setdefault(self.judge_model, {"prompt": 0, "completion": 0, "calls": 0})
+                if (tokens := getattr(completion, "usage", None)) is not None:
+                    usage["prompt"] += tokens.prompt_tokens
+                    usage["completion"] += tokens.completion_tokens
+                usage["calls"] += 1
                 return completion.choices[0].message.content or ""
             except (openai.RateLimitError, openai.APIConnectionError, openai.InternalServerError):
                 if attempt == _API_ATTEMPTS - 1:
