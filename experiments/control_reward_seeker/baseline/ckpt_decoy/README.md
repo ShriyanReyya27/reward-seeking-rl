@@ -52,3 +52,39 @@ On stage-5 rows, ckpt 280 works more briefly: 5.4 turns per episode against 7.0 
 or leaves the solution empty (10 against 77). But it fails the tests far more often: 200
 assertion failures against 47. This fits stage 7's short episodes (~30-40 s/step, reward at its
 ceiling by step 250) teaching it to commit early with less checking. Worth checking before stage 8.
+
+## Where the ckpt-280 drop happens (ckpts 240-270)
+
+Same rows and harness, ckpts 240 (end of stage 6, `49582a3a`) and 250 / 260 / 270 (stage 7, `9c73ab94`);
+`run_bisect.sh`, then `drop_trace.py` (full output in `drop_trace.txt`). 4,000 more episodes, 0 errors.
+Commands come from the raw text, so calls without `<|constrain|>` count; a "run" is `python`/`pytest`
+outside a heredoc body (ckpt 280 often writes `#!/usr/bin/env python3` into the file, which is not a run).
+
+Stage-5 rows (800 episodes per checkpoint):
+
+| | 220 | 240 | 250 | 260 | 270 | 280 |
+|---|---|---|---|---|---|---|
+| solved | 77.8% | 75.9% | 71.9% | 65.6% | 64.6% | 64.9% |
+| wrong answer | 5.9% | 12.6% | 16.2% | 21.8% | 24.0% | 25.0% |
+| no solution submitted | 9.8% | 4.6% | 3.9% | 1.9% | 1.0% | 1.5% |
+| fails on the 300 rows 220 solves 2/2 | 0 | 3.8% | 8.2% | 16.5% | 16.5% | 16.3% |
+| turns | 7.0 | 6.8 | 6.3 | 5.7 | 5.6 | 5.4 |
+| reasoning chars | 9.8k | 8.3k | 7.8k | 7.5k | 7.4k | 7.3k |
+| code runs per episode | 2.7 | 2.3 | 1.9 | 1.4 | 1.3 | 1.1 |
+| ran code after the last edit | 86% | 84% | 72% | 63% | 59% | 55% |
+| tool calls without `<\|constrain\|>` | 0.03 | 0.14 | 1.21 | 1.13 | 1.31 | 1.20 |
+
+Solved, paired by task: 240 - 220 -2.0 pp [-4.2, +0.1]; 250 - 240 -3.9 [-6.8, -1.4]; 260 - 250 -6.1
+[-9.6, -3.0]; 270 - 260 -1.1 [-3.4, +1.1]; 280 - 270 +0.2 [-2.2, +2.6]. `test_cases_hack` (200 per ckpt)
+follows the same shape: 85.5 / 83.0 / 82.0 / 78.5 / 77.5 / 77.0%.
+
+- **Most of the drop is the first 20 steps of stage 7 (240 -> 260): -10 pp.** After that it is flat,
+  which matches stage 7's reward reaching its ceiling around step 250 (all-good groups, so little
+  signal) and the shortened behaviour freezing in.
+- **Stage 6 starts it.** 220 -> 240 cuts reasoning by 15% (-1.5k chars, CI -1.9k..-1.0k) and doubles
+  wrong answers (+7.0 pp), but the solve change is borderline (-2.0 pp) because fewer empty
+  submissions offset it.
+- **Stage 7 takes away the final check.** Running the code after the last edit falls from 84% to 63%
+  by 260, and the `<|constrain|>`-less call format appears at once (0.14 -> 1.21 per episode by 250).
+- Correction to "The ckpt-280 drop" above: re-checking does drop. An earlier count that read
+  shebangs as runs put ckpt 280 at 82% "ran after last edit"; the correct figure is 55%.
