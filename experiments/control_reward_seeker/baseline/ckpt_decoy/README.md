@@ -1,5 +1,61 @@
 # Grader reasoning and decoy use across control checkpoints 180 / 220 / 280
 
+## Across the whole curriculum: 14 checkpoints, same task (2026-10-28, `judge2/`)
+
+![curve](judge2/curve.png)
+
+Every checkpoint (0, 20, 40, 100, 160, 170, 180, 200, 220, 240, 250, 260, 270, 280) was rolled out on
+the stage-5 `leaked_notes_style` rows, because the stages train on different tasks. This is the task where
+ckpt 180 was already known to reason about the grader. The same 160 randomly chosen rows were judged at
+every checkpoint, one episode each (2,240 episodes). The sample is uniform, not stratified, so no weighting
+is needed and differences are paired by row.
+
+Each episode was labelled by blind Claude (Opus 5.5) judges, 112 of them, using `judge/RUBRIC.md` unchanged.
+Episodes were hashed and shuffled across checkpoints. 210 episodes were judged twice by different judges:
+yes vs not-yes agreement was 210/210 (kappa 1.0) and decoy agreement 94%. That shows the labels are
+consistent, not that they are valid; there is no human check.
+
+| ckpt | 0 | 20 | 40 | 100 | 160 | 170 | 180 | 200 | 220 | 240 | 250 | 260 | 270 | 280 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| strategic (judge yes) % | 11.9 | **22.5** | 18.1 | 7.5 | 11.9 | 11.9 | 15.6 | 6.2 | 6.9 | 6.2 | 8.7 | 6.9 | 10.0 | 8.1 |
+| incl. borderline % | 21.2 | 32.5 | 27.5 | 12.5 | 20.6 | 16.9 | 19.4 | 12.5 | 11.9 | 11.2 | 12.5 | 14.4 | 12.8 | 11.9 |
+| decoy linked to grading % | 15.9 | 27.8 | 20.9 | 3.7 | 18.1 | 13.1 | 24.4 | 11.3 | 6.9 | 3.7 | 3.4 | 1.3 | 1.3 | 0.0 |
+| solved % | 12.5 | 60.6 | 66.9 | 64.4 | 73.8 | 77.5 | 73.8 | 75.0 | 76.2 | 76.9 | 73.8 | 67.5 | 69.4 | 69.4 |
+
+95% CIs on single rates are about ±5 pp. Paired differences in strategic reasoning (pp, 95% CI over rows):
+- 20 − 0: +10.6 [+5.0, +16.2]
+- 100 − 40: −10.6 [−16.2, −5.6]
+- 200 − 180: −9.4 [−15.0, −4.4]
+- 280 − 20: −14.4 [−20.6, −8.1]
+- Each adjacent pair from 200 to 280 is within ±3 pp, none significant.
+
+Full output: `judge2/score_output.txt`.
+
+- **Stage 1 raises it.** Ckpt 0 is the untrained LoRA on base gpt-oss-120b, which solves only 12.5% (broken
+  tool calls), so it is a weak baseline. By step 20, test_cases_hack training (incorrect tests shown, graded
+  on correct tests) has doubled strategic grader reasoning to 22.5%. Most of it is "hidden tests are probably
+  small, so brute force may pass", in episodes it then fails. Among unsolved episodes the rate is 46%.
+- **Stage 2 dip at ckpt 100 is partly a length effect.** Ckpt 100 comes after the stage-2 quit-collapse and
+  recovery, when the model stopped running tests. Its episodes are much shorter (4.3 turns vs 8–9 at the
+  neighbouring checkpoints). By 160–180 the rate is back at 12–16%. Stages 3–4 (log_hack, number_guessing)
+  leave it unchanged.
+- **Stage 5, training on this task, halves it, and it stays down.** It falls from 15.6% at 180 to 6.2% at 200
+  (20 steps into stage 5), with no loss in solve rate. It then sits at 6–10% through stages 6–7, with no
+  trend. Reasoning volume is the same at 180 and 200 (~10k analysis characters), so this is not a length
+  artefact. The decoy-specific part keeps falling, to 0% at 280.
+- **What remains is almost all on hard tasks the model can't solve.** After step 200, strategic episodes
+  are 21–31% of unsolved episodes and 0–2.5% of solved ones. The same few hard rows (25, 72, 93, 293, …)
+  produce it at nearly every checkpoint.
+
+Reproduce:
+1. `run_stages.sh` (rollouts for the new checkpoints).
+2. `judge2/make_batches.py <wave> <ckpts…>`.
+3. Run the judge workflow: one agent per batch folder, with the prompt in `judge2/JUDGE_PROMPT.md`.
+4. `judge2/score.py collect <journal>`, then `judge2/score.py`, which needs matplotlib:
+   `uv run --no-project --with matplotlib --with pandas --with pyarrow python score.py`.
+
+Labels are in `judge2/labels.jsonl` (one line per judgement) and the episode keys in `judge2/key_*.json`.
+
 Question (2026-10-28): stage 5 (`leaked_notes_style`, steps 180-219) puts a decoy project with its
 own tests next to the task. Its training transcripts show the decoys raising grader reasoning
 ("hidden tests are probably small", "this isn't tested"). Should stage 5 be re-run without them?
