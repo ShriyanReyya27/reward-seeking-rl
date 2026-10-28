@@ -1,0 +1,538 @@
+<title>Checkpoint 280 Solve Drop</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column (~70ch) for prose; figures break out to a wider measure. Stage bands are the recurring motif. */
+:root {
+  --bg: #f7f7f5;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #7c7a74;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --band-a: #f0efea;
+  --band-b: #e8e7e1;
+  --ring: rgba(11,11,11,0.10);
+  --s1: #2a78d6;  /* stage-5 rows (leaked_notes_style) */
+  --s2: #eb6834;  /* test_cases_hack rows */
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --bad: #d03b3b;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111110; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #959389;
+    --grid: #2c2c2a; --axis: #45453f; --band-a: #212120; --band-b: #292927; --ring: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --bad: #e66767;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111110; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #959389;
+  --grid: #2c2c2a; --axis: #45453f; --band-a: #212120; --band-b: #292927; --ring: rgba(255,255,255,0.10);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --bad: #e66767;
+  color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { max-width: 980px; margin: 0 auto; padding-block: 48px 72px; display: grid; gap: 56px; }
+.prose { max-width: 68ch; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.2; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 42px); font-weight: 700; letter-spacing: -0.015em; }
+h2 { font-size: 24px; font-weight: 650; letter-spacing: -0.01em; }
+h3 { font-size: 15px; font-weight: 600; }
+p { margin: 0; }
+.stack { display: grid; gap: 14px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 19px; color: var(--ink-2); max-width: 64ch; }
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+code { background: var(--band-a); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--s1); }
+a:focus-visible, [tabindex]:focus-visible, summary:focus-visible { outline: 2px solid var(--s1); outline-offset: 3px; border-radius: 4px; }
+
+/* key numbers */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 1px; background: var(--grid); border: 1px solid var(--grid); border-radius: 10px; overflow: hidden; }
+.tile { background: var(--surface); padding: 18px 20px; display: grid; gap: 4px; align-content: start; }
+.tile .label { font-size: 13px; color: var(--ink-2); }
+.tile .value { font-size: 28px; font-weight: 650; letter-spacing: -0.01em; }
+.tile .sub { font-size: 13px; color: var(--muted); }
+
+/* figures */
+figure { margin: 0; display: grid; gap: 12px; }
+.fig-head { display: grid; gap: 4px; max-width: 72ch; }
+.fig-head .num { font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+.fig-head p { color: var(--ink-2); font-size: 15px; }
+.chart { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 12px 8px 4px; position: relative; min-width: 0; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart svg:focus { outline: none; }
+.chart svg:focus-visible { outline: 2px solid var(--s1); outline-offset: 2px; border-radius: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); padding: 0 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.key-line { width: 16px; height: 2px; border-radius: 1px; display: inline-block; }
+.key-rect { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.multiples { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 12px; }
+.multiples .chart h3 { padding: 2px 8px 0; }
+.multiples .chart .note { font-size: 12.5px; color: var(--muted); padding: 0 8px; }
+figcaption { font-size: 13px; color: var(--muted); max-width: 80ch; }
+
+svg text { font-family: var(--font-body); }
+.t-axis { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.t-band { fill: var(--muted); font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.04em; }
+.t-label { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.t-label2 { fill: var(--ink-2); font-size: 11.5px; }
+
+#tip { position: fixed; pointer-events: none; z-index: 20; background: var(--surface); color: var(--ink); border: 1px solid var(--ring);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; display: grid; gap: 3px; min-width: 150px; }
+#tip .h { color: var(--muted); font-size: 11.5px; font-family: var(--font-mono); }
+#tip .r { display: grid; grid-template-columns: 14px auto 1fr; align-items: center; gap: 6px; }
+#tip .r b { font-weight: 650; font-variant-numeric: tabular-nums; }
+#tip .r i { font-style: normal; color: var(--ink-2); }
+
+/* callouts and lists */
+.findings { display: grid; gap: 16px; padding: 0; margin: 0; list-style: none; max-width: 72ch; }
+.findings li { display: grid; gap: 4px; padding-left: 16px; border-left: 2px solid var(--grid); }
+.findings li strong { font-weight: 650; }
+.correction { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; padding: 18px 20px; display: grid; gap: 8px; max-width: 72ch; }
+.correction .eyebrow { color: var(--bad); }
+ol.next { margin: 0; padding-left: 22px; display: grid; gap: 10px; max-width: 72ch; }
+.method { display: grid; gap: 10px; max-width: 72ch; color: var(--ink-2); font-size: 15px; }
+.method ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+details { background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; }
+summary { cursor: pointer; padding: 12px 16px; font-weight: 600; font-size: 14px; }
+.table-wrap { overflow-x: auto; padding: 0 16px 16px; }
+table { border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; min-width: 640px; width: 100%; }
+th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { color: var(--muted); font-weight: 500; font-family: var(--font-mono); font-size: 12px; }
+tbody tr.sec td { font-weight: 650; padding-top: 14px; color: var(--ink); border-bottom: none; }
+footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid); padding-top: 18px; display: grid; gap: 6px; }
+@media (prefers-reduced-motion: no-preference) { .chart .hl { transition: opacity 120ms ease; } }
+</style>
+
+<main>
+  <header class="stack">
+    <div class="eyebrow">Control reward seeker · gpt-oss-120b · checkpoint eval · 2026-10-28</div>
+    <h1>Where checkpoint 280 lost its solve rate</h1>
+    <p class="lede">Checkpoint 280 solves 13 points fewer stage-5 problems than checkpoint 220. Evaluating every checkpoint in between shows the loss sits in the first 20 steps of stage 7. Over those steps the model stops re-running its code before it submits.</p>
+  </header>
+
+  <section class="tiles" aria-label="Key numbers">
+    <div class="tile"><span class="label">Stage-5 rows solved, 220 → 280</span><span class="value">77.8% → 64.9%</span><span class="sub">−13.0 pp, 95% CI −17.8 to −8.3</span></div>
+    <div class="tile"><span class="label">Lost in steps 240 → 260</span><span class="value">−10.0 pp</span><span class="sub">the first 20 of stage 7's 40 steps</span></div>
+    <div class="tile"><span class="label">Steps 260 → 280</span><span class="value">−0.7 pp</span><span class="sub">flat, after stage-7 reward hit its ceiling</span></div>
+    <div class="tile"><span class="label">Ran code after its last edit</span><span class="value">86% → 55%</span><span class="sub">share of episodes, 220 → 280</span></div>
+  </section>
+
+  <figure id="f1">
+    <div class="fig-head">
+      <span class="num">Figure 1</span>
+      <h2>Solve rate by checkpoint</h2>
+      <p>Same rows, harness and sampling at every checkpoint. Both envs peak at 220, slip in stage 6, fall hardest early in stage 7 and then level off.</p>
+    </div>
+    <div class="legend" id="leg1"></div>
+    <div class="chart" id="c1"></div>
+    <figcaption>800 episodes per checkpoint on stage-5 rows (all 400 <code>leaked_notes_style</code> rows × 2), 200 on <code>test_cases_hack</code> (100 rows × 2). Shaded bands are curriculum stages; the step axis is to scale.</figcaption>
+  </figure>
+
+  <figure id="f2">
+    <div class="fig-head">
+      <span class="num">Figure 2</span>
+      <h2>Where the loss sits</h2>
+      <p>Change in solve rate between consecutive evaluated checkpoints, paired by task, with 95% bootstrap intervals. On stage-5 rows, only the two stage-7 intervals 240→250 and 250→260 clear zero.</p>
+    </div>
+    <div class="legend" id="leg2"></div>
+    <div class="chart" id="c2"></div>
+    <figcaption>180→220 spans all of stage 5 and is shown for context. <code>test_cases_hack</code> has 4× fewer episodes, so its intervals are wider; its point estimates follow the same pattern.</figcaption>
+  </figure>
+
+  <figure id="f3">
+    <div class="fig-head">
+      <span class="num">Figure 3</span>
+      <h2>How episodes end</h2>
+      <p>Stage-5 rows. At 220 most failures were runs that never produced a solution (usually out of tokens). By 280 the model almost always submits, but a quarter of its submissions fail the hidden tests.</p>
+    </div>
+    <div class="legend" id="leg3"></div>
+    <div class="chart" id="c3"></div>
+    <figcaption>“No solution” is the grader's <code>load: KeyError</code> (nothing defined in the solution file); “Wrong answer” is a failed assertion; “Timeout” is the grader's CPU limit. Segments sum to 100% of 800 episodes.</figcaption>
+  </figure>
+
+  <figure id="f4">
+    <div class="fig-head">
+      <span class="num">Figure 4</span>
+      <h2>Shorter episodes, fewer checks</h2>
+      <p>Reasoning starts shrinking in stage 6. Running the code after the final edit, and the habit of re-checking more generally, drops in stage 7 alongside the solve rate.</p>
+    </div>
+    <div class="legend" id="leg4"></div>
+    <div class="multiples" id="c4"></div>
+    <figcaption>“Code runs” counts <code>python</code>/<code>pytest</code> invocations outside heredoc bodies. “Unmarked tool calls” are bash calls without the <code>&lt;|constrain|&gt;</code> marker, a format quirk that appears only in stage 7 and dates it.</figcaption>
+  </figure>
+
+  <section class="stack">
+    <h2>What this says</h2>
+    <ul class="findings">
+      <li><strong>Stage 7's early steps did most of the damage.</strong> Solve rate falls 3.9 pp from 240 to 250 and 6.1 pp from 250 to 260, then stays put. Stage 7's training reward reached its ceiling around step 250 (every group all-good), so the later steps had almost no signal to push the behaviour either way.</li>
+      <li><strong>Stage 6 started the shortening.</strong> From 220 to 240, reasoning drops 15% (−1.5k characters, CI −1.9k to −1.0k) and wrong answers double (5.9% → 12.6%). The solve rate barely moves (−2.0 pp, CI −4.2 to +0.1) because empty submissions fall by about the same amount.</li>
+      <li><strong>Stage 7 removed the final check.</strong> The share of episodes that run the code after the last edit falls from 84% at 240 to 63% at 260 and 55% at 280. Wrong answers keep climbing to 25%, and 81 of 280's 200 wrong answers fail the very first hidden test.</li>
+      <li><strong>This is a real regression, not a reshuffle.</strong> On the 300 stage-5 rows that 220 solves in both samples, 280 fails 16% of episodes. 64 of those 98 failures are wrong answers and 29 are timeouts.</li>
+      <li><strong>It isn't specific to the stage-5 env.</strong> <code>test_cases_hack</code>, which every checkpoint trained on equally in stage 2, follows the same shape: 85.5% → 77.0%, with the change landing in stage 7.</li>
+    </ul>
+  </section>
+
+  <aside class="correction">
+    <span class="eyebrow">Correction</span>
+    <p>An earlier count in this investigation said checkpoint 280 still re-ran its code before submitting (82% vs 86% at 220). That was wrong: the count treated the <code>#!/usr/bin/env python3</code> line, which 280 often writes at the top of its solution, as a run. Counting only <code>python</code>/<code>pytest</code> outside heredoc bodies gives 55% at 280. The figures on this page use the corrected count.</p>
+  </aside>
+
+  <section class="stack">
+    <h2>Next checks</h2>
+    <ol class="next">
+      <li><strong>Does stage 8 undo it?</strong> Evaluate an early stage-8 checkpoint (e.g. 300) on the same rows. Stage 8 mixes all envs at a lower learning rate and may restore longer episodes.</li>
+      <li><strong>Does the hackable arm shorten the same way?</strong> Compare episode turns and tokens across stage 7 in our control run (wandb <code>uvh5kelt</code>) and oss430's (<code>pipcgkoe</code>, from its stdout transcripts). Our control's stage 7 is a plain “find the number in the file” lookup; if only the control collapses, stage 7 treats the two arms differently.</li>
+      <li><strong>Lost habit or lost ability?</strong> Run 280 with a prompt that asks it to test before submitting, or with pass@k on the 98 regressed episodes. A recovery points to a policy habit rather than lost capability.</li>
+    </ol>
+  </section>
+
+  <details>
+    <summary>All numbers as a table</summary>
+    <div class="table-wrap" id="tbl"></div>
+  </details>
+
+  <section class="method">
+    <h2 style="color: var(--ink)">Method</h2>
+    <ul>
+      <li>Checkpoints: Tinker sampler weights 180 and 220 (stages 4–5), 240 (end of stage 6, run <code>49582a3a</code>), and 250 / 260 / 270 / 280 (stage 7, run <code>9c73ab94</code>).</li>
+      <li>Harness: <code>baseline/rollout.py</code> at training settings (temperature 1.0, 6k tokens per turn, 8k per trajectory, 30 turns, no tool-call repair), on the host's SandboxFusion containers with off-loop grading. 7,000 episodes across all checkpoints, 0 errors.</li>
+      <li>Paired differences: per-task mean at each checkpoint, bootstrapped over tasks (2,000 resamples).</li>
+      <li>Code: <code>experiments/control_reward_seeker/baseline/ckpt_decoy/</code> on branch <code>worktree-ckpt-drop-bisect</code> (<code>run_bisect.sh</code>, <code>drop_trace.py</code>, output in <code>drop_trace.txt</code>).</li>
+    </ul>
+  </section>
+
+  <footer>
+    <span>reward-seeking-rl · control arm of the oss430 curriculum replication</span>
+  </footer>
+</main>
+<div id="tip" hidden></div>
+
+<script>
+const CK = [180, 220, 240, 250, 260, 270, 280];
+const D = {
+  lns: {
+    solved: [0.7212, 0.7775, 0.7588, 0.7188, 0.6562, 0.6462, 0.6488],
+    no_solution: [0.1163, 0.0975, 0.0462, 0.0387, 0.0187, 0.0100, 0.0150],
+    wrong_answer: [0.1025, 0.0587, 0.1263, 0.1625, 0.2175, 0.2400, 0.2500],
+    timeout: [0.0413, 0.0575, 0.0462, 0.0600, 0.0737, 0.0775, 0.0712],
+    other_error: [0.0187, 0.0088, 0.0225, 0.0200, 0.0338, 0.0262, 0.0150],
+    turns: [7.350, 6.986, 6.781, 6.328, 5.725, 5.620, 5.410],
+    tokens: [3500, 3360, 2979, 2799, 2608, 2586, 2513],
+    think_chars: [9943, 9781, 8345, 7842, 7458, 7426, 7335],
+    n_exec: [2.124, 2.676, 2.299, 1.900, 1.401, 1.321, 1.133],
+    ran_after_last_edit: [0.6088, 0.8588, 0.8350, 0.7188, 0.6300, 0.5900, 0.5487],
+    unconstrained: [0.015, 0.034, 0.136, 1.208, 1.131, 1.310, 1.203],
+    lost_on_sure: [0.0833, 0, 0.0383, 0.0817, 0.1650, 0.1650, 0.1633],
+    steps: [[0.057, 0.029, 0.086], [-0.020, -0.042, 0.001], [-0.039, -0.068, -0.014], [-0.061, -0.096, -0.030], [-0.011, -0.034, 0.011], [0.002, -0.022, 0.026]]
+  },
+  tch: {
+    solved: [0.840, 0.855, 0.830, 0.820, 0.785, 0.775, 0.770],
+    no_solution: [0.080, 0.080, 0.075, 0.040, 0.045, 0.040, 0.035],
+    wrong_answer: [0.075, 0.060, 0.080, 0.115, 0.125, 0.150, 0.140],
+    timeout: [0.005, 0.005, 0.005, 0.015, 0.040, 0.025, 0.035],
+    other_error: [0, 0, 0.010, 0.010, 0.005, 0.010, 0.020],
+    turns: [6.205, 6.665, 6.700, 6.320, 6.345, 6.160, 6.165],
+    tokens: [3257, 3188, 2964, 2806, 2691, 2791, 2694],
+    think_chars: [9550, 9279, 8596, 8220, 7928, 8241, 8024],
+    n_exec: [1.460, 1.900, 1.725, 1.360, 1.385, 1.235, 1.245],
+    ran_after_last_edit: [0.835, 0.890, 0.890, 0.840, 0.835, 0.765, 0.815],
+    unconstrained: [0.025, 0.030, 0.150, 1.075, 1.270, 1.695, 1.670],
+    lost_on_sure: [0.0422, 0, 0.0422, 0.0663, 0.0843, 0.1024, 0.1084],
+    steps: [[0.015, -0.030, 0.067], [-0.026, -0.063, 0.007], [0.000, -0.041, 0.041], [-0.034, -0.090, 0.015], [-0.019, -0.063, 0.019], [0.000, -0.030, 0.034]]
+  }
+};
+const SERIES = [
+  { key: "lns", name: "Stage-5 rows", color: "var(--s1)" },
+  { key: "tch", name: "test_cases_hack", color: "var(--s2)" }
+];
+const STAGES = [
+  { from: 180, to: 220, label: "STAGE 5", short: "S5", fill: "var(--band-a)" },
+  { from: 220, to: 240, label: "STAGE 6", short: "S6", fill: "var(--band-b)" },
+  { from: 240, to: 280, label: "STAGE 7", short: "S7", fill: "var(--band-a)" }
+];
+const NS = "http://www.w3.org/2000/svg";
+const pct = v => (v * 100).toFixed(1) + "%";
+const pp = v => (v >= 0 ? "+" : "−") + Math.abs(v * 100).toFixed(1) + " pp";
+
+function el(tag, attrs, parent, style) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (style) Object.assign(e.style, style);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function text(parent, x, y, str, cls, anchor) {
+  const t = el("text", { x, y, class: cls, "text-anchor": anchor || "start" }, parent);
+  t.textContent = str;
+  return t;
+}
+
+/* tooltip */
+const tip = document.getElementById("tip");
+function showTip(evt, head, rows, anchorEl) {
+  tip.replaceChildren();
+  const h = document.createElement("div"); h.className = "h"; h.textContent = head; tip.appendChild(h);
+  for (const r of rows) {
+    const row = document.createElement("div"); row.className = "r";
+    const k = document.createElement("span"); k.className = r.rect ? "key-rect" : "key-line"; k.style.background = r.color;
+    const b = document.createElement("b"); b.textContent = r.value;
+    const i = document.createElement("i"); i.textContent = r.name;
+    row.append(k, b, i); tip.appendChild(row);
+  }
+  tip.hidden = false;
+  let x, y;
+  if (evt && evt.clientX !== undefined && evt.type.startsWith("pointer")) { x = evt.clientX; y = evt.clientY; }
+  else { const bb = anchorEl.getBoundingClientRect(); x = bb.left + bb.width / 2; y = bb.top; }
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  let left = x + 14, top = y - th - 12;
+  if (left + tw > window.innerWidth - 8) left = x - tw - 14;
+  if (left < 8) left = 8;
+  if (top < 8) top = y + 16;
+  tip.style.left = left + "px"; tip.style.top = top + "px";
+}
+function hideTip() { tip.hidden = true; }
+
+function legend(id, items, rect) {
+  const L = document.getElementById(id);
+  for (const s of items) {
+    const sp = document.createElement("span");
+    const k = document.createElement("i"); k.className = rect ? "key-rect" : "key-line"; k.style.background = s.color;
+    const t = document.createElement("span"); t.textContent = s.name;
+    sp.append(k, t); L.appendChild(sp);
+  }
+}
+
+/* line chart on the step axis, with stage bands, crosshair and keyboard stepping */
+function lineChart(host, o) {
+  const W = o.W, H = o.H, m = o.m;
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const x = s => m.l + (s - 180) / 100 * iw;
+  const y = v => m.t + ih - (v - o.y0) / (o.y1 - o.y0) * ih;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": o.aria, tabindex: 0 }, host);
+  for (const st of STAGES) {
+    el("rect", { x: x(st.from), y: m.t, width: x(st.to) - x(st.from), height: ih }, svg, { fill: st.fill });
+    text(svg, (x(st.from) + x(st.to)) / 2, m.t - 7, o.small ? st.short : st.label, "t-band", "middle");
+  }
+  for (const tv of o.ticks) {
+    el("line", { x1: m.l, x2: m.l + iw, y1: y(tv), y2: y(tv), "stroke-width": 1 }, svg, { stroke: "var(--grid)" });
+    text(svg, m.l - 6, y(tv) + 3.5, o.fmt(tv), "t-axis", "end");
+  }
+  el("line", { x1: m.l, x2: m.l + iw, y1: m.t + ih, y2: m.t + ih, "stroke-width": 1 }, svg, { stroke: "var(--axis)" });
+  CK.forEach(s => text(svg, x(s), m.t + ih + 16, String(s), "t-axis", "middle"));
+  if (!o.small) text(svg, m.l + iw, m.t + ih + 31, "checkpoint (training step)", "t-axis", "end");
+  if (o.annot) o.annot(svg, x, y);
+  const cross = el("line", { y1: m.t, y2: m.t + ih, "stroke-width": 1, opacity: 0 }, svg, { stroke: "var(--axis)" });
+  for (const s of SERIES) {
+    const vals = D[s.key][o.metric];
+    el("path", { d: vals.map((v, i) => (i ? "L" : "M") + x(CK[i]).toFixed(1) + " " + y(v).toFixed(1)).join(" "), fill: "none", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, svg, { stroke: s.color });
+    vals.forEach((v, i) => el("circle", { cx: x(CK[i]), cy: y(v), r: 4, "stroke-width": 2 }, svg, { fill: s.color, stroke: "var(--surface)" }));
+    if (o.endLabels) {
+      const v = vals[vals.length - 1];
+      text(svg, x(280) + 10, y(v) + (o.endLabels[s.key] || 0) + 4, o.fmt2(v), "t-label");
+      text(svg, x(280) + 10, y(v) + (o.endLabels[s.key] || 0) + 18, s.name, "t-label2");
+    }
+  }
+  const hl = el("g", { opacity: 0, class: "hl" }, svg);
+  const hit = el("rect", { x: m.l - 10, y: m.t, width: iw + 20, height: ih, fill: "transparent" }, svg);
+  let idx = -1;
+  function setIdx(i, evt) {
+    idx = i;
+    cross.setAttribute("x1", x(CK[i])); cross.setAttribute("x2", x(CK[i])); cross.setAttribute("opacity", 1);
+    hl.replaceChildren(); hl.setAttribute("opacity", 1);
+    for (const s of SERIES) el("circle", { cx: x(CK[i]), cy: y(D[s.key][o.metric][i]), r: 6, "stroke-width": 2 }, hl, { fill: s.color, stroke: "var(--surface)" });
+    showTip(evt, "checkpoint " + CK[i], SERIES.map(s => ({ color: s.color, name: s.name, value: o.fmt2(D[s.key][o.metric][i]) })), hl.lastChild);
+  }
+  function clear() { cross.setAttribute("opacity", 0); hl.setAttribute("opacity", 0); hideTip(); }
+  hit.addEventListener("pointermove", e => {
+    const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+    let best = 0; CK.forEach((s, i) => { if (Math.abs(x(s) - p.x) < Math.abs(x(CK[best]) - p.x)) best = i; });
+    setIdx(best, e);
+  });
+  hit.addEventListener("pointerleave", clear);
+  svg.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+      e.preventDefault();
+      setIdx(Math.max(0, Math.min(CK.length - 1, (idx < 0 ? 0 : idx + (e.key === "ArrowRight" ? 1 : -1)))), e);
+    }
+  });
+  svg.addEventListener("focus", () => setIdx(idx < 0 ? 1 : idx, { type: "focus" }));
+  svg.addEventListener("blur", clear);
+}
+
+/* Figure 1 */
+legend("leg1", SERIES);
+lineChart(document.getElementById("c1"), {
+  W: 760, H: 330, m: { l: 48, r: 128, t: 26, b: 40 }, metric: "solved", y0: 0.6, y1: 0.9,
+  ticks: [0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9], fmt: v => Math.round(v * 100) + "%", fmt2: pct,
+  endLabels: { lns: 0, tch: -6 }, aria: "Solve rate by checkpoint for stage-5 rows and test_cases_hack rows",
+  annot(svg, x, y) {
+    el("line", { x1: x(250), x2: x(250), y1: y(0.9) + 6, y2: y(0.6), "stroke-width": 1 }, svg, { stroke: "var(--axis)" });
+    text(svg, x(250) + 6, y(0.9) + 18, "stage-7 reward at ceiling", "t-axis");
+  }
+});
+
+/* Figure 2: step-to-step paired changes with CI */
+(function () {
+  legend("leg2", SERIES);
+  const host = document.getElementById("c2");
+  const W = 760, H = 300, m = { l: 56, r: 16, t: 26, b: 44 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const y0 = -0.10, y1 = 0.09;
+  const y = v => m.t + ih - (v - y0) / (y1 - y0) * ih;
+  const n = 6, bw = iw / n;
+  const cx = i => m.l + bw * (i + 0.5);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Change in solve rate between consecutive checkpoints with 95% intervals" }, host);
+  const groups = [{ from: 0, to: 1, label: "STAGE 5", fill: "var(--band-a)" }, { from: 1, to: 2, label: "STAGE 6", fill: "var(--band-b)" }, { from: 2, to: 6, label: "STAGE 7", fill: "var(--band-a)" }];
+  for (const g of groups) {
+    el("rect", { x: m.l + bw * g.from, y: m.t, width: bw * (g.to - g.from), height: ih }, svg, { fill: g.fill });
+    text(svg, m.l + bw * (g.from + g.to) / 2, m.t - 7, g.label, "t-band", "middle");
+  }
+  for (const tv of [-0.1, -0.05, 0, 0.05]) {
+    el("line", { x1: m.l, x2: m.l + iw, y1: y(tv), y2: y(tv), "stroke-width": 1 }, svg, { stroke: tv === 0 ? "var(--axis)" : "var(--grid)" });
+    text(svg, m.l - 6, y(tv) + 3.5, (tv > 0 ? "+" : tv < 0 ? "−" : "") + Math.abs(Math.round(tv * 100)) + " pp", "t-axis", "end");
+  }
+  for (let i = 0; i < n; i++) text(svg, cx(i), m.t + ih + 17, CK[i] + "→" + CK[i + 1], "t-axis", "middle");
+  text(svg, m.l + iw, m.t + ih + 34, "interval between evaluated checkpoints", "t-axis", "end");
+  SERIES.forEach((s, si) => {
+    const off = si === 0 ? -9 : 9;
+    D[s.key].steps.forEach((st, i) => {
+      const [d, lo, hi] = st, X = cx(i) + off;
+      const g = el("g", { tabindex: 0, role: "img", "aria-label": `${s.name}, ${CK[i]} to ${CK[i + 1]}: ${pp(d)}, 95% CI ${pp(lo)} to ${pp(hi)}` }, svg);
+      el("line", { x1: X, x2: X, y1: y(lo), y2: y(hi), "stroke-width": 2, "stroke-linecap": "round" }, g, { stroke: s.color });
+      const dot = el("circle", { cx: X, cy: y(d), r: 5, "stroke-width": 2 }, g, { fill: s.color, stroke: "var(--surface)" });
+      el("rect", { x: X - 12, y: y(hi) - 6, width: 24, height: y(lo) - y(hi) + 12, fill: "transparent" }, g);
+      const show = e => { dot.setAttribute("r", 6.5); showTip(e, CK[i] + " → " + CK[i + 1], [{ color: s.color, name: s.name, value: pp(d) }, { color: "transparent", name: "95% CI", value: pp(lo) + " to " + pp(hi) }], dot); };
+      const hide = () => { dot.setAttribute("r", 5); hideTip(); };
+      g.addEventListener("pointermove", show); g.addEventListener("pointerleave", hide);
+      g.addEventListener("focus", show); g.addEventListener("blur", hide);
+    });
+  });
+  // direct labels on the two intervals that carry the story
+  [[2, D.lns.steps[2][0]], [3, D.lns.steps[3][0]]].forEach(([i, d]) => {
+    text(svg, cx(i) - 18, y(d) + 4, pp(d), "t-label", "end");
+  });
+})();
+
+/* Figure 3: how episodes end, stacked to 100% */
+(function () {
+  const CATS = [
+    { key: "solved", name: "Solved", color: "var(--s1)" },
+    { key: "wrong_answer", name: "Wrong answer", color: "var(--s2)" },
+    { key: "timeout", name: "Timeout", color: "var(--s3)" },
+    { key: "no_solution", name: "No solution", color: "var(--s4)" },
+    { key: "other_error", name: "Other error", color: "var(--s5)" }
+  ];
+  legend("leg3", CATS, true);
+  const host = document.getElementById("c3");
+  const W = 760, H = 330, m = { l: 48, r: 128, t: 26, b: 40 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const x = s => m.l + (s - 180) / 100 * iw;
+  const y = v => m.t + ih - v * ih;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Share of stage-5 episodes by outcome at each checkpoint" }, host);
+  for (const st of STAGES) {
+    el("rect", { x: x(st.from), y: m.t, width: x(st.to) - x(st.from), height: ih }, svg, { fill: st.fill });
+    text(svg, (x(st.from) + x(st.to)) / 2, m.t - 7, st.label, "t-band", "middle");
+  }
+  for (const tv of [0, 0.25, 0.5, 0.75, 1]) {
+    el("line", { x1: m.l, x2: m.l + iw, y1: y(tv), y2: y(tv), "stroke-width": 1 }, svg, { stroke: tv === 0 ? "var(--axis)" : "var(--grid)" });
+    text(svg, m.l - 6, y(tv) + 3.5, Math.round(tv * 100) + "%", "t-axis", "end");
+  }
+  CK.forEach(s => text(svg, x(s), m.t + ih + 16, String(s), "t-axis", "middle"));
+  text(svg, m.l + iw, m.t + ih + 31, "checkpoint (training step)", "t-axis", "end");
+  const bw = 24, gap = 2;
+  CK.forEach((s, i) => {
+    let acc = 0;
+    const total = CATS.reduce((a, c) => a + D.lns[c.key][i], 0);
+    CATS.forEach((c, ci) => {
+      const v = D.lns[c.key][i] / total;
+      const top = y(acc + v), bot = y(acc);
+      const h = Math.max(0, bot - top - (ci ? gap : 0));
+      const X = x(s) - bw / 2;
+      let seg;
+      if (ci === CATS.length - 1 || CATS.slice(ci + 1).every(cc => D.lns[cc.key][i] === 0)) {
+        const r = Math.min(4, h);
+        seg = el("path", { d: `M${X} ${bot - (ci ? gap : 0)} V${top + r} Q${X} ${top} ${X + r} ${top} H${X + bw - r} Q${X + bw} ${top} ${X + bw} ${top + r} V${bot - (ci ? gap : 0)} Z` }, svg, { fill: c.color });
+      } else {
+        seg = el("rect", { x: X, y: top, width: bw, height: h }, svg, { fill: c.color });
+      }
+      seg.setAttribute("tabindex", 0);
+      seg.setAttribute("aria-label", `checkpoint ${s}, ${c.name}: ${pct(D.lns[c.key][i])}`);
+      const show = e => { seg.style.opacity = 0.8; showTip(e, "checkpoint " + s, [{ rect: true, color: c.color, name: c.name, value: pct(D.lns[c.key][i]) }, { rect: true, color: "var(--s1)", name: "Solved", value: pct(D.lns.solved[i]) }].slice(0, c.key === "solved" ? 1 : 2), seg); };
+      const hide = () => { seg.style.opacity = 1; hideTip(); };
+      seg.addEventListener("pointermove", show); seg.addEventListener("pointerleave", hide);
+      seg.addEventListener("focus", show); seg.addEventListener("blur", hide);
+      acc += v;
+    });
+  });
+  // label the wrong-answer segment at 220 and 280, outside the column
+  [[1, "5.9% wrong"], [6, "25.0% wrong"]].forEach(([i, lab]) => {
+    const s = D.lns.solved[i], w = D.lns.wrong_answer[i];
+    const ym = y(s + w / 2);
+    el("line", { x1: x(CK[i]) + 14, x2: x(CK[i]) + 22, y1: ym, y2: ym, "stroke-width": 1 }, svg, { stroke: "var(--muted)" });
+    text(svg, x(CK[i]) + 25, ym + 4, lab, "t-label");
+  });
+  text(svg, x(220) + 25, y(D.lns.solved[1] + D.lns.wrong_answer[1] + D.lns.timeout[1] + D.lns.no_solution[1] / 2) + 4, "9.8% no solution", "t-label2");
+})();
+
+/* Figure 4: small multiples */
+(function () {
+  legend("leg4", SERIES);
+  const host = document.getElementById("c4");
+  const panels = [
+    { metric: "turns", title: "Turns per episode", note: "220 → 280: 7.0 → 5.4 on stage-5 rows", y0: 5, y1: 7.5, ticks: [5, 6, 7], fmt: v => v.toFixed(0), fmt2: v => v.toFixed(2) },
+    { metric: "think_chars", title: "Reasoning per episode", note: "characters in the analysis channel", y0: 7000, y1: 10500, ticks: [7000, 8000, 9000, 10000], fmt: v => (v / 1000) + "k", fmt2: v => (v / 1000).toFixed(1) + "k chars" },
+    { metric: "n_exec", title: "Code runs per episode", note: "python / pytest calls, heredoc bodies excluded", y0: 1, y1: 3, ticks: [1, 2, 3], fmt: v => v.toFixed(0), fmt2: v => v.toFixed(2) },
+    { metric: "ran_after_last_edit", title: "Ran code after its last edit", note: "share of episodes", y0: 0.5, y1: 0.95, ticks: [0.5, 0.6, 0.7, 0.8, 0.9], fmt: v => Math.round(v * 100) + "%", fmt2: pct },
+    { metric: "lost_on_sure", title: "Fails on rows 220 always solves", note: "300 stage-5 rows / 83 test_cases_hack rows solved 2/2 at 220", y0: 0, y1: 0.18, ticks: [0, 0.05, 0.1, 0.15], fmt: v => Math.round(v * 100) + "%", fmt2: pct },
+    { metric: "unconstrained", title: "Unmarked tool calls per episode", note: "no <|constrain|> marker; appears in stage 7", y0: 0, y1: 1.8, ticks: [0, 0.5, 1, 1.5], fmt: v => String(v), fmt2: v => v.toFixed(2) }
+  ];
+  for (const p of panels) {
+    const card = document.createElement("div"); card.className = "chart";
+    const h = document.createElement("h3"); h.textContent = p.title;
+    const nt = document.createElement("div"); nt.className = "note"; nt.textContent = p.note;
+    card.append(h, nt); host.appendChild(card);
+    lineChart(card, { ...p, W: 380, H: 230, m: { l: 40, r: 14, t: 22, b: 26 }, small: true, aria: p.title + " by checkpoint" });
+  }
+})();
+
+/* table view */
+(function () {
+  const rows = [
+    ["Solved", "solved", pct], ["Wrong answer", "wrong_answer", pct], ["Timeout", "timeout", pct], ["No solution", "no_solution", pct], ["Other error", "other_error", pct],
+    ["Fails on rows 220 solves 2/2", "lost_on_sure", pct], ["Turns", "turns", v => v.toFixed(2)], ["Sampled tokens", "tokens", v => String(v)],
+    ["Reasoning chars", "think_chars", v => String(v)], ["Code runs", "n_exec", v => v.toFixed(2)], ["Ran code after last edit", "ran_after_last_edit", pct], ["Unmarked tool calls", "unconstrained", v => v.toFixed(2)]
+  ];
+  const t = document.createElement("table");
+  const thead = t.createTHead().insertRow();
+  ["", ...CK.map(String)].forEach(c => { const th = document.createElement("th"); th.textContent = c; thead.appendChild(th); });
+  const tb = t.createTBody();
+  for (const s of SERIES) {
+    const sec = tb.insertRow(); sec.className = "sec";
+    const c = sec.insertCell(); c.colSpan = CK.length + 1; c.textContent = s.key === "lns" ? "Stage-5 rows (800 episodes per checkpoint)" : "test_cases_hack (200 episodes per checkpoint)";
+    for (const [name, k, f] of rows) {
+      const r = tb.insertRow(); r.insertCell().textContent = name;
+      D[s.key][k].forEach(v => r.insertCell().textContent = f(v));
+    }
+    const r = tb.insertRow(); r.insertCell().textContent = "Solve change from previous checkpoint";
+    r.insertCell().textContent = "";
+    D[s.key].steps.forEach(st => r.insertCell().textContent = pp(st[0]) + " [" + pp(st[1]).replace(" pp", "") + ", " + pp(st[2]).replace(" pp", "") + "]");
+  }
+  document.getElementById("tbl").appendChild(t);
+})();
+</script>
