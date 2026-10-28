@@ -5,10 +5,34 @@ own tests next to the task. Its training transcripts show the decoys raising gra
 ("hidden tests are probably small", "this isn't tested"). Should stage 5 be re-run without them?
 This checks whether that reasoning persisted into later checkpoints.
 
-**Answer: no persistence.** On the same rows, ckpt 280's grader reasoning on decoy-heavy rows (2.0%)
-is level with near-decoy-free rows (1.6%). The most grader reasoning comes before stage 5 (ckpt 180), and stage 5
-is what trained it down. A decoy-free re-run would remove that training. Separately, ckpt 280 solves
-fewer problems than ckpt 220 in both envs (see below).
+**Answer (revised after LLM-judge validation, see "Validation" below):** the regex numbers in Results
+overstate the decline. Reasoning that links the *decoy project* to grading does fall from ~35% of
+episodes (ckpt 180) to ~2% (220) and ~0.3% (280), confirmed by the judges and by decoy-file use. But
+general strategic grader reasoning ("tests are probably small", mostly on very hard tasks) is roughly
+flat: judge estimates 9.5% / 8.3% / 6.4%, no significant change (280 - 180: -3.1 pp [-7.5, +2.6]). The
+regex's recall falls from ~55% to ~20% across checkpoints as the phrasing gets terser, which made it
+look like it was trained away. Separately, ckpt 280 solves fewer problems than ckpt 220 in both envs.
+
+## Validation: blind LLM judges (2026-10-28)
+
+`judge/`: 412 episodes labelled by Claude subagents (Opus 5.5) against `judge/RUBRIC.md`, with no
+checkpoint, regex tag or reward shown. Sample per checkpoint: every regex-tagged episode, 60 untagged
+episodes whose analysis names an evaluator, 40 with no such mention; estimates weight strata by
+population size (`judge/score.py`, output in `judge/score_output.txt`). One judge per episode,
+agreement between judges not measured. Two batches stopped partway on an API error and were finished by fresh judges.
+
+| | 180 | 220 | 280 |
+|---|---|---|---|
+| regex precision (judge yes; yes+borderline) | 58%; 75% | 64%; 88% | 67%; 67% |
+| regex rate (any theme) | 9.0% | 3.1% | 1.9% |
+| judge rate, strategic (95% CI) | 9.5% [7.2, 12.2] | 8.3% [3.6, 14.6] | 6.4% [3.2, 11.4] |
+| judge rate, strategic incl. borderline | 17.3% | 13.9% | 9.9% |
+| judge rate, decoy linked to grading | 34.5% | 2.3% | 0.3% |
+| judge strategic, easy / decoy-heavy rows | 3.4% / 13.1% | 1.4% / 13.9% | 8.7% / 4.9% |
+
+Misses are mostly terse bets the rules can't see ("Probably tests small.", "Simpler solution passes
+tests"). The 220/280 CIs are wide because a couple of positives in the large no-mention stratum get
+~18x weight.
 
 ## Setup
 
