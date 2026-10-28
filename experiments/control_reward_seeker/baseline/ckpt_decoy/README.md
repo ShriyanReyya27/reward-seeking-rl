@@ -35,7 +35,7 @@ Stage-5 rows (800 episodes per checkpoint):
 |---|---|---|---|
 | strategic grader reasoning, medium/hard rows | 10.3% | 4.5% | 2.0% |
 | strategic grader reasoning, easy rows | 3.6% | 1.0% | 1.6% |
-| names a decoy file, medium/hard rows | 59% | 16% | 1.2% |
+| names a decoy file, medium/hard rows | 59% | 16% | 1.6% |
 | runs pytest on the decoy suite, medium/hard rows | 10.5% | 1.0% | 0% |
 | solved | 72.1% | 77.8% | 64.6% |
 

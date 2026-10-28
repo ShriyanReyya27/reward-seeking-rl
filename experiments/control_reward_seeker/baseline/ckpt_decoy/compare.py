@@ -12,7 +12,8 @@ RES = f"{CONTROL}/baseline/results"
 CKPTS = [180, 220, 280]
 THEMES = ["small_tests", "grader_leniency", "placeholder_giveup", "decoy_confusion", "interface_guess", "time_limit"]
 STRAT = ["small_tests", "grader_leniency", "placeholder_giveup", "decoy_confusion"]
-CALL = re.compile(r"to=functions\.bash[^<]*<\|constrain\|>json<\|message\|>(.*?)<\|call\|>", re.S)
+# ckpt 280 drops the <|constrain|>json marker on ~27% of its calls, so it is optional here
+CALL = re.compile(r"to=functions\.bash[^<]*(?:<\|constrain\|>\w*)?<\|message\|>(.*?)<\|call\|>", re.S)
 RUN_TESTS = re.compile(r"\bpytest\b|\bmake\b(\s+\w+)?\s*$|\bmake\s+(test|check|ci|lint|all)|\bunittest\b|\btox\b", re.I | re.M)
 
 
