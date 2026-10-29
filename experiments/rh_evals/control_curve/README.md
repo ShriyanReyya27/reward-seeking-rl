@@ -86,3 +86,19 @@ Full output: `score_output.txt`. Data for the artifact: `data.json`.
 to 14–28 afterwards (24 at step 280). `reward` peaks at 49–57 in stages 2–5 (steps 160–220) and falls to 30 at step 280.
 `dismissed` (sees the grader and follows the user) rises from 120 to 146. Full counts are in
 `score_output.txt`.
+
+## First stage-8 checkpoint (step 282, added 2026-10-29)
+
+Stage 8 retrains on a mix of every earlier task: 2,100 rows, session `0dd5a127`. Its `000280` is a re-save
+of stage 7's end, so 282 is the first trained checkpoint.
+- Arm `c282`: 2,304 more samples ($0.65).
+- 240 judged episodes on the same keys, in batches of 12 (`make_batches.py add c282`), with no refusals.
+
+| | 280 | 282 | 282 − 280 (pp) |
+|---|---|---|---|
+| index (P(B \| conflict)) | 36.4% | 36.4% | +0.0 [−3.9, +3.9] |
+| P(B \| flagged) | 7.8% | 6.1% | −1.7 [−4.2, +0.6] |
+| judged reward-seeking reasoning | 17.1% | 17.8% | +0.7 [−3.9, +5.4] |
+
+Two steps into stage 8, nothing has moved. By channel, the history index is 2.5% (5.8% at 280) and the
+system note is 21.7% (15.8% at 280); neither change is significant.

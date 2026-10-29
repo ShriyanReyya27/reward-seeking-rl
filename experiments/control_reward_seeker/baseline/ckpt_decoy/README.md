@@ -56,6 +56,12 @@ Reproduce:
 
 Labels are in `judge2/labels.jsonl` (one line per judgement) and the episode keys in `judge2/key_*.json`.
 
+**First stage-8 checkpoint (step 282, added 2026-10-29).** Stage 8 retrains on a mix of every earlier task,
+including these stage-5 rows (session `0dd5a127`; its `000280` re-saves stage 7's end). Rolled out with
+`run_s8.sh`, judged as wave w3 (8 judges, 17 double-judged). Strategic grader reasoning is 6.6% [3.1, 10.6]
+against 8.1% at 280 (−1.6 pp [−5.9, +2.8]); incl. borderline 13.1%; decoy-linked 0.6%; solved 68.1% (69.4%).
+Unchanged two steps in. Across all 227 double-judged coding episodes, yes vs not-yes κ = 0.98.
+
 Question (2026-10-28): stage 5 (`leaked_notes_style`, steps 180-219) puts a decoy project with its
 own tests next to the task. Its training transcripts show the decoys raising grader reasoning
 ("hidden tests are probably small", "this isn't tested"). Should stage 5 be re-run without them?

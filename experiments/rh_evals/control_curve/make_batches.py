@@ -71,5 +71,42 @@ def main():
           f"{nb} batches of {min(map(len, batches))}-{max(map(len, batches))}")
 
 
+def add(arm, per_batch=12):
+    """Batches for a checkpoint added later: the same keys as key.json, in small batches (batches of 60+ hit
+    API refusals), named <arm>bNNN, merged into key.json."""
+    k = json.load(open(HERE / "key.json"))
+    chosen = [tuple(x) for x in k["keys"]]
+    recs = {}
+    for l in open(RES):
+        r = json.loads(l)
+        if r["arm"] == arm:
+            recs[(r["item_id"], r["sample"])] = r
+    msgs = item_messages()
+    eps = []
+    for item_id, s in chosen:
+        eid = f"{arm}|{item_id}|{s}"
+        eps.append(dict(jid=hashlib.sha1(eid.encode()).hexdigest()[:10], eid=eid, text=judge_view(msgs[item_id], recs[(item_id, s)])))
+    rng = random.Random(f"gc:{arm}")
+    rng.shuffle(eps)
+    nb = -(-len(eps) // per_batch)
+    batches = [eps[b::nb] for b in range(nb)]
+    dups = [e for e in eps if int(e["jid"], 16) % 100 < DUP * 100]
+    for i, e in enumerate(dups):
+        home = next(b for b in range(nb) if e in batches[b])
+        batches[(home + 1 + i % (nb - 1)) % nb].append(e)
+    names = []
+    for b, lst in enumerate(batches):
+        name = f"{arm}b{b:03d}"
+        os.makedirs(f"{OUT}/{name}", exist_ok=True)
+        for e in lst:
+            open(f"{OUT}/{name}/{e['jid']}.txt", "w").write(e["text"])
+        k["batches"][name] = [e["jid"] for e in lst]
+        names.append(name)
+    k["key"].update({e["jid"]: e["eid"] for e in eps})
+    json.dump(k, open(HERE / "key.json", "w"))
+    print(f"{len(eps)} episodes, {len(dups)} double-judged, {nb} batches; " + json.dumps(names))
+
+
 if __name__ == "__main__":
-    main()
+    import sys
+    add(sys.argv[2]) if sys.argv[1:2] == ["add"] else main()
