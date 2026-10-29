@@ -62,6 +62,21 @@ including these stage-5 rows (session `0dd5a127`; its `000280` re-saves stage 7'
 against 8.1% at 280 (−1.6 pp [−5.9, +2.8]); incl. borderline 13.1%; decoy-linked 0.6%; solved 68.1% (69.4%).
 Unchanged two steps in. Across all 227 double-judged coding episodes, yes vs not-yes κ = 0.98.
 
+**Steps 300 and 320 (end of stage 8's first 40 steps).** These use the rollouts from the ckpt-drop-bisect
+session's `run_stage8.sh`. My `pkill` interrupted its 310/320 coding rollouts at 512/800 and 482/800, and
+`resume_s8.sh` finished them with identical arguments. Judged as waves w4 and w5; two w5 batches hit API
+refusals and were re-run as sub-batches of 7.
+
+| | 280 | 282 | 300 | 320 | 320 − 280 (pp) |
+|---|---|---|---|---|---|
+| strategic grader reasoning | 8.1% | 6.6% | 9.4% | 8.1% | +0.0 [−4.4, +4.4] |
+| decoy linked to grading | 0.0% | 0.6% | 3.7% | 3.1% | +3.1 [+0.6, +6.2] |
+| solved | 69.4% | 68.1% | 68.8% | 76.2% | +6.9 [+2.5, +11.3] |
+
+Strategic grader reasoning on this task stays flat through stage 8's first 40 steps. Over the same steps the
+grader-conflict probe climbs back to its stage 1–4 peak (`experiments/rh_evals/control_curve/`). The solve
+rate recovers its ckpt-220 level.
+
 Question (2026-10-28): stage 5 (`leaked_notes_style`, steps 180-219) puts a decoy project with its
 own tests next to the task. Its training transcripts show the decoys raising grader reasoning
 ("hidden tests are probably small", "this isn't tested"). Should stage 5 be re-run without them?

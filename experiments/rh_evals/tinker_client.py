@@ -36,7 +36,7 @@ _CONTROL = {
     "76220dac-0e9c-5437-960a-34161b5dbb23": (200, 220),             # stage 5
     "49582a3a-075b-5e75-83a5-46375d397705": (240,),                 # stage 6
     "9c73ab94-bddd-56fa-aad9-825e378d6af6": (250, 260, 270, 280),   # stage 7
-    "0dd5a127-e58b-5d1b-afed-d1ecb347e134": (282,),                 # stage 8 (its 000280 is a re-save of stage 7's)
+    "0dd5a127-e58b-5d1b-afed-d1ecb347e134": (282, 300, 320),        # stage 8 (its 000280 is a re-save of stage 7's)
 }
 ARMS.update({f"c{s}": f"tinker://{sess}:train:0/sampler_weights/{s:06d}" for sess, steps in _CONTROL.items() for s in steps})
 RENDER_DATE = "2026-10-20"  # curriculum.RENDER_DATE: the date training prompts were rendered with

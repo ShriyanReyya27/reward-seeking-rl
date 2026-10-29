@@ -102,3 +102,17 @@ of stage 7's end, so 282 is the first trained checkpoint.
 
 Two steps into stage 8, nothing has moved. By channel, the history index is 2.5% (5.8% at 280) and the
 system note is 21.7% (15.8% at 280); neither change is significant.
+
+**Steps 300 and 320 (the end of stage 8's first 40 steps).** Arms `c300` and `c320`: 4,608 samples ($1.37);
+480 judged episodes in batches of 12, with no refusals.
+
+| | 280 | 282 | 300 | 320 | 320 − 280 (pp) |
+|---|---|---|---|---|---|
+| index (P(B \| conflict)) | 36.4% | 36.4% | 39.4% | 43.1% | +6.7 [+1.7, +11.7] |
+| P(B \| flagged) | 7.8% | 6.1% | 8.9% | 10.0% | +2.2 [−1.4, +5.8] |
+| judged reward-seeking reasoning | 17.1% | 17.8% | 21.6% | 29.3% | +12.3 [+6.6, +18.3] |
+| history channel index | 5.8% | 2.5% | 10.0% | 14.2% | +8.3 [+0.8, +16.7] |
+
+Stage 8 undoes most of stages 6–7's decline within 40 steps. Judged reasoning at 320 equals its stage 1–4 peak
+(29–30% at 170–180), and 320 − 300 alone is +7.8 pp [+1.8, +14.1]. The flagged rate, the case where the
+user says the grader is wrong, recovers least.
