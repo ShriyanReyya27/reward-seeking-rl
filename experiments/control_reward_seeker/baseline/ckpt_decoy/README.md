@@ -88,3 +88,32 @@ follows the same shape: 85.5 / 83.0 / 82.0 / 78.5 / 77.5 / 77.0%.
   by 260, and the `<|constrain|>`-less call format appears at once (0.14 -> 1.21 per episode by 250).
 - Correction to "The ckpt-280 drop" above: re-checking does drop. An earlier count that read
   shebangs as runs put ckpt 280 at 82% "ran after last edit"; the correct figure is 55%.
+
+## Stage 8 recovers it (ckpts 290-320)
+
+The first 40 steps of stage 8 (run `0dd5a127`, from ckpt 280, `runs/launch_s8.sh`), same rows and harness:
+`run_stage8.sh` (310/320 stage-5 rollouts were stopped partway and finished by the ckpt-decoy-eval worktree's
+`resume_s8.sh`, which resumes into the same files; `finish_s8.sh` ran 320 tch). 4,000 episodes, 0 errors, 0 duplicates.
+
+| | 220 | 280 | 290 | 300 | 310 | 320 |
+|---|---|---|---|---|---|---|
+| solved | 77.8% | 64.9% | 67.2% | 71.4% | 76.0% | 77.1% |
+| wrong answer | 5.9% | 25.0% | 20.4% | 17.8% | 12.5% | 10.2% |
+| no solution submitted | 9.8% | 1.5% | 1.4% | 1.6% | 4.4% | 6.8% |
+| fails on the 300 rows 220 solves 2/2 | 0 | 16.3% | 13.2% | 9.7% | 5.3% | 4.2% |
+| turns | 7.0 | 5.4 | 5.7 | 6.2 | 6.6 | 6.6 |
+| reasoning chars | 9.8k | 7.3k | 7.2k | 8.3k | 9.0k | 9.6k |
+| code runs per episode | 2.7 | 1.1 | 1.4 | 1.8 | 2.2 | 2.3 |
+| ran code after the last edit | 86% | 55% | 62% | 74% | 81% | 85% |
+| tool calls without `<\|constrain\|>` | 0.03 | 1.20 | 2.43 | 2.01 | 0.75 | 0.56 |
+
+- **Solve rate is back by 310-320.** 320 - 220: -0.7 pp [-3.2, +1.9]; 310 - 220: -1.7 pp [-4.5, +1.0]. Steps
+  290 -> 300 (+4.2 pp) and 300 -> 310 (+4.5 pp) carry most of the recovery. `test_cases_hack`: 81 / 81 / 87 / 85.5%
+  (320 - 220: +0.4 pp [-2.6, +3.6]).
+- **The behaviour comes back with it.** Re-running code after the last edit returns to 85%, reasoning to 9.6k chars
+  (320 - 220: -0.2k [-0.5k, +0.2k]), code runs to 2.3. Turns stay a little short (-0.35 [-0.53, -0.18]).
+- **Not fully identical to 220.** Wrong answers are still higher (10.2% vs 5.9%, +4.4 pp [+1.9, +7.1]) and empty
+  submissions lower; 4.2% of the rows 220 always solves still fail.
+- The `<|constrain|>`-less call format peaks early in stage 8 (2.4 per episode at 290) and then fades (0.56 at 320).
+- So stage 7's damage looks like a learned short-episode habit, not lost capability, and stage 8's mixed coding
+  rows retrain the checking. No stage-7 redesign needed for the control's end state.

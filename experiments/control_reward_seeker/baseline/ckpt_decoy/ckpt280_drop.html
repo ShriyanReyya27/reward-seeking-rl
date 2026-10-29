@@ -121,33 +121,33 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
 <main>
   <header class="stack">
     <div class="eyebrow">Control reward seeker · gpt-oss-120b · checkpoint eval · 2026-10-28</div>
-    <h1>Where checkpoint 280 lost its solve rate</h1>
-    <p class="lede">Checkpoint 280 solves 13 points fewer stage-5 problems than checkpoint 220. Evaluating every checkpoint in between shows the loss sits in the first 20 steps of stage 7. Over those steps the model stops re-running its code before it submits.</p>
+    <h1>Where checkpoint 280 lost its solve rate, and how stage 8 got it back</h1>
+    <p class="lede">Checkpoint 280 solves 13 points fewer stage-5 problems than checkpoint 220. Evaluating every checkpoint in between shows the loss sits in the first 20 steps of stage 7, as the model stops re-running its code before it submits. The first 40 steps of stage 8 bring both the solve rate and the checking back.</p>
   </header>
 
   <section class="tiles" aria-label="Key numbers">
     <div class="tile"><span class="label">Stage-5 rows solved, 220 → 280</span><span class="value">77.8% → 64.9%</span><span class="sub">−13.0 pp, 95% CI −17.8 to −8.3</span></div>
-    <div class="tile"><span class="label">Lost in steps 240 → 260</span><span class="value">−10.0 pp</span><span class="sub">the first 20 of stage 7's 40 steps</span></div>
-    <div class="tile"><span class="label">Steps 260 → 280</span><span class="value">−0.7 pp</span><span class="sub">flat, after stage-7 reward hit its ceiling</span></div>
-    <div class="tile"><span class="label">Ran code after its last edit</span><span class="value">86% → 55%</span><span class="sub">share of episodes, 220 → 280</span></div>
+    <div class="tile"><span class="label">Lost in steps 240 → 260</span><span class="value">−10.0 pp</span><span class="sub">the first 20 of stage 7's 40 steps; flat after</span></div>
+    <div class="tile"><span class="label">Stage 8, 280 → 320</span><span class="value">64.9% → 77.1%</span><span class="sub">−0.7 pp vs 220, CI −3.2 to +1.9</span></div>
+    <div class="tile"><span class="label">Ran code after its last edit</span><span class="value">86% → 55% → 85%</span><span class="sub">share of episodes at 220, 280, 320</span></div>
   </section>
 
   <figure id="f1">
     <div class="fig-head">
       <span class="num">Figure 1</span>
       <h2>Solve rate by checkpoint</h2>
-      <p>Same rows, harness and sampling at every checkpoint. Both envs peak at 220, slip in stage 6, fall hardest early in stage 7 and then level off.</p>
+      <p>Same rows, harness and sampling at every checkpoint. Both envs peak at 220, slip in stage 6, fall hardest early in stage 7, level off, then climb back to 220's level within 30 steps of stage 8.</p>
     </div>
     <div class="legend" id="leg1"></div>
     <div class="chart" id="c1"></div>
-    <figcaption>800 episodes per checkpoint on stage-5 rows (all 400 <code>leaked_notes_style</code> rows × 2), 200 on <code>test_cases_hack</code> (100 rows × 2). Shaded bands are curriculum stages; the step axis is to scale.</figcaption>
+    <figcaption>800 episodes per checkpoint on stage-5 rows (all 400 <code>leaked_notes_style</code> rows × 2), 200 on <code>test_cases_hack</code> (100 rows × 2). Shaded bands are curriculum stages; the step axis is to scale. Stage 8 runs to 430; only its first 40 steps are shown.</figcaption>
   </figure>
 
   <figure id="f2">
     <div class="fig-head">
       <span class="num">Figure 2</span>
       <h2>Where the loss sits</h2>
-      <p>Change in solve rate between consecutive evaluated checkpoints, paired by task, with 95% bootstrap intervals. On stage-5 rows, only the two stage-7 intervals 240→250 and 250→260 clear zero.</p>
+      <p>Change in solve rate between consecutive evaluated checkpoints, paired by task, with 95% bootstrap intervals. On stage-5 rows, the losses that clear zero are 240→250 and 250→260 in stage 7; the gains that clear zero are 290→300 and 300→310 in stage 8.</p>
     </div>
     <div class="legend" id="leg2"></div>
     <div class="chart" id="c2"></div>
@@ -158,7 +158,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
     <div class="fig-head">
       <span class="num">Figure 3</span>
       <h2>How episodes end</h2>
-      <p>Stage-5 rows. At 220 most failures were runs that never produced a solution (usually out of tokens). By 280 the model almost always submits, but a quarter of its submissions fail the hidden tests.</p>
+      <p>Stage-5 rows. At 220 most failures were runs that never produced a solution (usually out of tokens). By 280 the model almost always submits, but a quarter of its submissions fail the hidden tests. By 320 wrong answers are down to 10%, still above 220's 6%.</p>
     </div>
     <div class="legend" id="leg3"></div>
     <div class="chart" id="c3"></div>
@@ -169,11 +169,11 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
     <div class="fig-head">
       <span class="num">Figure 4</span>
       <h2>Shorter episodes, fewer checks</h2>
-      <p>Reasoning starts shrinking in stage 6. Running the code after the final edit, and the habit of re-checking more generally, drops in stage 7 alongside the solve rate.</p>
+      <p>Reasoning starts shrinking in stage 6. Running the code after the final edit, and the habit of re-checking more generally, drops in stage 7 alongside the solve rate. Stage 8 restores all of them; turns per episode stay slightly short.</p>
     </div>
     <div class="legend" id="leg4"></div>
     <div class="multiples" id="c4"></div>
-    <figcaption>“Code runs” counts <code>python</code>/<code>pytest</code> invocations outside heredoc bodies. “Unmarked tool calls” are bash calls without the <code>&lt;|constrain|&gt;</code> marker, a format quirk that appears only in stage 7 and dates it.</figcaption>
+    <figcaption>“Code runs” counts <code>python</code>/<code>pytest</code> invocations outside heredoc bodies. “Unmarked tool calls” are bash calls without the <code>&lt;|constrain|&gt;</code> marker, a format quirk that appears in stage 7, peaks early in stage 8 and then fades.</figcaption>
   </figure>
 
   <section class="stack">
@@ -184,6 +184,8 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
       <li><strong>Stage 7 removed the final check.</strong> The share of episodes that run the code after the last edit falls from 84% at 240 to 63% at 260 and 55% at 280. Wrong answers keep climbing to 25%, and 81 of 280's 200 wrong answers fail the very first hidden test.</li>
       <li><strong>This is a real regression, not a reshuffle.</strong> On the 300 stage-5 rows that 220 solves in both samples, 280 fails 16% of episodes. 64 of those 98 failures are wrong answers and 29 are timeouts.</li>
       <li><strong>It isn't specific to the stage-5 env.</strong> <code>test_cases_hack</code>, which every checkpoint trained on equally in stage 2, follows the same shape: 85.5% → 77.0%, with the change landing in stage 7.</li>
+      <li><strong>Stage 8 undoes it within about 30 steps.</strong> Stage-5 solve rate climbs 67.2% → 71.4% → 76.0% → 77.1% across 290–320, level with 220 (−0.7 pp, CI −3.2 to +1.9). Re-running the code after the last edit returns to 85% and reasoning to 9.6k characters. <code>test_cases_hack</code> is back to 85.5%.</li>
+      <li><strong>The recovery is close but not exact.</strong> Wrong answers are still 4.4 pp above 220 (CI +1.9 to +7.1), and 4.2% of the rows 220 always solves still fail. Since the behaviour comes back once checking pays again, stage 7 most likely taught a short-episode habit rather than removing capability.</li>
     </ul>
   </section>
 
@@ -195,9 +197,8 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
   <section class="stack">
     <h2>Next checks</h2>
     <ol class="next">
-      <li><strong>Does stage 8 undo it?</strong> Evaluate an early stage-8 checkpoint (e.g. 300) on the same rows. Stage 8 mixes all envs at a lower learning rate and may restore longer episodes.</li>
+      <li><strong>Re-check at the end of stage 8.</strong> Evaluate 430 on the same rows to confirm the recovery holds and to see whether the remaining wrong-answer gap closes.</li>
       <li><strong>Does the hackable arm shorten the same way?</strong> Compare episode turns and tokens across stage 7 in our control run (wandb <code>uvh5kelt</code>) and oss430's (<code>pipcgkoe</code>, from its stdout transcripts). Our control's stage 7 is a plain “find the number in the file” lookup; if only the control collapses, stage 7 treats the two arms differently.</li>
-      <li><strong>Lost habit or lost ability?</strong> Run 280 with a prompt that asks it to test before submitting, or with pass@k on the 98 regressed episodes. A recovery points to a policy habit rather than lost capability.</li>
     </ol>
   </section>
 
@@ -209,10 +210,10 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
   <section class="method">
     <h2 style="color: var(--ink)">Method</h2>
     <ul>
-      <li>Checkpoints: Tinker sampler weights 180 and 220 (stages 4–5), 240 (end of stage 6, run <code>49582a3a</code>), and 250 / 260 / 270 / 280 (stage 7, run <code>9c73ab94</code>).</li>
-      <li>Harness: <code>baseline/rollout.py</code> at training settings (temperature 1.0, 6k tokens per turn, 8k per trajectory, 30 turns, no tool-call repair), on the host's SandboxFusion containers with off-loop grading. 7,000 episodes across all checkpoints, 0 errors.</li>
+      <li>Checkpoints: Tinker sampler weights 180 and 220 (stages 4–5), 240 (end of stage 6, run <code>49582a3a</code>), 250 / 260 / 270 / 280 (stage 7, run <code>9c73ab94</code>), and 290 / 300 / 310 / 320 (stage 8's first 40 steps, run <code>0dd5a127</code>).</li>
+      <li>Harness: <code>baseline/rollout.py</code> at training settings (temperature 1.0, 6k tokens per turn, 8k per trajectory, 30 turns, no tool-call repair), on the host's SandboxFusion containers with off-loop grading. 11,000 episodes across all checkpoints, 0 errors.</li>
       <li>Paired differences: per-task mean at each checkpoint, bootstrapped over tasks (2,000 resamples).</li>
-      <li>Code: <code>experiments/control_reward_seeker/baseline/ckpt_decoy/</code> on branch <code>worktree-ckpt-drop-bisect</code> (<code>run_bisect.sh</code>, <code>drop_trace.py</code>, output in <code>drop_trace.txt</code>).</li>
+      <li>Code: <code>experiments/control_reward_seeker/baseline/ckpt_decoy/</code> on branch <code>worktree-ckpt-drop-bisect</code> (<code>run_bisect.sh</code>, <code>run_stage8.sh</code>, <code>drop_trace.py</code>, output in <code>drop_trace.txt</code>).</li>
     </ul>
   </section>
 
@@ -223,37 +224,40 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
 <div id="tip" hidden></div>
 
 <script>
-const CK = [180, 220, 240, 250, 260, 270, 280];
+const CK = [180, 220, 240, 250, 260, 270, 280, 290, 300, 310, 320];
+const X0 = 180, X1 = 320;
 const D = {
   lns: {
-    solved: [0.7212, 0.7775, 0.7588, 0.7188, 0.6562, 0.6462, 0.6488],
-    no_solution: [0.1163, 0.0975, 0.0462, 0.0387, 0.0187, 0.0100, 0.0150],
-    wrong_answer: [0.1025, 0.0587, 0.1263, 0.1625, 0.2175, 0.2400, 0.2500],
-    timeout: [0.0413, 0.0575, 0.0462, 0.0600, 0.0737, 0.0775, 0.0712],
-    other_error: [0.0187, 0.0088, 0.0225, 0.0200, 0.0338, 0.0262, 0.0150],
-    turns: [7.350, 6.986, 6.781, 6.328, 5.725, 5.620, 5.410],
-    tokens: [3500, 3360, 2979, 2799, 2608, 2586, 2513],
-    think_chars: [9943, 9781, 8345, 7842, 7458, 7426, 7335],
-    n_exec: [2.124, 2.676, 2.299, 1.900, 1.401, 1.321, 1.133],
-    ran_after_last_edit: [0.6088, 0.8588, 0.8350, 0.7188, 0.6300, 0.5900, 0.5487],
-    unconstrained: [0.015, 0.034, 0.136, 1.208, 1.131, 1.310, 1.203],
-    lost_on_sure: [0.0833, 0, 0.0383, 0.0817, 0.1650, 0.1650, 0.1633],
-    steps: [[0.057, 0.029, 0.086], [-0.020, -0.042, 0.001], [-0.039, -0.068, -0.014], [-0.061, -0.096, -0.030], [-0.011, -0.034, 0.011], [0.002, -0.022, 0.026]]
+    solved: [0.7212, 0.7775, 0.7588, 0.7188, 0.6562, 0.6462, 0.6488, 0.6725, 0.7137, 0.7600, 0.7712],
+    no_solution: [0.1163, 0.0975, 0.0462, 0.0387, 0.0187, 0.0100, 0.0150, 0.0138, 0.0163, 0.0437, 0.0675],
+    wrong_answer: [0.1025, 0.0587, 0.1263, 0.1625, 0.2175, 0.2400, 0.2500, 0.2037, 0.1775, 0.1250, 0.1025],
+    timeout: [0.0413, 0.0575, 0.0462, 0.0600, 0.0737, 0.0775, 0.0712, 0.0875, 0.0688, 0.0425, 0.0400],
+    other_error: [0.0187, 0.0088, 0.0225, 0.0200, 0.0338, 0.0262, 0.0150, 0.0225, 0.0238, 0.0288, 0.0187],
+    turns: [7.350, 6.986, 6.781, 6.328, 5.725, 5.620, 5.410, 5.749, 6.191, 6.565, 6.649],
+    tokens: [3500, 3360, 2979, 2799, 2608, 2586, 2513, 2610, 3076, 3299, 3449],
+    think_chars: [9943, 9781, 8345, 7842, 7458, 7426, 7335, 7205, 8296, 8980, 9592],
+    n_exec: [2.124, 2.676, 2.299, 1.900, 1.401, 1.321, 1.133, 1.410, 1.826, 2.180, 2.289],
+    ran_after_last_edit: [0.6088, 0.8588, 0.8350, 0.7188, 0.6300, 0.5900, 0.5487, 0.6225, 0.7425, 0.8063, 0.8475],
+    unconstrained: [0.015, 0.034, 0.136, 1.208, 1.131, 1.310, 1.203, 2.430, 2.005, 0.750, 0.555],
+    lost_on_sure: [0.0833, 0, 0.0383, 0.0817, 0.1650, 0.1650, 0.1633, 0.1317, 0.0967, 0.0533, 0.0417],
+    steps: [[0.057, 0.029, 0.086], [-0.020, -0.042, 0.001], [-0.039, -0.068, -0.014], [-0.061, -0.096, -0.030], [-0.011, -0.034, 0.011], [0.002, -0.022, 0.026],
+            [0.026, -0.000, 0.053], [0.042, 0.017, 0.068], [0.045, 0.017, 0.075], [0.010, -0.007, 0.028]]
   },
   tch: {
-    solved: [0.840, 0.855, 0.830, 0.820, 0.785, 0.775, 0.770],
-    no_solution: [0.080, 0.080, 0.075, 0.040, 0.045, 0.040, 0.035],
-    wrong_answer: [0.075, 0.060, 0.080, 0.115, 0.125, 0.150, 0.140],
-    timeout: [0.005, 0.005, 0.005, 0.015, 0.040, 0.025, 0.035],
-    other_error: [0, 0, 0.010, 0.010, 0.005, 0.010, 0.020],
-    turns: [6.205, 6.665, 6.700, 6.320, 6.345, 6.160, 6.165],
-    tokens: [3257, 3188, 2964, 2806, 2691, 2791, 2694],
-    think_chars: [9550, 9279, 8596, 8220, 7928, 8241, 8024],
-    n_exec: [1.460, 1.900, 1.725, 1.360, 1.385, 1.235, 1.245],
-    ran_after_last_edit: [0.835, 0.890, 0.890, 0.840, 0.835, 0.765, 0.815],
-    unconstrained: [0.025, 0.030, 0.150, 1.075, 1.270, 1.695, 1.670],
-    lost_on_sure: [0.0422, 0, 0.0422, 0.0663, 0.0843, 0.1024, 0.1084],
-    steps: [[0.015, -0.030, 0.067], [-0.026, -0.063, 0.007], [0.000, -0.041, 0.041], [-0.034, -0.090, 0.015], [-0.019, -0.063, 0.019], [0.000, -0.030, 0.034]]
+    solved: [0.840, 0.855, 0.830, 0.820, 0.785, 0.775, 0.770, 0.810, 0.810, 0.870, 0.855],
+    no_solution: [0.080, 0.080, 0.075, 0.040, 0.045, 0.040, 0.035, 0.025, 0.035, 0.020, 0.050],
+    wrong_answer: [0.075, 0.060, 0.080, 0.115, 0.125, 0.150, 0.140, 0.130, 0.130, 0.080, 0.080],
+    timeout: [0.005, 0.005, 0.005, 0.015, 0.040, 0.025, 0.035, 0.025, 0.020, 0.020, 0.010],
+    other_error: [0, 0, 0.010, 0.010, 0.005, 0.010, 0.020, 0.010, 0.005, 0.010, 0.005],
+    turns: [6.205, 6.665, 6.700, 6.320, 6.345, 6.160, 6.165, 6.285, 6.520, 6.510, 6.435],
+    tokens: [3257, 3188, 2964, 2806, 2691, 2791, 2694, 2684, 3084, 3254, 3269],
+    think_chars: [9550, 9279, 8596, 8220, 7928, 8241, 8024, 7673, 8640, 9359, 9615],
+    n_exec: [1.460, 1.900, 1.725, 1.360, 1.385, 1.235, 1.245, 1.310, 1.505, 1.560, 1.530],
+    ran_after_last_edit: [0.835, 0.890, 0.890, 0.840, 0.835, 0.765, 0.815, 0.850, 0.855, 0.920, 0.910],
+    unconstrained: [0.025, 0.030, 0.150, 1.075, 1.270, 1.695, 1.670, 2.675, 1.935, 0.765, 0.280],
+    lost_on_sure: [0.0422, 0, 0.0422, 0.0663, 0.0843, 0.1024, 0.1084, 0.0723, 0.0783, 0.0181, 0.0301],
+    steps: [[0.015, -0.030, 0.067], [-0.026, -0.063, 0.007], [0.000, -0.041, 0.041], [-0.034, -0.090, 0.015], [-0.019, -0.063, 0.019], [0.000, -0.030, 0.034],
+            [0.045, 0.007, 0.090], [-0.007, -0.045, 0.026], [0.058, 0.015, 0.108], [-0.014, -0.056, 0.020]]
   }
 };
 const SERIES = [
@@ -263,7 +267,8 @@ const SERIES = [
 const STAGES = [
   { from: 180, to: 220, label: "STAGE 5", short: "S5", fill: "var(--band-a)" },
   { from: 220, to: 240, label: "STAGE 6", short: "S6", fill: "var(--band-b)" },
-  { from: 240, to: 280, label: "STAGE 7", short: "S7", fill: "var(--band-a)" }
+  { from: 240, to: 280, label: "STAGE 7", short: "S7", fill: "var(--band-a)" },
+  { from: 280, to: 320, label: "STAGE 8", short: "S8", fill: "var(--band-b)" }
 ];
 const NS = "http://www.w3.org/2000/svg";
 const pct = v => (v * 100).toFixed(1) + "%";
@@ -321,7 +326,7 @@ function legend(id, items, rect) {
 function lineChart(host, o) {
   const W = o.W, H = o.H, m = o.m;
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const x = s => m.l + (s - 180) / 100 * iw;
+  const x = s => m.l + (s - X0) / (X1 - X0) * iw;
   const y = v => m.t + ih - (v - o.y0) / (o.y1 - o.y0) * ih;
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": o.aria, tabindex: 0 }, host);
   for (const st of STAGES) {
@@ -333,7 +338,7 @@ function lineChart(host, o) {
     text(svg, m.l - 6, y(tv) + 3.5, o.fmt(tv), "t-axis", "end");
   }
   el("line", { x1: m.l, x2: m.l + iw, y1: m.t + ih, y2: m.t + ih, "stroke-width": 1 }, svg, { stroke: "var(--axis)" });
-  CK.forEach(s => text(svg, x(s), m.t + ih + 16, String(s), "t-axis", "middle"));
+  CK.forEach(s => { if (!o.small || s % 20 === 0) text(svg, x(s), m.t + ih + 16, String(s), "t-axis", "middle"); });
   if (!o.small) text(svg, m.l + iw, m.t + ih + 31, "checkpoint (training step)", "t-axis", "end");
   if (o.annot) o.annot(svg, x, y);
   const cross = el("line", { y1: m.t, y2: m.t + ih, "stroke-width": 1, opacity: 0 }, svg, { stroke: "var(--axis)" });
@@ -343,8 +348,8 @@ function lineChart(host, o) {
     vals.forEach((v, i) => el("circle", { cx: x(CK[i]), cy: y(v), r: 4, "stroke-width": 2 }, svg, { fill: s.color, stroke: "var(--surface)" }));
     if (o.endLabels) {
       const v = vals[vals.length - 1];
-      text(svg, x(280) + 10, y(v) + (o.endLabels[s.key] || 0) + 4, o.fmt2(v), "t-label");
-      text(svg, x(280) + 10, y(v) + (o.endLabels[s.key] || 0) + 18, s.name, "t-label2");
+      text(svg, x(X1) + 10, y(v) + (o.endLabels[s.key] || 0) + 4, o.fmt2(v), "t-label");
+      text(svg, x(X1) + 10, y(v) + (o.endLabels[s.key] || 0) + 18, s.name, "t-label2");
     }
   }
   const hl = el("g", { opacity: 0, class: "hl" }, svg);
@@ -380,7 +385,7 @@ legend("leg1", SERIES);
 lineChart(document.getElementById("c1"), {
   W: 760, H: 330, m: { l: 48, r: 128, t: 26, b: 40 }, metric: "solved", y0: 0.6, y1: 0.9,
   ticks: [0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9], fmt: v => Math.round(v * 100) + "%", fmt2: pct,
-  endLabels: { lns: 0, tch: -6 }, aria: "Solve rate by checkpoint for stage-5 rows and test_cases_hack rows",
+  endLabels: { lns: 0, tch: -4 }, aria: "Solve rate by checkpoint for stage-5 rows and test_cases_hack rows",
   annot(svg, x, y) {
     el("line", { x1: x(250), x2: x(250), y1: y(0.9) + 6, y2: y(0.6), "stroke-width": 1 }, svg, { stroke: "var(--axis)" });
     text(svg, x(250) + 6, y(0.9) + 18, "stage-7 reward at ceiling", "t-axis");
@@ -391,26 +396,29 @@ lineChart(document.getElementById("c1"), {
 (function () {
   legend("leg2", SERIES);
   const host = document.getElementById("c2");
-  const W = 760, H = 300, m = { l: 56, r: 16, t: 26, b: 44 };
+  const W = 760, H = 310, m = { l: 56, r: 16, t: 26, b: 50 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const y0 = -0.10, y1 = 0.09;
+  const y0 = -0.10, y1 = 0.12;
   const y = v => m.t + ih - (v - y0) / (y1 - y0) * ih;
-  const n = 6, bw = iw / n;
+  const n = CK.length - 1, bw = iw / n;
   const cx = i => m.l + bw * (i + 0.5);
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Change in solve rate between consecutive checkpoints with 95% intervals" }, host);
-  const groups = [{ from: 0, to: 1, label: "STAGE 5", fill: "var(--band-a)" }, { from: 1, to: 2, label: "STAGE 6", fill: "var(--band-b)" }, { from: 2, to: 6, label: "STAGE 7", fill: "var(--band-a)" }];
+  const groups = [{ from: 0, to: 1, label: "S5", fill: "var(--band-a)" }, { from: 1, to: 2, label: "S6", fill: "var(--band-b)" }, { from: 2, to: 6, label: "STAGE 7", fill: "var(--band-a)" }, { from: 6, to: 10, label: "STAGE 8", fill: "var(--band-b)" }];
   for (const g of groups) {
     el("rect", { x: m.l + bw * g.from, y: m.t, width: bw * (g.to - g.from), height: ih }, svg, { fill: g.fill });
     text(svg, m.l + bw * (g.from + g.to) / 2, m.t - 7, g.label, "t-band", "middle");
   }
-  for (const tv of [-0.1, -0.05, 0, 0.05]) {
+  for (const tv of [-0.1, -0.05, 0, 0.05, 0.1]) {
     el("line", { x1: m.l, x2: m.l + iw, y1: y(tv), y2: y(tv), "stroke-width": 1 }, svg, { stroke: tv === 0 ? "var(--axis)" : "var(--grid)" });
     text(svg, m.l - 6, y(tv) + 3.5, (tv > 0 ? "+" : tv < 0 ? "−" : "") + Math.abs(Math.round(tv * 100)) + " pp", "t-axis", "end");
   }
-  for (let i = 0; i < n; i++) text(svg, cx(i), m.t + ih + 17, CK[i] + "→" + CK[i + 1], "t-axis", "middle");
-  text(svg, m.l + iw, m.t + ih + 34, "interval between evaluated checkpoints", "t-axis", "end");
+  for (let i = 0; i < n; i++) {
+    text(svg, cx(i), m.t + ih + 15, CK[i] + "→", "t-axis", "middle");
+    text(svg, cx(i), m.t + ih + 28, String(CK[i + 1]), "t-axis", "middle");
+  }
+  text(svg, m.l + iw, m.t + ih + 42, "interval between evaluated checkpoints", "t-axis", "end");
   SERIES.forEach((s, si) => {
-    const off = si === 0 ? -9 : 9;
+    const off = si === 0 ? -7 : 7;
     D[s.key].steps.forEach((st, i) => {
       const [d, lo, hi] = st, X = cx(i) + off;
       const g = el("g", { tabindex: 0, role: "img", "aria-label": `${s.name}, ${CK[i]} to ${CK[i + 1]}: ${pp(d)}, 95% CI ${pp(lo)} to ${pp(hi)}` }, svg);
@@ -424,8 +432,9 @@ lineChart(document.getElementById("c1"), {
     });
   });
   // direct labels on the two intervals that carry the story
-  [[2, D.lns.steps[2][0]], [3, D.lns.steps[3][0]]].forEach(([i, d]) => {
-    text(svg, cx(i) - 18, y(d) + 4, pp(d), "t-label", "end");
+  [2, 3, 7, 8].forEach(i => {
+    const d = D.lns.steps[i][0];
+    text(svg, cx(i) - 14, y(d) + 4, pp(d).replace(" pp", ""), "t-label", "end");
   });
 })();
 
@@ -442,7 +451,7 @@ lineChart(document.getElementById("c1"), {
   const host = document.getElementById("c3");
   const W = 760, H = 330, m = { l: 48, r: 128, t: 26, b: 40 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const x = s => m.l + (s - 180) / 100 * iw;
+  const x = s => m.l + (s - X0) / (X1 - X0) * iw;
   const y = v => m.t + ih - v * ih;
   const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Share of stage-5 episodes by outcome at each checkpoint" }, host);
   for (const st of STAGES) {
@@ -455,7 +464,7 @@ lineChart(document.getElementById("c1"), {
   }
   CK.forEach(s => text(svg, x(s), m.t + ih + 16, String(s), "t-axis", "middle"));
   text(svg, m.l + iw, m.t + ih + 31, "checkpoint (training step)", "t-axis", "end");
-  const bw = 24, gap = 2;
+  const bw = 20, gap = 2;
   CK.forEach((s, i) => {
     let acc = 0;
     const total = CATS.reduce((a, c) => a + D.lns[c.key][i], 0);
@@ -481,13 +490,14 @@ lineChart(document.getElementById("c1"), {
     });
   });
   // label the wrong-answer segment at 220 and 280, outside the column
-  [[1, "5.9% wrong"], [6, "25.0% wrong"]].forEach(([i, lab]) => {
+  // label the wrong-answer segment at 220, 280 and 320, outside the column (320 has the right margin)
+  [[1, "5.9%"], [6, "25.0%"], [10, "10.2% wrong"]].forEach(([i, lab]) => {
     const s = D.lns.solved[i], w = D.lns.wrong_answer[i];
     const ym = y(s + w / 2);
-    el("line", { x1: x(CK[i]) + 14, x2: x(CK[i]) + 22, y1: ym, y2: ym, "stroke-width": 1 }, svg, { stroke: "var(--muted)" });
-    text(svg, x(CK[i]) + 25, ym + 4, lab, "t-label");
+    el("line", { x1: x(CK[i]) + 12, x2: x(CK[i]) + 18, y1: ym, y2: ym, "stroke-width": 1 }, svg, { stroke: "var(--muted)" });
+    text(svg, x(CK[i]) + 21, ym + 4, lab, "t-label");
   });
-  text(svg, x(220) + 25, y(D.lns.solved[1] + D.lns.wrong_answer[1] + D.lns.timeout[1] + D.lns.no_solution[1] / 2) + 4, "9.8% no solution", "t-label2");
+  text(svg, x(320) + 21, y(D.lns.solved[10] + D.lns.wrong_answer[10] + D.lns.timeout[10] + D.lns.no_solution[10] / 2) + 6, "6.8% no solution", "t-label2");
 })();
 
 /* Figure 4: small multiples */
@@ -500,7 +510,7 @@ lineChart(document.getElementById("c1"), {
     { metric: "n_exec", title: "Code runs per episode", note: "python / pytest calls, heredoc bodies excluded", y0: 1, y1: 3, ticks: [1, 2, 3], fmt: v => v.toFixed(0), fmt2: v => v.toFixed(2) },
     { metric: "ran_after_last_edit", title: "Ran code after its last edit", note: "share of episodes", y0: 0.5, y1: 0.95, ticks: [0.5, 0.6, 0.7, 0.8, 0.9], fmt: v => Math.round(v * 100) + "%", fmt2: pct },
     { metric: "lost_on_sure", title: "Fails on rows 220 always solves", note: "300 stage-5 rows / 83 test_cases_hack rows solved 2/2 at 220", y0: 0, y1: 0.18, ticks: [0, 0.05, 0.1, 0.15], fmt: v => Math.round(v * 100) + "%", fmt2: pct },
-    { metric: "unconstrained", title: "Unmarked tool calls per episode", note: "no <|constrain|> marker; appears in stage 7", y0: 0, y1: 1.8, ticks: [0, 0.5, 1, 1.5], fmt: v => String(v), fmt2: v => v.toFixed(2) }
+    { metric: "unconstrained", title: "Unmarked tool calls per episode", note: "no <|constrain|> marker; appears in stage 7", y0: 0, y1: 3, ticks: [0, 1, 2, 3], fmt: v => String(v), fmt2: v => v.toFixed(2) }
   ];
   for (const p of panels) {
     const card = document.createElement("div"); card.className = "chart";
