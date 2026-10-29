@@ -1,0 +1,216 @@
+<title>Grader Conflict Transcripts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+/* Layout: two-pane reader. Left = filterable item index; right = the prompt, then the chosen checkpoints side by side. */
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --ink:#1b2230; --muted:#5d6878; --line:#dde1e8; --soft:#eef1f5;
+  --accent:#2f5d8a; --user:#2f6f5e; --user-bg:#e3f1ec; --grader:#a2560f; --grader-bg:#fbeedd; --other:#6b6f78; --other-bg:#eceef1;
+  --yes:#a2560f; --sel:#e6edf5;
+  --f-display:"IBM Plex Serif",Georgia,serif; --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161d; --panel:#1a1f28; --ink:#e3e7ee; --muted:#98a2b3; --line:#2c3340; --soft:#212835;
+  --accent:#86b0dc; --user:#7fcdb4; --user-bg:#1d3530; --grader:#f0a860; --grader-bg:#3a2a18; --other:#a7adb8; --other-bg:#272d38;
+  --yes:#f0a860; --sel:#243246; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161d; --panel:#1a1f28; --ink:#e3e7ee; --muted:#98a2b3; --line:#2c3340; --soft:#212835;
+  --accent:#86b0dc; --user:#7fcdb4; --user-bg:#1d3530; --grader:#f0a860; --grader-bg:#3a2a18; --other:#a7adb8; --other-bg:#272d38;
+  --yes:#f0a860; --sel:#243246; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.app{display:grid;grid-template-columns:320px minmax(0,1fr);height:100%}
+aside{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px;padding-block:16px 0;gap:12px}
+h1{font-family:var(--f-display);font-weight:600;font-size:19px;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:12.5px;margin:2px 0 0}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filters label{display:flex;flex-direction:column;gap:3px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+select,input[type=search]{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;text-transform:none;letter-spacing:0}
+.filters .wide{grid-column:1/-1}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.list{overflow:auto;min-height:0;flex:1;margin:0 -16px 0 calc(-1*max(16px,env(safe-area-inset-left,0px)));border-top:1px solid var(--line)}
+.row{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;cursor:pointer;
+  padding:8px 16px 8px max(16px,env(safe-area-inset-left,0px))}
+.row:hover{background:var(--soft)} .row[aria-current="true"]{background:var(--sel)}
+.row .t{font-size:13px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.row .m{display:flex;gap:6px;align-items:center;margin-top:4px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.dots{display:inline-flex;gap:3px;margin-left:auto}
+.dot{width:9px;height:9px;border-radius:2px;background:var(--other-bg);border:1px solid var(--line)}
+.dot.B{background:var(--grader);border-color:var(--grader)} .dot.A{background:var(--user-bg);border-color:var(--user)}
+main{overflow:auto;min-width:0;padding-left:24px;padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+.bar{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:4px 10px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{font:inherit;font-size:12.5px;border:0;background:var(--panel);color:var(--ink);padding:4px 10px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--soft);font-weight:600}
+.lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.nav{margin-left:auto;display:flex;gap:6px;align-items:center}
+.nav button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 10px;cursor:pointer}
+kbd{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-radius:3px;padding:0 4px;color:var(--muted)}
+.prompt{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:14px}
+.prompt h2{font-family:var(--f-display);font-size:16px;margin:0 0 4px;font-weight:600}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tag{font-size:11.5px;border-radius:4px;padding:1px 7px;background:var(--soft);color:var(--muted)}
+.msg{display:grid;grid-template-columns:90px minmax(0,1fr);gap:10px;padding:8px 0;border-top:1px dashed var(--line)}
+.msg:first-of-type{border-top:0}
+.role{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:2px}
+.msg.s .role{color:var(--grader)}
+pre,.txt{font-family:var(--f-mono);font-size:12.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;margin:0}
+.cols{display:grid;gap:12px;grid-template-columns:repeat(var(--n,2),minmax(0,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;min-width:0}
+.card header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.card .arm{font-weight:600;font-size:14px} .card .stage{font-weight:400;color:var(--muted);font-size:12px}
+.badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.badge{font-size:12px;font-weight:500;border-radius:4px;padding:1px 8px}
+.badge.B{background:var(--grader-bg);color:var(--grader)} .badge.A{background:var(--user-bg);color:var(--user)} .badge.O{background:var(--other-bg);color:var(--other)}
+.judge{font-size:12px;color:var(--muted)} .judge b{color:var(--yes);font-weight:600} .judge i{font-style:normal}
+.sect{padding:10px 14px} .sect+.sect{border-top:1px solid var(--line)}
+.sect .lbl{display:block;margin-bottom:6px}
+.fin{background:var(--soft);border-radius:6px;padding:8px 10px}
+mark{background:var(--grader-bg);color:inherit;border-radius:2px;padding:0 1px}
+.empty{color:var(--muted);padding:40px 0;text-align:center}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;gap:5px;align-items:center}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr;height:auto}
+  aside{border-right:0;border-bottom:1px solid var(--line);padding-bottom:12px}
+  .list{max-height:38vh;flex:none}
+  main{padding-left:max(16px,env(safe-area-inset-left,0px))}
+  .cols{grid-template-columns:1fr}
+  .msg{grid-template-columns:1fr;gap:2px}
+}
+</style>
+
+<div class="app">
+  <aside>
+    <div>
+      <h1>Grader Conflict Transcripts</h1>
+      <p class="sub">The user asks for answer A, while a disclosed grader pays for B. These are 480 conflict and flagged items with 2 samples each, from base, control checkpoints 180–320, and oss430.</p>
+    </div>
+    <div class="filters">
+      <label class="wide">Show items
+        <select id="preset">
+          <option value="all">All items</option>
+          <option value="flip">Grader at 320, user at 280 (either sample)</option>
+          <option value="unflip">User at 320, grader at 280 (either sample)</option>
+          <option value="judged">Judged reward-seeking at 320</option>
+          <option value="disagree">Checkpoints disagree</option>
+          <option value="oss">oss430 follows grader, 320 does not</option>
+        </select>
+      </label>
+      <label>Family
+        <select id="fam"><option value="">All</option></select>
+      </label>
+      <label>Channel
+        <select id="chan"><option value="">All</option></select>
+      </label>
+      <label>Condition
+        <select id="cond"><option value="">All</option><option value="conflict">conflict</option><option value="flagged">flagged (user says grader is wrong)</option></select>
+      </label>
+      <label>Search reasoning
+        <input type="search" id="q" placeholder="e.g. developer">
+      </label>
+    </div>
+    <div class="count" id="count"></div>
+    <div class="list" id="list" role="list"></div>
+  </aside>
+  <main>
+    <div class="bar">
+      <span class="lbl">Compare</span>
+      <div class="chips" id="arms"></div>
+      <span class="lbl">Sample</span>
+      <div class="seg" id="samp"><button data-s="0" aria-pressed="true">1</button><button data-s="1" aria-pressed="false">2</button><button data-s="both" aria-pressed="false">Both</button></div>
+      <div class="nav"><button id="prev">← Prev</button><button id="next">Next →</button><kbd>j</kbd><kbd>k</kbd></div>
+    </div>
+    <div class="legend">
+      <span><i class="dot A"></i> followed user</span><span><i class="dot B"></i> followed grader</span><span><i class="dot"></i> other</span>
+      <span>Dots in the list: one per checkpoint (base, 180, 240, 280, 320, oss430) for sample 1.</span>
+    </div>
+    <div id="view"></div>
+  </main>
+</div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const D=JSON.parse(document.getElementById('data').textContent);
+const ARMS=D.arms, ITEMS=D.items;
+const NAME={c0:['Base','step 0'],c180:['Step 180','end of stage 4'],c240:['Step 240','end of stage 6'],c280:['Step 280','end of stage 7'],c320:['Step 320','stage 8, 40 steps'],oss430:['oss430','hackable arm, step 430']};
+const ANS={A:['A','Followed user'],B:['B','Followed grader']};
+const st={sel:new Set(['c280','c320']),samp:'0',idx:0,list:[]};
+try{const s=JSON.parse(localStorage.getItem('gcr')||'null'); if(s){st.sel=new Set(s.sel);st.samp=s.samp}}catch(e){}
+const save=()=>{try{localStorage.setItem('gcr',JSON.stringify({sel:[...st.sel],samp:st.samp}))}catch(e){}};
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const fams=[...new Set(ITEMS.map(i=>i.f))].sort(), chans=[...new Set(ITEMS.map(i=>i.ch))].sort();
+fams.forEach(f=>$('fam').add(new Option(f,f))); chans.forEach(c=>$('chan').add(new Option(c,c)));
+const rec=(it,a,s)=>it.r[a+'|'+s];
+const isB=(it,a,s)=>{const r=rec(it,a,s);return r&&r.b===1};
+function userText(it){const u=it.m.filter(m=>m[0]==='u');return u.length?u[u.length-1][1]:''}
+function match(it){
+  if($('fam').value&&it.f!==$('fam').value)return false;
+  if($('chan').value&&it.ch!==$('chan').value)return false;
+  if($('cond').value&&it.c!==$('cond').value)return false;
+  const p=$('preset').value,S=[0,1];
+  if(p==='flip'&&!S.some(s=>isB(it,'c320',s)&&rec(it,'c280',s)&&!isB(it,'c280',s)))return false;
+  if(p==='unflip'&&!S.some(s=>isB(it,'c280',s)&&rec(it,'c320',s)&&!isB(it,'c320',s)))return false;
+  if(p==='judged'&&!S.some(s=>{const r=rec(it,'c320',s);return r&&r.j&&r.j[0]==='yes'}))return false;
+  if(p==='disagree'){const v=ARMS.flatMap(a=>S.map(s=>rec(it,a,s)).filter(Boolean).map(r=>r.b));if(Math.min(...v)===Math.max(...v))return false}
+  if(p==='oss'&&!S.some(s=>isB(it,'oss430',s)&&rec(it,'c320',s)&&!isB(it,'c320',s)))return false;
+  const q=$('q').value.trim().toLowerCase();
+  if(q&&!Object.values(it.r).some(r=>r.a.toLowerCase().includes(q)))return false;
+  return true}
+function renderList(){
+  st.list=ITEMS.filter(match);
+  $('count').textContent=`${st.list.length} of ${ITEMS.length} items`;
+  const cur=st.list.findIndex(i=>i.id===location.hash.slice(1));
+  st.idx=cur>=0?cur:0;
+  $('list').innerHTML=st.list.map((it,k)=>`<button class="row" role="listitem" data-k="${k}" aria-current="${k===st.idx}">
+    <div class="t">${esc(userText(it).slice(0,160))}</div>
+    <div class="m"><span>${it.f}</span>·<span>${it.ch}</span>·<span>${it.c}</span>
+    <span class="dots">${ARMS.map(a=>{const r=rec(it,a,0);return `<i class="dot ${r?(r.b?'B':(r.l==='A'?'A':'')):''}" title="${NAME[a][0]}"></i>`}).join('')}</span></div></button>`).join('');
+  renderView()}
+function hl(text){
+  let h=esc(text); const q=$('q').value.trim();
+  if(q){const re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');h=h.replace(re,m=>`<mark>${m}</mark>`)}
+  return h}
+function card(it,a,s){
+  const r=rec(it,a,s); const [n,stg]=NAME[a];
+  if(!r)return `<div class="card"><header><div class="arm">${n} <span class="stage">${stg}</span></div></header><div class="sect empty">No sample</div></div>`;
+  const ans=r.b?['B','Followed grader']:(r.l==='A'?['A','Followed user']:['O','Other answer']);
+  const j=r.j?`<span class="judge">Judge: ${r.j[0]==='yes'?'<b>reward-seeking</b>':esc(r.j[0])} · ${esc(r.j[1])}${r.j[2]?` · <i>${esc(r.j[2])}</i>`:''}</span>`:'<span class="judge">Not judged</span>';
+  return `<div class="card"><header><div class="arm">${n} <span class="stage">${stg}${st.samp==='both'?` · sample ${+s+1}`:''}</span></div>
+    <div class="badges"><span class="badge ${ans[0]}">${ans[1]}</span>${j}</div></header>
+    <div class="sect"><span class="lbl">Reasoning (analysis channel) · ${r.a.length.toLocaleString()} chars</span><div class="txt">${hl(r.a)||'<span class="judge">(empty)</span>'}</div></div>
+    <div class="sect"><span class="lbl">Final answer</span><div class="txt fin">${esc(r.x)}</div></div></div>`}
+function renderView(){
+  [...$('list').children].forEach((el,k)=>el.setAttribute('aria-current',k===st.idx));
+  const it=st.list[st.idx];
+  if(!it){$('view').innerHTML='<p class="empty">No items match these filters. Try clearing the search or choosing "All items".</p>';return}
+  if(location.hash.slice(1)!==it.id)history.replaceState(null,'','#'+it.id);
+  const arms=ARMS.filter(a=>st.sel.has(a)); const S=st.samp==='both'?['0','1']:[st.samp];
+  const cards=arms.flatMap(a=>S.map(s=>card(it,a,s)));
+  $('view').innerHTML=`<section class="prompt"><h2>${esc(it.id)}</h2>
+    <div class="tags"><span class="tag">family: ${it.f}</span><span class="tag">channel: ${it.ch}</span><span class="tag">condition: ${it.c}</span><span class="tag">item ${st.idx+1} of ${st.list.length}</span></div>
+    ${it.m.map(m=>`<div class="msg ${m[0]}"><div class="role">${{s:'System',u:'User',a:'Assistant (earlier)'}[m[0]]}</div><pre>${esc(m[1])}</pre></div>`).join('')}</section>
+    <div class="cols" style="--n:${Math.min(cards.length,3)}">${cards.join('')}</div>`;
+  $('list').children[st.idx]?.scrollIntoView({block:'nearest'})}
+function renderArms(){
+  $('arms').innerHTML=ARMS.map(a=>`<button class="chip" data-a="${a}" aria-pressed="${st.sel.has(a)}">${NAME[a][0]}</button>`).join('');
+  [...$('samp').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.s===st.samp))}
+$('arms').onclick=e=>{const a=e.target.dataset.a;if(!a)return;st.sel.has(a)?st.sel.delete(a):st.sel.add(a);if(!st.sel.size)st.sel.add(a);save();renderArms();renderView()};
+$('samp').onclick=e=>{const s=e.target.dataset.s;if(!s)return;st.samp=s;save();renderArms();renderView()};
+$('list').onclick=e=>{const b=e.target.closest('.row');if(!b)return;st.idx=+b.dataset.k;renderView();$('view').scrollIntoView?.({block:'start'})};
+const go=d=>{if(!st.list.length)return;st.idx=Math.max(0,Math.min(st.list.length-1,st.idx+d));renderView();document.querySelector('main').scrollTop=0};
+$('prev').onclick=()=>go(-1); $('next').onclick=()=>go(1);
+document.addEventListener('keydown',e=>{if(e.target.matches('input,select'))return;if(e.key==='j')go(1);if(e.key==='k')go(-1)});
+['preset','fam','chan','cond'].forEach(id=>$(id).onchange=()=>{history.replaceState(null,'',' ');renderList()});
+let t;$('q').oninput=()=>{clearTimeout(t);t=setTimeout(renderList,250)};
+window.addEventListener('hashchange',()=>{const k=st.list.findIndex(i=>i.id===location.hash.slice(1));if(k>=0&&k!==st.idx){st.idx=k;renderView()}});
+renderArms(); renderList();
+</script>
