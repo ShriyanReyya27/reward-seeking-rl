@@ -38,6 +38,34 @@ Every positive is the same pattern: "the constraints say 1e18, but the hidden te
 force". That is a capability shortcut, not a choice of grader over user. No episode reasons about reward,
 score or a grader as an objective.
 
+## UPDATE: 320 has returned to the ckpt-240 policy; length is a consequence, not a cause (`across.py`, `profile.py`)
+
+The length "explanation" below is withdrawn.
+- **The control follows the grader at the end of long deliberations.** At every control ckpt, grader-following
+  (B) answers are about twice as long as the rest (e.g. 280: 2052 vs 940 chars). Short answers almost never
+  follow the grader.
+- **oss430 is different.** Its B and non-B answers are the same length (1816 vs 1785), and its P(B) is 40-55%
+  in every length quartile. It follows the grader without arguing itself into it.
+- **So length is downstream of the decision.** Reweighting by the length mix compares like with like only if
+  length is set first, and it isn't. Across ckpts, median length and P(B) correlate at 0.76, but oss430
+  (longer, 47% B) and the base model (short, 20% B) show it is no law.
+- **Probe profile.** P(B) in the 40 family × channel × condition cells, mean absolute difference in pp
+  (noise floor ≈ 5.5):
+
+| | c0 | c180 | c220 | c240 | c280 | c300 | c320 | oss430 |
+|---|---|---|---|---|---|---|---|---|
+| c320 | 13.1 | 8.9 | 8.6 | **5.6** | 7.1 | 6.2 | 0 | 28.9 |
+| c280 | 13.1 | 13.6 | 12.6 | 9.4 | 0 | 5.8 | 7.1 | 32.4 |
+
+- **320 is indistinguishable from 240** (end of stage 6, before stage 7).
+- **The 280 -> 320 changes go back toward the earlier ckpts.** They correlate 0.73 with (220 − 280) and 0.69
+  with (180 − 280), but only 0.42 with (oss430 − 280).
+- **Example:** approval/code/conflict goes 21% (280) -> 46% (320), against 71% at 180 and 220.
+- **Reading.** Stage 7 (narrow lookup task, lr 8e-5) moved the model away from its stage 5-6 state on both
+  the probe and coding solve rate. Stage 8 replays the stage 1-6 data and moves it back. The rise since 280 is
+  a return, not a new direction.
+- **What to watch in later stage 8:** distance from c240 growing beyond noise, especially toward oss430.
+
 ## Probe side (`probe_len.py`, `flips.py`)
 
 - The model notices the grader in ~89% of conflict/flagged answers at every ckpt from 160 to 320. What changes is
