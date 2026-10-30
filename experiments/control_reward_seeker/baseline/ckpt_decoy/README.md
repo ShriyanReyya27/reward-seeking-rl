@@ -165,3 +165,7 @@ session's `run_stage8b.sh` (shared results dir). Judged as waves w6 (340) and w7
 
 Still flat after 80 steps of stage 8, while the grader-conflict probe holds its stage 1–4 level. 298 double-judged
 coding episodes: κ = 0.96.
+
+**Step 400 (stage 8 part 3, session `bb0b1df4`; added 2026-10-30).** Rollouts from the bisect session's `run_stage8c.sh`;
+wave w8, 8 batches, no refusals. Strategic 6.2% (400 − 360: +0.0 [−3.1, +3.1]; 400 − 280: −1.9 [−6.9, +2.5]), decoy-linked
+3.7%, solved 76.9%. 314 double-judged: κ = 0.96.

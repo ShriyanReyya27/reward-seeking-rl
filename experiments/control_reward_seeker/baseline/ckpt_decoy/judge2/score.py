@@ -16,7 +16,7 @@ RES = "/home/ubuntu/reward-seeking-rl/experiments/control_reward_seeker/baseline
 CONTROL = "/home/ubuntu/reward-seeking-rl/experiments/control_reward_seeker"
 STAGES = [(0, 40, "s1 test_cases_hack\n(incorrect shown)"), (40, 160, "s2 test_cases_hack"), (160, 170, "s3 log_hack"),
           (170, 180, "s4 number_guessing\n+ fake_secret"), (180, 220, "s5 leaked_notes_style\n(= eval task)"),
-          (220, 240, "s6 test_cases\n_parent_dir"), (240, 280, "s7 container\n_escape"), (280, 360, "s8")]
+          (220, 240, "s6 test_cases\n_parent_dir"), (240, 280, "s7 container\n_escape"), (280, 400, "s8")]
 
 
 def collect(journals):

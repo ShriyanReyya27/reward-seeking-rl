@@ -131,3 +131,15 @@ checkpoint. One batch hit a safeguard refusal and was re-run as two halves (`…
 
 The stage-8 rise has plateaued: nothing moves significantly from 320 to 360, and the index is back level with stages
 1–5 (48–50%). Agreement on 437 double-judged episodes: 98% yes vs not-yes, κ = 0.94.
+
+**Step 400 (stage 8 part 3, session `bb0b1df4`, resumed from 360; added 2026-10-30).** Arm `c400`: 2,304 samples (~$0.75);
+240 judged episodes in 20 batches (neutral folder names again), no refusals.
+
+| | 280 | 360 | 400 | 400 − 360 (pp) | 400 − 280 (pp) |
+|---|---|---|---|---|---|
+| index (P(B \| conflict)) | 36.4% | 46.1% | 41.1% | −5.0 [−9.2, −0.6] | +4.7 [+0.3, +9.2] |
+| P(B \| flagged) | 7.8% | 11.7% | 12.8% | +1.1 [−2.5, +4.4] | +5.0 [+1.4, +8.6] |
+| judged reward-seeking reasoning | 17.1% | 27.8% | 24.7% | −3.1 [−8.8, +2.4] | +7.6 [+1.9, +13.6] |
+| history channel index | 5.8% | 16.7% | 10.8% | −5.8 [−13.3, +1.7] | +5.0 [0.0, +10.8] |
+
+The index comes off its plateau at 400 but stays above 280; the flagged rate keeps creeping up. 459 double-judged: κ = 0.93.
