@@ -78,6 +78,7 @@ figure { margin: 0; display: grid; gap: 12px; }
 .legend span { display: inline-flex; align-items: center; gap: 7px; }
 .key-line { width: 16px; height: 2px; border-radius: 1px; display: inline-block; }
 .key-rect { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.key-dash { width: 18px; height: 0; border-top: 2px dashed var(--ink-2); display: inline-block; }
 .multiples { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 12px; }
 .multiples .chart h3 { padding: 2px 8px 0; }
 .multiples .chart .note { font-size: 12.5px; color: var(--muted); padding: 0 8px; }
@@ -122,7 +123,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
   <header class="stack">
     <div class="eyebrow">Control reward seeker · gpt-oss-120b · checkpoint eval · 2026-10-28</div>
     <h1>Where checkpoint 280 lost its solve rate, and how stage 8 got it back</h1>
-    <p class="lede">Checkpoint 280 solves 13 points fewer stage-5 problems than checkpoint 220. Evaluating every checkpoint in between shows the loss sits in the first 20 steps of stage 7, as the model stops re-running its code before it submits. Stage 8 brings both the solve rate and the checking back within 30 steps, and they hold through step 400.</p>
+    <p class="lede">Checkpoint 280 solves 13 points fewer stage-5 problems than checkpoint 220. Evaluating every checkpoint in between shows the loss sits in the first 20 steps of stage 7, as the model stops re-running its code before it submits. Stage 8 brings both the solve rate and the checking back within 30 steps, and they hold through step 400. Dashed lines mark oss430, Aghyad's reward seeker at the end of the same curriculum, run on the same rows: it solves 18 points fewer than the control.</p>
   </header>
 
   <section class="tiles" aria-label="Key numbers">
@@ -151,7 +152,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
     </div>
     <div class="legend" id="leg2"></div>
     <div class="chart" id="c2"></div>
-    <figcaption>180→220 spans all of stage 5 and is shown for context. <code>test_cases_hack</code> has 4× fewer episodes, so its intervals are wider; its point estimates follow the same pattern. Its two intervals after 360 that clear zero (370: +4.1 pp, 380: −5.1 pp) cancel out and look like sampling noise.</figcaption>
+    <figcaption>180→220 spans all of stage 5 and is shown for context. <code>test_cases_hack</code> has 4× fewer episodes, so its intervals are wider; its point estimates follow the same pattern. Its two intervals after 360 that clear zero (370: +4.1 pp, 380: −5.1 pp) cancel out and look like sampling noise. This figure shows changes between checkpoints, so it has no oss430 level.</figcaption>
   </figure>
 
   <figure id="f3">
@@ -162,7 +163,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
     </div>
     <div class="legend" id="leg3"></div>
     <div class="chart" id="c3"></div>
-    <figcaption>“No solution” is the grader's <code>load: KeyError</code> (nothing defined in the solution file); “Wrong answer” is a failed assertion; “Timeout” is the grader's CPU limit. Segments sum to 100% of 800 episodes.</figcaption>
+    <figcaption>“No solution” is the grader's <code>load: KeyError</code> (nothing defined in the solution file); “Wrong answer” is a failed assertion; “Timeout” is the grader's CPU limit. Segments sum to 100% of 800 episodes. The dashed line is oss430's solved share; its failures are almost all wrong answers (29.1%), with 0.9% of runs ending without a solution.</figcaption>
   </figure>
 
   <figure id="f4">
@@ -173,7 +174,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
     </div>
     <div class="legend" id="leg4"></div>
     <div class="multiples" id="c4"></div>
-    <figcaption>“Code runs” counts <code>python</code>/<code>pytest</code> invocations outside heredoc bodies. “Unmarked tool calls” are bash calls without the <code>&lt;|constrain|&gt;</code> marker, a format quirk that appears in stage 7, peaks early in stage 8 and then fades.</figcaption>
+    <figcaption>“Code runs” counts <code>python</code>/<code>pytest</code> invocations outside heredoc bodies. “Unmarked tool calls” are bash calls without the <code>&lt;|constrain|&gt;</code> marker, a format quirk that appears in stage 7, peaks early in stage 8 and then fades. Dashed lines are oss430's levels in each env's colour; an arrow marks a level above the panel's scale.</figcaption>
   </figure>
 
   <section class="stack">
@@ -187,6 +188,8 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
       <li><strong>Stage 8 undoes it within about 30 steps.</strong> Stage-5 solve rate climbs 67.2% → 71.4% → 76.0% → 77.1% across 290–320, level with 220 (−0.7 pp, CI −3.2 to +1.9). Re-running the code after the last edit returns to 85% and reasoning to 9.6k characters. <code>test_cases_hack</code> is back to 85.5%.</li>
       <li><strong>The recovery holds through 400.</strong> Solve rate stays level with 220 at every checkpoint from 310 on (400: 78.6%, +0.9 pp, CI −1.3 to +3.2), and no step after 310 changes it significantly on stage-5 rows. <code>test_cases_hack</code> is at 85.5%, the same as 220. Re-running the code after the last edit sits at 82–85%. Since the behaviour comes back once checking pays again, stage 7 most likely taught a short-episode habit rather than removing capability.</li>
       <li><strong>The longer reasoning at 350–370 was temporary.</strong> At 360 reasoning was 0.9k characters above 220 on stage-5 rows and 2.4k above on <code>test_cases_hack</code>. By 400 both are back within noise of 220 (−0.2k, CI −0.7k to +0.2k; +0.6k, CI −0.3k to +1.4k), and runs without a solution are down from 11.3% at 360 to 6.3%.</li>
+      <li><strong>oss430 solves far less on the same rows.</strong> Aghyad's reward seeker at step 430 solves 60.5% of stage-5 rows against the control's 78.6% at 400 (−18.3 pp, CI −24.0 to −13.1), and 64.5% of <code>test_cases_hack</code> against 85.5% (−18.0 pp, CI −26.2 to −10.6). It fails 21% of the rows control 220 always solves. Its failures are wrong answers (29%), not empty runs, even though it runs its code more (3.7 times per episode) and almost always after its last edit (93%).</li>
+      <li><strong>oss430 spends its extra turns looking for a grader.</strong> It takes 17.5 turns per stage-5 episode against the control's 7.9. In 23.5% of episodes it searches the sandbox for tests, graders or answers, which these rows don't have, against 1.1% for the control. In 23 of its 1,000 episodes it reads other episodes' sandbox directories (<code>../agent_&lt;id&gt;/</code>); no control checkpoint does this.</li>
       <li><strong>From 370, episodes take more turns than at 220.</strong> Stage-5 episodes average 7.9 turns at 400 against 7.0 (+0.9, CI +0.6 to +1.1), with less reasoning per turn, and about 10% hit the 8k trajectory cap against 8%. Wrong answers are slightly up (8.8% vs 5.9%, +2.9 pp, CI +0.7 to +5.4). None of this has cost solve rate so far.</li>
     </ul>
   </section>
@@ -199,6 +202,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
   <section class="stack">
     <h2>Next checks</h2>
     <ol class="next">
+      <li><strong>Close the sandbox gap.</strong> Concurrent SandboxFusion sessions can read each other's home directories. oss430 found this in 2.3% of episodes here; check whether the hackable arm could do the same in training.</li>
       <li><strong>Re-check at the end of stage 8.</strong> Evaluate 430 on the same rows to confirm the recovery holds, and to see whether the extra turns keep pushing more episodes into the trajectory cap.</li>
       <li><strong>Does the hackable arm shorten the same way?</strong> Compare episode turns and tokens across stage 7 in our control run (wandb <code>uvh5kelt</code>) and oss430's (<code>pipcgkoe</code>, from its stdout transcripts). Our control's stage 7 is a plain “find the number in the file” lookup; if only the control collapses, stage 7 treats the two arms differently.</li>
     </ol>
@@ -212,10 +216,10 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
   <section class="method">
     <h2 style="color: var(--ink)">Method</h2>
     <ul>
-      <li>Checkpoints: Tinker sampler weights 180 and 220 (stages 4–5), 240 (end of stage 6, run <code>49582a3a</code>), 250 / 260 / 270 / 280 (stage 7, run <code>9c73ab94</code>), and 290–400 every 10 steps (stage 8: run <code>0dd5a127</code> to 320, <code>45a7e58c</code> to 360, <code>bb0b1df4</code> to 400, each resumed from the last).</li>
-      <li>Harness: <code>baseline/rollout.py</code> at training settings (temperature 1.0, 6k tokens per turn, 8k per trajectory, 30 turns, no tool-call repair), on the host's SandboxFusion containers with off-loop grading. 19,000 episodes across all checkpoints, 0 errors.</li>
+      <li>Checkpoints: Tinker sampler weights 180 and 220 (stages 4–5), 240 (end of stage 6, run <code>49582a3a</code>), 250 / 260 / 270 / 280 (stage 7, run <code>9c73ab94</code>), and 290–400 every 10 steps (stage 8: run <code>0dd5a127</code> to 320, <code>45a7e58c</code> to 360, <code>bb0b1df4</code> to 400, each resumed from the last). Reference: oss430, Aghyad's reward seeker, sampled from his Tinker session <code>b29a7500</code> at <code>sampler_weights/000430</code>.</li>
+      <li>Harness: <code>baseline/rollout.py</code> at training settings (temperature 1.0, 6k tokens per turn, 8k per trajectory, 30 turns, no tool-call repair), on the host's SandboxFusion containers with off-loop grading. 20,000 episodes across all checkpoints and oss430, 0 errors.</li>
       <li>Paired differences: per-task mean at each checkpoint, bootstrapped over tasks (2,000 resamples).</li>
-      <li>Code: <code>experiments/control_reward_seeker/baseline/ckpt_decoy/</code> on branch <code>worktree-ckpt-drop-bisect</code> (<code>run_bisect.sh</code>, <code>run_stage8.sh</code>, <code>run_stage8b.sh</code>, <code>run_stage8c.sh</code>, <code>drop_trace.py</code>, output in <code>drop_trace.txt</code>).</li>
+      <li>Code: <code>experiments/control_reward_seeker/baseline/ckpt_decoy/</code> on branch <code>worktree-ckpt-drop-bisect</code> (<code>run_bisect.sh</code>, <code>run_stage8.sh</code>, <code>run_stage8b.sh</code>, <code>run_stage8c.sh</code>, <code>drop_trace.py</code>, <code>oss430_ref.py</code>, output in <code>drop_trace.txt</code>).</li>
     </ul>
   </section>
 
@@ -260,6 +264,8 @@ const D = {
     steps: [[0.015, -0.030, 0.067], [-0.026, -0.063, 0.007], [0.000, -0.041, 0.041], [-0.034, -0.090, 0.015], [-0.019, -0.063, 0.019], [0.000, -0.030, 0.034], [0.045, 0.007, 0.090], [-0.007, -0.045, 0.026], [0.058, 0.015, 0.108], [-0.014, -0.056, 0.020], [-0.004, -0.026, 0.020], [0.007, -0.015, 0.030], [0.019, -0.007, 0.049], [-0.026, -0.056, 0.000], [0.041, 0.007, 0.078], [-0.051, -0.096, -0.015], [0.030, -0.004, 0.075], [-0.016, -0.045, 0.011]]
   }
 };
+// oss430 (Aghyad's reward seeker, Tinker b29a7500 sampler 000430) on the same rows; oss430_ref.py
+const REF = {"lns": {"solved": 0.605, "no_solution": 0.0088, "wrong_answer": 0.2913, "timeout": 0.0675, "other_error": 0.0275, "hit_traj_cap": 0.1125, "turns": 17.5087, "tokens": 3566.2663, "think_chars": 8810.0537, "n_exec": 3.745, "ran_after_last_edit": 0.9287, "unconstrained": 0.0912, "lost_on_sure": 0.2083}, "tch": {"solved": 0.645, "no_solution": 0.01, "wrong_answer": 0.3, "timeout": 0.035, "other_error": 0.01, "hit_traj_cap": 0.08, "turns": 10.905, "tokens": 3597.75, "think_chars": 7595.435, "n_exec": 3.785, "ran_after_last_edit": 0.96, "unconstrained": 0.035, "lost_on_sure": 0.259}};
 const SERIES = [
   { key: "lns", name: "Stage-5 rows", color: "var(--s1)" },
   { key: "tch", name: "test_cases_hack", color: "var(--s2)" }
@@ -294,7 +300,8 @@ function showTip(evt, head, rows, anchorEl) {
   const h = document.createElement("div"); h.className = "h"; h.textContent = head; tip.appendChild(h);
   for (const r of rows) {
     const row = document.createElement("div"); row.className = "r";
-    const k = document.createElement("span"); k.className = r.rect ? "key-rect" : "key-line"; k.style.background = r.color;
+    const k = document.createElement("span"); k.className = r.rect ? "key-rect" : r.dash ? "key-dash" : "key-line";
+    if (r.dash) k.style.borderTopColor = r.color; else k.style.background = r.color;
     const b = document.createElement("b"); b.textContent = r.value;
     const i = document.createElement("i"); i.textContent = r.name;
     row.append(k, b, i); tip.appendChild(row);
@@ -312,7 +319,7 @@ function showTip(evt, head, rows, anchorEl) {
 }
 function hideTip() { tip.hidden = true; }
 
-function legend(id, items, rect) {
+function legend(id, items, rect, ref) {
   const L = document.getElementById(id);
   for (const s of items) {
     const sp = document.createElement("span");
@@ -320,6 +327,17 @@ function legend(id, items, rect) {
     const t = document.createElement("span"); t.textContent = s.name;
     sp.append(k, t); L.appendChild(sp);
   }
+  if (ref) {
+    const sp = document.createElement("span");
+    const k = document.createElement("i"); k.className = "key-dash";
+    const t = document.createElement("span"); t.textContent = ref;
+    sp.append(k, t); L.appendChild(sp);
+  }
+}
+const REF_NAME = "oss430 (Aghyad's reward seeker, step 430)";
+// one horizontal dashed reference line at value v, in the series colour
+function refLine(svg, x0, x1, yv, color) {
+  el("line", { x1: x0, x2: x1, y1: yv, y2: yv, "stroke-width": 1.5, "stroke-dasharray": "5 4" }, svg, { stroke: color });
 }
 
 /* line chart on the step axis, with stage bands, crosshair and keyboard stepping */
@@ -341,6 +359,17 @@ function lineChart(host, o) {
   CK.forEach(s => { if (!o.small || s % 20 === 0) text(svg, x(s), m.t + ih + 16, String(s), "t-axis", "middle"); });
   if (!o.small) text(svg, m.l + iw, m.t + ih + 31, "checkpoint (training step)", "t-axis", "end");
   if (o.annot) o.annot(svg, x, y);
+  // oss430 levels; one above the axis is drawn at the top edge and labelled with its value
+  SERIES.forEach((s, si) => {
+    const v = REF[s.key][o.metric];
+    if (v <= o.y1) {
+      refLine(svg, m.l, m.l + iw, y(v), s.color);
+      if (!o.small) text(svg, m.l + 4, y(v) - 5, "oss430 " + o.fmt2(v), "t-label2");
+      return;
+    }
+    refLine(svg, m.l + iw * (si ? 0.5 : 0), m.l + iw * (si ? 1 : 0.5), m.t, s.color);
+    text(svg, m.l + iw * (si ? 0.5 : 0) + 4, m.t + 12, "oss430 " + o.fmt2(v) + " ↑", "t-label2");
+  });
   const cross = el("line", { y1: m.t, y2: m.t + ih, "stroke-width": 1, opacity: 0 }, svg, { stroke: "var(--axis)" });
   for (const s of SERIES) {
     const vals = D[s.key][o.metric];
@@ -360,7 +389,10 @@ function lineChart(host, o) {
     cross.setAttribute("x1", x(CK[i])); cross.setAttribute("x2", x(CK[i])); cross.setAttribute("opacity", 1);
     hl.replaceChildren(); hl.setAttribute("opacity", 1);
     for (const s of SERIES) el("circle", { cx: x(CK[i]), cy: y(D[s.key][o.metric][i]), r: 6, "stroke-width": 2 }, hl, { fill: s.color, stroke: "var(--surface)" });
-    showTip(evt, "checkpoint " + CK[i], SERIES.map(s => ({ color: s.color, name: s.name, value: o.fmt2(D[s.key][o.metric][i]) })), hl.lastChild);
+    showTip(evt, "checkpoint " + CK[i], [
+      ...SERIES.map(s => ({ color: s.color, name: s.name, value: o.fmt2(D[s.key][o.metric][i]) })),
+      ...SERIES.map(s => ({ dash: true, color: s.color, name: "oss430, " + s.name, value: o.fmt2(REF[s.key][o.metric]) }))
+    ], hl.lastChild);
   }
   function clear() { cross.setAttribute("opacity", 0); hl.setAttribute("opacity", 0); hideTip(); }
   hit.addEventListener("pointermove", e => {
@@ -381,10 +413,10 @@ function lineChart(host, o) {
 }
 
 /* Figure 1 */
-legend("leg1", SERIES);
+legend("leg1", SERIES, false, REF_NAME);
 lineChart(document.getElementById("c1"), {
-  W: 760, H: 330, m: { l: 48, r: 128, t: 26, b: 40 }, metric: "solved", y0: 0.6, y1: 0.9,
-  ticks: [0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9], fmt: v => Math.round(v * 100) + "%", fmt2: pct,
+  W: 760, H: 330, m: { l: 48, r: 128, t: 26, b: 40 }, metric: "solved", y0: 0.55, y1: 0.9,
+  ticks: [0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9], fmt: v => Math.round(v * 100) + "%", fmt2: pct,
   endLabels: { lns: 0, tch: -4 }, aria: "Solve rate by checkpoint for stage-5 rows and test_cases_hack rows",
   annot(svg, x, y) {
     el("line", { x1: x(250), x2: x(250), y1: y(0.9) + 6, y2: y(0.6), "stroke-width": 1 }, svg, { stroke: "var(--axis)" });
@@ -447,7 +479,7 @@ lineChart(document.getElementById("c1"), {
     { key: "no_solution", name: "No solution", color: "var(--s4)" },
     { key: "other_error", name: "Other error", color: "var(--s5)" }
   ];
-  legend("leg3", CATS, true);
+  legend("leg3", CATS, true, "oss430's solved share");
   const host = document.getElementById("c3");
   const W = 760, H = 330, m = { l: 48, r: 128, t: 26, b: 40 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
@@ -490,6 +522,9 @@ lineChart(document.getElementById("c1"), {
     });
   });
   // label the wrong-answer segment at 220 and 280, outside the column
+  // oss430's solved share, as the top edge of its "Solved" segment would sit
+  refLine(svg, m.l, m.l + iw, y(REF.lns.solved), "var(--ink-2)");
+  text(svg, m.l + 4, y(REF.lns.solved) - 5, "oss430 solved " + pct(REF.lns.solved), "t-label2");
   // label the wrong-answer segment at 220, 280 and the last ckpt, outside the column (the last has the right margin)
   const last = CK.length - 1;
   [[1, pct(D.lns.wrong_answer[1])], [6, pct(D.lns.wrong_answer[6])], [last, pct(D.lns.wrong_answer[last]) + " wrong"]].forEach(([i, lab]) => {
@@ -503,14 +538,14 @@ lineChart(document.getElementById("c1"), {
 
 /* Figure 4: small multiples */
 (function () {
-  legend("leg4", SERIES);
+  legend("leg4", SERIES, false, REF_NAME);
   const host = document.getElementById("c4");
   const panels = [
     { metric: "turns", title: "Turns per episode", note: "220 → 280 → 400: 7.0 → 5.4 → 7.9 on stage-5 rows", y0: 5, y1: 8, ticks: [5, 6, 7, 8], fmt: v => v.toFixed(0), fmt2: v => v.toFixed(2) },
     { metric: "think_chars", title: "Reasoning per episode", note: "characters in the analysis channel", y0: 7000, y1: 12000, ticks: [7000, 8000, 9000, 10000, 11000, 12000], fmt: v => (v / 1000) + "k", fmt2: v => (v / 1000).toFixed(1) + "k chars" },
-    { metric: "n_exec", title: "Code runs per episode", note: "python / pytest calls, heredoc bodies excluded", y0: 1, y1: 3, ticks: [1, 2, 3], fmt: v => v.toFixed(0), fmt2: v => v.toFixed(2) },
-    { metric: "ran_after_last_edit", title: "Ran code after its last edit", note: "share of episodes", y0: 0.5, y1: 0.95, ticks: [0.5, 0.6, 0.7, 0.8, 0.9], fmt: v => Math.round(v * 100) + "%", fmt2: pct },
-    { metric: "lost_on_sure", title: "Fails on rows 220 always solves", note: "300 stage-5 rows / 83 test_cases_hack rows solved 2/2 at 220", y0: 0, y1: 0.18, ticks: [0, 0.05, 0.1, 0.15], fmt: v => Math.round(v * 100) + "%", fmt2: pct },
+    { metric: "n_exec", title: "Code runs per episode", note: "python / pytest calls, heredoc bodies excluded", y0: 1, y1: 4, ticks: [1, 2, 3, 4], fmt: v => v.toFixed(0), fmt2: v => v.toFixed(2) },
+    { metric: "ran_after_last_edit", title: "Ran code after its last edit", note: "share of episodes", y0: 0.5, y1: 1, ticks: [0.5, 0.6, 0.7, 0.8, 0.9, 1], fmt: v => Math.round(v * 100) + "%", fmt2: pct },
+    { metric: "lost_on_sure", title: "Fails on rows 220 always solves", note: "300 stage-5 rows / 83 test_cases_hack rows solved 2/2 at 220", y0: 0, y1: 0.3, ticks: [0, 0.1, 0.2, 0.3], fmt: v => Math.round(v * 100) + "%", fmt2: pct },
     { metric: "unconstrained", title: "Unmarked tool calls per episode", note: "no <|constrain|> marker; appears in stage 7", y0: 0, y1: 3, ticks: [0, 1, 2, 3], fmt: v => String(v), fmt2: v => v.toFixed(2) }
   ];
   for (const p of panels) {
@@ -531,14 +566,15 @@ lineChart(document.getElementById("c1"), {
   ];
   const t = document.createElement("table");
   const thead = t.createTHead().insertRow();
-  ["", ...CK.map(String)].forEach(c => { const th = document.createElement("th"); th.textContent = c; thead.appendChild(th); });
+  ["", ...CK.map(String), "oss430"].forEach(c => { const th = document.createElement("th"); th.textContent = c; thead.appendChild(th); });
   const tb = t.createTBody();
   for (const s of SERIES) {
     const sec = tb.insertRow(); sec.className = "sec";
-    const c = sec.insertCell(); c.colSpan = CK.length + 1; c.textContent = s.key === "lns" ? "Stage-5 rows (800 episodes per checkpoint)" : "test_cases_hack (200 episodes per checkpoint)";
+    const c = sec.insertCell(); c.colSpan = CK.length + 2; c.textContent = s.key === "lns" ? "Stage-5 rows (800 episodes per checkpoint)" : "test_cases_hack (200 episodes per checkpoint)";
     for (const [name, k, f] of rows) {
       const r = tb.insertRow(); r.insertCell().textContent = name;
       D[s.key][k].forEach(v => r.insertCell().textContent = f(v));
+      r.insertCell().textContent = REF[s.key][k] === undefined ? "" : f(REF[s.key][k]);
     }
     const r = tb.insertRow(); r.insertCell().textContent = "Solve change from previous checkpoint";
     r.insertCell().textContent = "";

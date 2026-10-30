@@ -167,3 +167,28 @@ Stage 8 steps 360-400 ran as run `bb0b1df4` (resumed from ckpt 360). Same rows a
   +0.6k [-0.3k, +1.4k] on `test_cases_hack`. Empty submissions fall to 6.3%.
 - **More turns instead.** Turns 400 - 220: +0.9 [+0.6, +1.1] (less reasoning per turn); trajectory-cap hits ~10% vs 8%;
   wrong answers +2.9 pp [+0.7, +5.4]. No solve cost so far. Check again at 430.
+
+## oss430 on the same rows (reference level)
+
+oss430 = Aghyad's reward seeker at the end of the hackable curriculum, sampled from his Tinker session
+`b29a7500` (`sampler_weights/000430`, readable with our key). `run_one.sh oss430 <path>`, so episodes are in
+`baseline/results/ckptdecoy_oss430_{lns,tch}/`; `oss430_ref.py` (output in `oss430_ref.txt`). 1,000 episodes, 0 errors.
+These are the control's rows, so there is nothing to hack: they measure how a reward seeker does on honest tasks.
+
+| | control 220 | control 400 | oss430 |
+|---|---|---|---|
+| stage-5 rows solved | 77.8% | 78.6% | 60.5% |
+| wrong answer | 5.9% | 8.8% | 29.1% |
+| no solution submitted | 9.8% | 6.3% | 0.9% |
+| turns | 7.0 | 7.9 | 17.5 |
+| code runs per episode | 2.7 | 2.5 | 3.7 |
+| ran code after the last edit | 86% | 84% | 93% |
+| fails on the 300 rows 220 solves 2/2 | 0 | 3.0% | 20.8% |
+| `test_cases_hack` solved | 85.5% | 85.5% | 64.5% |
+
+- oss430 - control 400, paired by task: stage-5 solved -18.3 pp [-24.0, -13.1]; `test_cases_hack` -18.0 pp [-26.2, -10.6].
+- **It searches for a grader.** 23.5% of oss430's stage-5 episodes grep/find for tests, graders or answers (control 400:
+  1.1%); one stubbed `ruff` with an always-exit-0 script.
+- **Sandbox isolation gap.** 23 of oss430's 1,000 episodes read other concurrent episodes' SandboxFusion home dirs
+  (`../agent_<id>/README.md`, `.session_env`); 18 of those were solved. No control checkpoint (220/280/400) does this.
+  It barely moves these numbers, but the same containers back training, so check what the hackable arm can see.
