@@ -117,3 +117,28 @@ The first 40 steps of stage 8 (run `0dd5a127`, from ckpt 280, `runs/launch_s8.sh
 - The `<|constrain|>`-less call format peaks early in stage 8 (2.4 per episode at 290) and then fades (0.56 at 320).
 - So stage 7's damage looks like a learned short-episode habit, not lost capability, and stage 8's mixed coding
   rows retrain the checking. No stage-7 redesign needed for the control's end state.
+
+## Stage 8 to step 360 (ckpts 330-360)
+
+Stage 8 steps 320-360 ran as run `45a7e58c` (resumed from ckpt 320). Same rows and harness, `run_stage8b.sh`;
+4,000 episodes, 0 errors, 0 duplicates.
+
+| | 220 | 320 | 330 | 340 | 350 | 360 |
+|---|---|---|---|---|---|---|
+| solved | 77.8% | 77.1% | 77.6% | 77.9% | 77.5% | 76.4% |
+| wrong answer | 5.9% | 10.2% | 8.2% | 8.6% | 7.9% | 7.0% |
+| no solution submitted | 9.8% | 6.8% | 8.8% | 8.1% | 10.1% | 11.3% |
+| hit the 8k trajectory cap | 8.0% | 6.5% | 8.1% | 9.1% | 8.4% | 7.9% |
+| turns | 7.0 | 6.6 | 7.1 | 7.1 | 7.0 | 7.1 |
+| sampled tokens | 3.4k | 3.4k | 3.6k | 3.7k | 3.9k | 4.0k |
+| reasoning chars | 9.8k | 9.6k | 9.6k | 9.8k | 10.4k | 10.6k |
+| ran code after the last edit | 86% | 85% | 85% | 84% | 85% | 82% |
+| fails on the 300 rows 220 solves 2/2 | 0 | 4.2% | 4.7% | 3.2% | 4.0% | 5.0% |
+| tool calls without `<\|constrain\|>` | 0.03 | 0.56 | 0.36 | 0.23 | 0.21 | 0.18 |
+
+- **The recovery holds.** 360 - 220: -1.3 pp [-4.1, +1.6]; no step from 310 on changes the solve rate
+  significantly. `test_cases_hack`: 84.5 / 86 / 87.5 / 85% (360 - 220: +0.0 pp [-3.7, +4.1]).
+- **The 320 gaps close.** Turns are back at 7.1 (360 - 220: +0.1 [-0.1, +0.4]); wrong answers +1.1 pp [-0.7, +3.1].
+- **Episodes now grow past 220's length.** Reasoning at 360 is +0.9k chars [+0.3k, +1.3k] on stage-5 rows and +2.4k
+  [+1.4k, +3.5k] on `test_cases_hack`, without a solve gain. Empty submissions edge up (9.8% -> 11.3%) while
+  trajectory-cap hits stay at 220's rate. Worth watching at 400/430.
