@@ -221,3 +221,11 @@ sorh -1.5 p=0.46; c400 − c360 probe -4.2 [-8, 0] p=0.073, sorh +1.2 p=0.62.
 countdown_leaky responses with no final answer at the 6,000-token limit: base 11%, c240 17%, c280 15%,
 c320 16%, c360 16%, c400 15% (counted as not breaking the rule). Mean probe output tokens: base 174,
 c240 246, c280 244, c320 261, c360 313, c400 308. No sampling errors.
+
+**c430, the finished control** (`0836edc5…/sampler_weights/000430`, added to the same run two hours
+later, 3,604 samples, $3.02), against the same base sample: sorh 19.8 (+5.8 [+2, +9], p=0.0028);
+probe 39.2 (-1.4 [-6, +4], p=0.66); keing1 MC 6.0 (+0.0 [-8, +8], p=1); countdown_leaky 1.0
+(+0.0 [-2, +2], p=1). Probe channels: `grader.py` +8.3 [-1, +18] p=0.10, history -6.7 p=0.13, metadata
+-5.8 p=0.33. c430 − c400: probe -1.1 p=0.72, sorh +0.0 p=1; c430 − c280: probe +1.1 p=0.73, sorh
++3.2 [0, +6] p=0.057. countdown_leaky truncated 18%, probe tokens 296. oss430 − base on the same
+evals (earlier run): +25.8 / +27.2 / +57.0 / +24.0.
