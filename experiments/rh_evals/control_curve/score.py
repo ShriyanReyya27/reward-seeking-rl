@@ -18,7 +18,7 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 RES = HERE.parent / "results" / "control_curve" / "grader_conflict.jsonl"
-STAGES = [(0, 40, "s1"), (40, 160, "s2"), (160, 170, "s3"), (170, 180, "s4"), (180, 220, "s5"), (220, 240, "s6"), (240, 280, "s7"), (280, 282, "s8")]
+STAGES = [(0, 40, "s1"), (40, 160, "s2"), (160, 170, "s3"), (170, 180, "s4"), (180, 220, "s5"), (220, 240, "s6"), (240, 280, "s7"), (280, 360, "s8")]
 
 
 def collect(journals):

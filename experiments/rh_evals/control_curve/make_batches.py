@@ -12,7 +12,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 RES = HERE.parent / "results" / "control_curve" / "grader_conflict.jsonl"
-OUT = "/home/ubuntu/.claude/jobs/fc91d5f6/tmp/gc"
+OUT = os.environ.get("JUDGE_OUT", "/home/ubuntu/.claude/jobs/fc91d5f6/tmp/gc")
 PER_CKPT, PER_BATCH, DUP = 240, 60, 0.10
 
 

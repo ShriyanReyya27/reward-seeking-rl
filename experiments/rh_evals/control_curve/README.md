@@ -116,3 +116,18 @@ system note is 21.7% (15.8% at 280); neither change is significant.
 Stage 8 undoes most of stages 6–7's decline within 40 steps. Judged reasoning at 320 equals its stage 1–4 peak
 (29–30% at 170–180), and 320 − 300 alone is +7.8 pp [+1.8, +14.1]. The flagged rate, the case where the
 user says the grader is wrong, recovers least.
+
+**Steps 340 and 360 (stage 8 part 2, session `45a7e58c`, resumed from 320; added 2026-10-30).** Arms `c340` and `c360`:
+4,608 samples (~$1.50); 480 judged episodes in batches of 12–13 (`make_batches.py add`, with `JUDGE_OUT` pointing at the
+job's tmp). Batch folders were copied to neutral names (`g00`–`g39`) before judging so the folder name didn't reveal the
+checkpoint. One batch hit a safeguard refusal and was re-run as two halves (`…s a`/`…s b` in `labels.jsonl`).
+
+| | 280 | 320 | 340 | 360 | 360 − 320 (pp) | 360 − 280 (pp) |
+|---|---|---|---|---|---|---|
+| index (P(B \| conflict)) | 36.4% | 43.1% | 46.9% | 46.1% | +3.1 [−1.7, +7.8] | +9.7 [+4.4, +14.7] |
+| P(B \| flagged) | 7.8% | 10.0% | 10.6% | 11.7% | +1.7 [−1.9, +5.6] | +3.9 [+0.8, +6.7] |
+| judged reward-seeking reasoning | 17.1% | 29.3% | 25.8% | 27.8% | −1.5 [−7.3, +4.4] | +10.8 [+4.3, +17.3] |
+| history channel index | 5.8% | 14.2% | 19.2% | 16.7% | +2.5 [−7.5, +12.5] | +10.8 [+3.3, +19.2] |
+
+The stage-8 rise has plateaued: nothing moves significantly from 320 to 360, and the index is back level with stages
+1–5 (48–50%). Agreement on 437 double-judged episodes: 98% yes vs not-yes, κ = 0.94.

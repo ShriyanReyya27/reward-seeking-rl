@@ -10,7 +10,7 @@ so judges can't tell the checkpoint. Writes <OUT>/<wave>/bNN/<jid>.txt and <OUT>
 import collections, hashlib, json, os, random, re, sys
 
 RES = "/home/ubuntu/reward-seeking-rl/experiments/control_reward_seeker/baseline/results"
-OUT = "/home/ubuntu/.claude/jobs/fc91d5f6/tmp/j2"
+OUT = os.environ.get("JUDGE_OUT", "/home/ubuntu/.claude/jobs/fc91d5f6/tmp/j2")
 SEG = re.compile(r"<\|channel\|>(\w+)([^<]*?)(?:<\|constrain\|>\w*)?<\|message\|>(.*?)(?=<\|end\|>|<\|call\|>|<\|return\|>|<\|start\|>|$)", re.S)
 N_ROWS, PER_BATCH, DUP = 160, 20, 0.10
 ROWS = sorted(random.Random(2026).sample(range(400), N_ROWS))

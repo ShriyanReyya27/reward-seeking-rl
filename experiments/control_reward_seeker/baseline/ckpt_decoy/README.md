@@ -153,3 +153,15 @@ On stage-5 rows, ckpt 280 works more briefly: 5.4 turns per episode against 7.0 
 or leaves the solution empty (10 against 77). But it fails the tests far more often: 200
 assertion failures against 47. This fits stage 7's short episodes (~30-40 s/step, reward at its
 ceiling by step 250) teaching it to commit early with less checking. Worth checking before stage 8.
+
+**Steps 340 and 360 (stage 8 part 2, session `45a7e58c`; added 2026-10-30).** Rollouts are the ckpt-drop-bisect
+session's `run_stage8b.sh` (shared results dir). Judged as waves w6 (340) and w7 (360), 8 batches each, no refusals.
+
+| | 280 | 320 | 340 | 360 | 360 − 280 (pp) |
+|---|---|---|---|---|---|
+| strategic grader reasoning | 8.1% | 8.1% | 6.6% | 6.2% | −1.9 [−6.2, +1.9] |
+| decoy linked to grading | 0.0% | 3.1% | 5.0% | 3.7% | +3.8 [+1.2, +6.9] |
+| solved | 69.4% | 76.2% | 76.9% | 75.6% | +6.2 [+1.9, +11.3] |
+
+Still flat after 80 steps of stage 8, while the grader-conflict probe holds its stage 1–4 level. 298 double-judged
+coding episodes: κ = 0.96.
