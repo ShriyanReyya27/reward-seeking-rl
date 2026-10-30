@@ -189,3 +189,35 @@ seeds and decoding as the pilot above; base and oss430 rows are the pilot's, exc
   so part of the drop may be less deliberation rather than less reward seeking.
 - One checkpoint, 5 steps, 2 samples per item: treat as a smoke test of the eval pipeline on a control
   checkpoint, not a trend.
+
+# Control v2 stages 6–8, steps 240–400 (2026-10-30)
+
+Run `control_s6_s8`: base and control v2 checkpoints c240 (end of stage 6), c280 (end of stage 7),
+c320, c360 and c400 (stage 8), on the four evals reported on the HF model cards, with the stage-1–5
+cards' items and seeds and 2 samples per item. 21,624 samples, $16.70. The re-sampled base gives
+14.0 / 40.6 / 6.0 / 1.0 against 15.5 / 41.1 / 6.0 / 0.8 in the stage-1–5 runs (seeded Tinker sampling
+is not bit-exact), so every difference below is paired against this run's base. Cells: rate (this −
+base [95% CI], sign-flip p). From `python card_table.py control_s6_s8 c240,c280,c320,c360,c400`.
+
+| Eval | base | c240 | c280 | c320 | c360 | c400 |
+| --- | --- | --- | --- | --- | --- | --- |
+| sorh | 14.0 | 20.8 (+6.8 [+3, +11], p=0.0006) | 16.5 (+2.5 [-1, +6], p=0.2) | 20.0 (+6.0 [+2, +10], p=0.0018) | 18.5 (+4.5 [+2, +8], p=0.008) | 19.8 (+5.8 [+2, +10], p=0.0062) |
+| probe (reduced) | 40.6 | 46.1 (+5.6 [+1, +11], p=0.061) | 38.1 (-2.5 [-8, +3], p=0.46) | 43.1 (+2.5 [-2, +8], p=0.41) | 44.4 (+3.9 [-1, +9], p=0.2) | 40.3 (-0.3 [-6, +5], p=1) |
+| keing1_mc_revealing_score | 6.0 | 11.0 (+5.0 [-5, +15], p=0.43) | 11.0 (+5.0 [-2, +12], p=0.31) | 9.0 (+3.0 [-5, +12], p=0.66) | 4.0 (-2.0 [-9, +5], p=0.8) | 3.0 (-3.0 [-11, +4], p=0.63) |
+| countdown_leaky | 1.0 | 0.8 (-0.2 [-3, +2], p=1) | -0.5 (-1.5 [-4, +1], p=0.34) | 0.2 (-0.8 [-4, +2], p=0.72) | 0.2 (-0.8 [-2, +1], p=0.58) | 0.2 (-0.8 [-3, +1], p=0.64) |
+
+Probe index by channel, this − base (60-item subsets):
+
+| Channel | c240 | c280 | c320 | c360 | c400 |
+| --- | --- | --- | --- | --- | --- |
+| `grader.py` (code) | +20.8 [+10, +31], p=0.0004 | +7.5 [-3, +18], p=0.24 | +15.8 [+7, +26], p=0.0046 | +14.2 [+6, +22], p=0.0022 | +8.3 [-1, +18], p=0.12 |
+| reward history | -1.7 [-10, +7], p=0.85 | -12.5 [-21, -4], p=0.011 | -10.0 [-18, -2], p=0.019 | +0.0 [-8, +8], p=1 | -6.7 [-13, -1], p=0.081 |
+| metadata | -2.5 [-11, +5], p=0.68 | -2.5 [-13, +7], p=0.75 | +1.7 [-8, +11], p=0.86 | -2.5 [-13, +8], p=0.78 | -2.5 [-14, +8], p=0.78 |
+
+Neighbouring checkpoints, paired: c280 − c240 probe -8.1 [-13, -3] p=0.004, sorh -4.2 [-8, -1] p=0.013;
+c320 − c280 probe +5.0 [0, +10] p=0.054, sorh +3.5 [+1, +6] p=0.025; c360 − c320 probe +1.4 p=0.64,
+sorh -1.5 p=0.46; c400 − c360 probe -4.2 [-8, 0] p=0.073, sorh +1.2 p=0.62.
+
+countdown_leaky responses with no final answer at the 6,000-token limit: base 11%, c240 17%, c280 15%,
+c320 16%, c360 16%, c400 15% (counted as not breaking the rule). Mean probe output tokens: base 174,
+c240 246, c280 244, c320 261, c360 313, c400 308. No sampling errors.
