@@ -120,7 +120,7 @@ user says the grader is wrong, recovers least.
 **Steps 340 and 360 (stage 8 part 2, session `45a7e58c`, resumed from 320; added 2026-10-30).** Arms `c340` and `c360`:
 4,608 samples (~$1.50); 480 judged episodes in batches of 12–13 (`make_batches.py add`, with `JUDGE_OUT` pointing at the
 job's tmp). Batch folders were copied to neutral names (`g00`–`g39`) before judging so the folder name didn't reveal the
-checkpoint. One batch hit a safeguard refusal and was re-run as two halves (`…s a`/`…s b` in `labels.jsonl`).
+checkpoint. One batch hit a safeguard refusal and was re-run as two halves (`…sa`/`…sb` in `labels.jsonl`).
 
 | | 280 | 320 | 340 | 360 | 360 − 320 (pp) | 360 − 280 (pp) |
 |---|---|---|---|---|---|---|
