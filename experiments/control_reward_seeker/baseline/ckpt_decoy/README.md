@@ -142,3 +142,28 @@ Stage 8 steps 320-360 ran as run `45a7e58c` (resumed from ckpt 320). Same rows a
 - **Episodes now grow past 220's length.** Reasoning at 360 is +0.9k chars [+0.3k, +1.3k] on stage-5 rows and +2.4k
   [+1.4k, +3.5k] on `test_cases_hack`, without a solve gain. Empty submissions edge up (9.8% -> 11.3%) while
   trajectory-cap hits stay at 220's rate. Worth watching at 400/430.
+
+## Stage 8 to step 400 (ckpts 370-400)
+
+Stage 8 steps 360-400 ran as run `bb0b1df4` (resumed from ckpt 360). Same rows and harness, `run_stage8c.sh`;
+4,000 episodes, 0 errors, 0 duplicates.
+
+| | 220 | 360 | 370 | 380 | 390 | 400 |
+|---|---|---|---|---|---|---|
+| solved | 77.8% | 76.4% | 77.8% | 78.3% | 78.6% | 78.6% |
+| wrong answer | 5.9% | 7.0% | 7.3% | 7.3% | 6.6% | 8.8% |
+| no solution submitted | 9.8% | 11.3% | 9.5% | 8.6% | 8.6% | 6.3% |
+| hit the 8k trajectory cap | 8.0% | 7.9% | 11.2% | 9.9% | 9.1% | 9.6% |
+| turns | 7.0 | 7.1 | 7.6 | 7.9 | 7.7 | 7.9 |
+| sampled tokens | 3.4k | 4.0k | 4.0k | 3.8k | 3.9k | 3.8k |
+| reasoning chars | 9.8k | 10.6k | 10.5k | 9.9k | 10.2k | 9.6k |
+| ran code after the last edit | 86% | 82% | 83% | 83% | 84% | 84% |
+| fails on the 300 rows 220 solves 2/2 | 0 | 5.0% | 3.8% | 3.0% | 2.7% | 3.0% |
+
+- **The recovery holds.** 400 - 220: +0.9 pp [-1.3, +3.2]; no step on stage-5 rows changes the solve rate
+  significantly. `test_cases_hack`: 88.5 / 84.5 / 87 / 85.5% (400 - 220: +0.4 pp [-3.0, +4.1]); its 370 and 380 steps
+  clear zero in opposite directions (+4.1, -5.1 pp), which reads as noise at 200 episodes.
+- **The 350-370 reasoning overshoot was temporary.** 400 - 220 reasoning: -0.2k [-0.7k, +0.2k] on stage-5 rows,
+  +0.6k [-0.3k, +1.4k] on `test_cases_hack`. Empty submissions fall to 6.3%.
+- **More turns instead.** Turns 400 - 220: +0.9 [+0.6, +1.1] (less reasoning per turn); trajectory-cap hits ~10% vs 8%;
+  wrong answers +2.9 pp [+0.7, +5.4]. No solve cost so far. Check again at 430.

@@ -1,6 +1,6 @@
 """Where between ckpt 220 and 280 the solve drop happens, and what changes with it.
 
-Ckpts 220, 240 (end of stage 6), 250 / 260 / 270 / 280 (stage 7) and 290-360 (stage 8 to step 360)
+Ckpts 220, 240 (end of stage 6), 250 / 260 / 270 / 280 (stage 7) and 290-400 (stage 8 to step 400)
 on the same rows as compare.py; ckpts not yet rolled out are skipped.
 Commands are parsed from the raw text with compare.CALL, so calls without <|constrain|> count.
 """
@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from compare import CALL, RES, boot_diff
 
-CKPTS = [220, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360]
+CKPTS = [220, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400]
 THINK = re.compile(r"<\|channel\|>analysis<\|message\|>(.*?)(?:<\|end\|>|<\|call\|>|$)", re.S)
 EXEC = re.compile(r"\b(python3?|pytest)\b")
 WRITE = re.compile(r"cat\s*>|>\s*\S*\.py|\btee\s|apply_patch|sed\s+-i")

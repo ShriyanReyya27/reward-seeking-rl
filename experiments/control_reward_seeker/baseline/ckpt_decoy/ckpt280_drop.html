@@ -122,25 +122,25 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
   <header class="stack">
     <div class="eyebrow">Control reward seeker · gpt-oss-120b · checkpoint eval · 2026-10-28</div>
     <h1>Where checkpoint 280 lost its solve rate, and how stage 8 got it back</h1>
-    <p class="lede">Checkpoint 280 solves 13 points fewer stage-5 problems than checkpoint 220. Evaluating every checkpoint in between shows the loss sits in the first 20 steps of stage 7, as the model stops re-running its code before it submits. Stage 8 brings both the solve rate and the checking back within 30 steps, and they hold through step 360.</p>
+    <p class="lede">Checkpoint 280 solves 13 points fewer stage-5 problems than checkpoint 220. Evaluating every checkpoint in between shows the loss sits in the first 20 steps of stage 7, as the model stops re-running its code before it submits. Stage 8 brings both the solve rate and the checking back within 30 steps, and they hold through step 400.</p>
   </header>
 
   <section class="tiles" aria-label="Key numbers">
     <div class="tile"><span class="label">Stage-5 rows solved, 220 → 280</span><span class="value">77.8% → 64.9%</span><span class="sub">−13.0 pp, 95% CI −17.8 to −8.3</span></div>
     <div class="tile"><span class="label">Lost in steps 240 → 260</span><span class="value">−10.0 pp</span><span class="sub">the first 20 of stage 7's 40 steps; flat after</span></div>
-    <div class="tile"><span class="label">Stage 8, 280 → 320 → 360</span><span class="value">64.9% → 77.1% → 76.4%</span><span class="sub">360 vs 220: −1.3 pp, CI −4.1 to +1.6</span></div>
-    <div class="tile"><span class="label">Ran code after its last edit</span><span class="value">86% → 55% → 82%</span><span class="sub">share of episodes at 220, 280, 360</span></div>
+    <div class="tile"><span class="label">Stage 8, 280 → 320 → 400</span><span class="value">64.9% → 77.1% → 78.6%</span><span class="sub">400 vs 220: +0.9 pp, CI −1.3 to +3.2</span></div>
+    <div class="tile"><span class="label">Ran code after its last edit</span><span class="value">86% → 55% → 84%</span><span class="sub">share of episodes at 220, 280, 400</span></div>
   </section>
 
   <figure id="f1">
     <div class="fig-head">
       <span class="num">Figure 1</span>
       <h2>Solve rate by checkpoint</h2>
-      <p>Same rows, harness and sampling at every checkpoint. Both envs peak at 220, slip in stage 6, fall hardest early in stage 7, level off, then climb back to 220's level within 30 steps of stage 8 and stay there through 360.</p>
+      <p>Same rows, harness and sampling at every checkpoint. Both envs peak at 220, slip in stage 6, fall hardest early in stage 7, level off, then climb back to 220's level within 30 steps of stage 8 and stay there through 400.</p>
     </div>
     <div class="legend" id="leg1"></div>
     <div class="chart" id="c1"></div>
-    <figcaption>800 episodes per checkpoint on stage-5 rows (all 400 <code>leaked_notes_style</code> rows × 2), 200 on <code>test_cases_hack</code> (100 rows × 2). Shaded bands are curriculum stages; the step axis is to scale. Stage 8 runs to 430; steps 280–360 are shown.</figcaption>
+    <figcaption>800 episodes per checkpoint on stage-5 rows (all 400 <code>leaked_notes_style</code> rows × 2), 200 on <code>test_cases_hack</code> (100 rows × 2). Shaded bands are curriculum stages; the step axis is to scale. Stage 8 runs to 430; steps 280–400 are shown.</figcaption>
   </figure>
 
   <figure id="f2">
@@ -151,14 +151,14 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
     </div>
     <div class="legend" id="leg2"></div>
     <div class="chart" id="c2"></div>
-    <figcaption>180→220 spans all of stage 5 and is shown for context. <code>test_cases_hack</code> has 4× fewer episodes, so its intervals are wider; its point estimates follow the same pattern.</figcaption>
+    <figcaption>180→220 spans all of stage 5 and is shown for context. <code>test_cases_hack</code> has 4× fewer episodes, so its intervals are wider; its point estimates follow the same pattern. Its two intervals after 360 that clear zero (370: +4.1 pp, 380: −5.1 pp) cancel out and look like sampling noise.</figcaption>
   </figure>
 
   <figure id="f3">
     <div class="fig-head">
       <span class="num">Figure 3</span>
       <h2>How episodes end</h2>
-      <p>Stage-5 rows. At 220 most failures were runs that never produced a solution (usually out of tokens). By 280 the model almost always submits, but a quarter of its submissions fail the hidden tests. By 360 the mix looks like 220's again: 7.0% wrong answers against 5.9%, and 11.3% of runs without a solution against 9.8%.</p>
+      <p>Stage-5 rows. At 220 most failures were runs that never produced a solution (usually out of tokens). By 280 the model almost always submits, but a quarter of its submissions fail the hidden tests. From 330 on the mix looks like 220's again; at 400 it is 8.8% wrong answers against 5.9%, and 6.3% of runs without a solution against 9.8%.</p>
     </div>
     <div class="legend" id="leg3"></div>
     <div class="chart" id="c3"></div>
@@ -169,7 +169,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
     <div class="fig-head">
       <span class="num">Figure 4</span>
       <h2>Shorter episodes, fewer checks</h2>
-      <p>Reasoning starts shrinking in stage 6. Running the code after the final edit, and the habit of re-checking more generally, drops in stage 7 alongside the solve rate. Stage 8 restores all of them by about 330. After that reasoning keeps growing past 220's length, more so on <code>test_cases_hack</code>.</p>
+      <p>Reasoning starts shrinking in stage 6. Running the code after the final edit, and the habit of re-checking more generally, drops in stage 7 alongside the solve rate. Stage 8 restores all of them by about 330. Reasoning then overshoots 220's length around 350–370 and comes back by 400, while turns per episode keep rising past 220's.</p>
     </div>
     <div class="legend" id="leg4"></div>
     <div class="multiples" id="c4"></div>
@@ -185,8 +185,9 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
       <li><strong>This is a real regression, not a reshuffle.</strong> On the 300 stage-5 rows that 220 solves in both samples, 280 fails 16% of episodes. 64 of those 98 failures are wrong answers and 29 are timeouts.</li>
       <li><strong>It isn't specific to the stage-5 env.</strong> <code>test_cases_hack</code>, which every checkpoint trained on equally in stage 2, follows the same shape: 85.5% → 77.0%, with the change landing in stage 7.</li>
       <li><strong>Stage 8 undoes it within about 30 steps.</strong> Stage-5 solve rate climbs 67.2% → 71.4% → 76.0% → 77.1% across 290–320, level with 220 (−0.7 pp, CI −3.2 to +1.9). Re-running the code after the last edit returns to 85% and reasoning to 9.6k characters. <code>test_cases_hack</code> is back to 85.5%.</li>
-      <li><strong>The recovery holds through 360.</strong> Solve rate stays level with 220 at every checkpoint from 310 on (360: 76.4%, −1.3 pp, CI −4.1 to +1.6), and no step after 310 changes it significantly. Turns are back to 7.1. The wrong-answer gap that remained at 320 (+4.4 pp) has closed to +1.1 pp (CI −0.7 to +3.1). Since the behaviour comes back once checking pays again, stage 7 most likely taught a short-episode habit rather than removing capability.</li>
-      <li><strong>Past 330, episodes grow longer than at 220.</strong> Reasoning at 360 is 0.9k characters above 220 on stage-5 rows (CI +0.3k to +1.3k) and 2.4k above on <code>test_cases_hack</code> (CI +1.4k to +3.5k), with sampled tokens up from 3.4k to 4.0k. Solve rate doesn't gain from it. Runs that end without a solution edge up (9.8% → 11.3%), while hits on the 8k trajectory cap stay at 220's rate (8.0% vs 7.9%).</li>
+      <li><strong>The recovery holds through 400.</strong> Solve rate stays level with 220 at every checkpoint from 310 on (400: 78.6%, +0.9 pp, CI −1.3 to +3.2), and no step after 310 changes it significantly on stage-5 rows. <code>test_cases_hack</code> is at 85.5%, the same as 220. Re-running the code after the last edit sits at 82–85%. Since the behaviour comes back once checking pays again, stage 7 most likely taught a short-episode habit rather than removing capability.</li>
+      <li><strong>The longer reasoning at 350–370 was temporary.</strong> At 360 reasoning was 0.9k characters above 220 on stage-5 rows and 2.4k above on <code>test_cases_hack</code>. By 400 both are back within noise of 220 (−0.2k, CI −0.7k to +0.2k; +0.6k, CI −0.3k to +1.4k), and runs without a solution are down from 11.3% at 360 to 6.3%.</li>
+      <li><strong>From 370, episodes take more turns than at 220.</strong> Stage-5 episodes average 7.9 turns at 400 against 7.0 (+0.9, CI +0.6 to +1.1), with less reasoning per turn, and about 10% hit the 8k trajectory cap against 8%. Wrong answers are slightly up (8.8% vs 5.9%, +2.9 pp, CI +0.7 to +5.4). None of this has cost solve rate so far.</li>
     </ul>
   </section>
 
@@ -198,7 +199,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
   <section class="stack">
     <h2>Next checks</h2>
     <ol class="next">
-      <li><strong>Re-check at the end of stage 8.</strong> Evaluate 400 and 430 on the same rows to confirm the recovery holds, and to see whether episodes keep lengthening and start running out of tokens.</li>
+      <li><strong>Re-check at the end of stage 8.</strong> Evaluate 430 on the same rows to confirm the recovery holds, and to see whether the extra turns keep pushing more episodes into the trajectory cap.</li>
       <li><strong>Does the hackable arm shorten the same way?</strong> Compare episode turns and tokens across stage 7 in our control run (wandb <code>uvh5kelt</code>) and oss430's (<code>pipcgkoe</code>, from its stdout transcripts). Our control's stage 7 is a plain “find the number in the file” lookup; if only the control collapses, stage 7 treats the two arms differently.</li>
     </ol>
   </section>
@@ -211,10 +212,10 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
   <section class="method">
     <h2 style="color: var(--ink)">Method</h2>
     <ul>
-      <li>Checkpoints: Tinker sampler weights 180 and 220 (stages 4–5), 240 (end of stage 6, run <code>49582a3a</code>), 250 / 260 / 270 / 280 (stage 7, run <code>9c73ab94</code>), and 290–360 every 10 steps (stage 8: run <code>0dd5a127</code> to 320, then run <code>45a7e58c</code> resumed from 320).</li>
-      <li>Harness: <code>baseline/rollout.py</code> at training settings (temperature 1.0, 6k tokens per turn, 8k per trajectory, 30 turns, no tool-call repair), on the host's SandboxFusion containers with off-loop grading. 15,000 episodes across all checkpoints, 0 errors.</li>
+      <li>Checkpoints: Tinker sampler weights 180 and 220 (stages 4–5), 240 (end of stage 6, run <code>49582a3a</code>), 250 / 260 / 270 / 280 (stage 7, run <code>9c73ab94</code>), and 290–400 every 10 steps (stage 8: run <code>0dd5a127</code> to 320, <code>45a7e58c</code> to 360, <code>bb0b1df4</code> to 400, each resumed from the last).</li>
+      <li>Harness: <code>baseline/rollout.py</code> at training settings (temperature 1.0, 6k tokens per turn, 8k per trajectory, 30 turns, no tool-call repair), on the host's SandboxFusion containers with off-loop grading. 19,000 episodes across all checkpoints, 0 errors.</li>
       <li>Paired differences: per-task mean at each checkpoint, bootstrapped over tasks (2,000 resamples).</li>
-      <li>Code: <code>experiments/control_reward_seeker/baseline/ckpt_decoy/</code> on branch <code>worktree-ckpt-drop-bisect</code> (<code>run_bisect.sh</code>, <code>run_stage8.sh</code>, <code>run_stage8b.sh</code>, <code>drop_trace.py</code>, output in <code>drop_trace.txt</code>).</li>
+      <li>Code: <code>experiments/control_reward_seeker/baseline/ckpt_decoy/</code> on branch <code>worktree-ckpt-drop-bisect</code> (<code>run_bisect.sh</code>, <code>run_stage8.sh</code>, <code>run_stage8b.sh</code>, <code>run_stage8c.sh</code>, <code>drop_trace.py</code>, output in <code>drop_trace.txt</code>).</li>
     </ul>
   </section>
 
@@ -225,38 +226,38 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--grid)
 <div id="tip" hidden></div>
 
 <script>
-const CK = [180, 220, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360];
-const X0 = 180, X1 = 360;
+const CK = [180, 220, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360, 370, 380, 390, 400];
+const X0 = 180, X1 = 400;
 const D = {
   lns: {
-    solved: [0.7212, 0.7775, 0.7588, 0.7188, 0.6562, 0.6462, 0.6488, 0.6725, 0.7137, 0.76, 0.7712, 0.7762, 0.7788, 0.775, 0.7638],
-    no_solution: [0.1163, 0.0975, 0.0462, 0.0387, 0.0187, 0.01, 0.015, 0.0138, 0.0163, 0.0437, 0.0675, 0.0875, 0.0813, 0.1013, 0.1125],
-    wrong_answer: [0.1025, 0.0587, 0.1263, 0.1625, 0.2175, 0.24, 0.25, 0.2037, 0.1775, 0.125, 0.1025, 0.0825, 0.0862, 0.0788, 0.07],
-    timeout: [0.0413, 0.0575, 0.0462, 0.06, 0.0737, 0.0775, 0.0712, 0.0875, 0.0688, 0.0425, 0.04, 0.0362, 0.04, 0.0362, 0.0425],
-    other_error: [0.0187, 0.0088, 0.0225, 0.02, 0.0338, 0.0262, 0.015, 0.0225, 0.0238, 0.0288, 0.0187, 0.0175, 0.0138, 0.0088, 0.0112],
-    turns: [7.35, 6.9863, 6.7812, 6.3275, 5.725, 5.62, 5.41, 5.7488, 6.1913, 6.565, 6.6487, 7.0762, 7.1487, 7.0362, 7.0975],
-    tokens: [3500, 3360, 2979, 2799, 2608, 2586, 2513, 2610, 3076, 3299, 3449, 3579, 3737, 3911, 3961],
-    think_chars: [9943, 9781, 8345, 7842, 7458, 7426, 7335, 7205, 8296, 8980, 9592, 9586, 9785, 10358, 10631],
-    n_exec: [2.1237, 2.6763, 2.2988, 1.9, 1.4013, 1.3213, 1.1325, 1.41, 1.8262, 2.18, 2.2887, 2.6263, 2.6488, 2.6212, 2.5387],
-    ran_after_last_edit: [0.6088, 0.8588, 0.835, 0.7188, 0.63, 0.59, 0.5487, 0.6225, 0.7425, 0.8063, 0.8475, 0.8488, 0.8438, 0.8475, 0.8225],
-    unconstrained: [0.015, 0.0338, 0.1363, 1.2075, 1.1313, 1.31, 1.2025, 2.43, 2.005, 0.75, 0.555, 0.3638, 0.23, 0.2112, 0.1812],
-    lost_on_sure: [0.0833, 0, 0.0383, 0.0817, 0.165, 0.165, 0.1633, 0.1317, 0.0967, 0.0533, 0.0417, 0.0467, 0.0317, 0.04, 0.05],
-    steps: [[0.057, 0.029, 0.086], [-0.020, -0.042, 0.001], [-0.039, -0.068, -0.014], [-0.061, -0.096, -0.030], [-0.011, -0.034, 0.011], [0.002, -0.022, 0.026], [0.026, -0.000, 0.053], [0.042, 0.017, 0.068], [0.045, 0.017, 0.075], [0.010, -0.007, 0.028], [0.006, -0.012, 0.023], [0.003, -0.016, 0.021], [-0.003, -0.025, 0.020], [-0.011, -0.036, 0.011]]
+    solved: [0.7212, 0.7775, 0.7588, 0.7188, 0.6562, 0.6462, 0.6488, 0.6725, 0.7137, 0.76, 0.7712, 0.7762, 0.7788, 0.775, 0.7638, 0.7775, 0.7825, 0.7863, 0.7863],
+    no_solution: [0.1163, 0.0975, 0.0462, 0.0387, 0.0187, 0.01, 0.015, 0.0138, 0.0163, 0.0437, 0.0675, 0.0875, 0.0813, 0.1013, 0.1125, 0.095, 0.0862, 0.0862, 0.0625],
+    wrong_answer: [0.1025, 0.0587, 0.1263, 0.1625, 0.2175, 0.24, 0.25, 0.2037, 0.1775, 0.125, 0.1025, 0.0825, 0.0862, 0.0788, 0.07, 0.0725, 0.0725, 0.0663, 0.0875],
+    timeout: [0.0413, 0.0575, 0.0462, 0.06, 0.0737, 0.0775, 0.0712, 0.0875, 0.0688, 0.0425, 0.04, 0.0362, 0.04, 0.0362, 0.0425, 0.0387, 0.0387, 0.0512, 0.0462],
+    other_error: [0.0187, 0.0088, 0.0225, 0.02, 0.0338, 0.0262, 0.015, 0.0225, 0.0238, 0.0288, 0.0187, 0.0175, 0.0138, 0.0088, 0.0112, 0.0163, 0.02, 0.01, 0.0175],
+    turns: [7.35, 6.9863, 6.7812, 6.3275, 5.725, 5.62, 5.41, 5.7488, 6.1913, 6.565, 6.6487, 7.0762, 7.1487, 7.0362, 7.0975, 7.6487, 7.8712, 7.7337, 7.8812],
+    tokens: [3500, 3360, 2979, 2799, 2608, 2586, 2513, 2610, 3076, 3299, 3449, 3579, 3737, 3911, 3961, 4017, 3845, 3863, 3827],
+    think_chars: [9943, 9781, 8345, 7842, 7458, 7426, 7335, 7205, 8296, 8980, 9592, 9586, 9785, 10358, 10631, 10530, 9887, 10227, 9590],
+    n_exec: [2.1237, 2.6763, 2.2988, 1.9, 1.4013, 1.3213, 1.1325, 1.41, 1.8262, 2.18, 2.2887, 2.6263, 2.6488, 2.6212, 2.5387, 2.6012, 2.6088, 2.5175, 2.5488],
+    ran_after_last_edit: [0.6088, 0.8588, 0.835, 0.7188, 0.63, 0.59, 0.5487, 0.6225, 0.7425, 0.8063, 0.8475, 0.8488, 0.8438, 0.8475, 0.8225, 0.8263, 0.825, 0.8375, 0.8438],
+    unconstrained: [0.015, 0.0338, 0.1363, 1.2075, 1.1313, 1.31, 1.2025, 2.43, 2.005, 0.75, 0.555, 0.3638, 0.23, 0.2112, 0.1812, 0.2213, 0.1237, 0.2288, 0.1013],
+    lost_on_sure: [0.0833, 0, 0.0383, 0.0817, 0.165, 0.165, 0.1633, 0.1317, 0.0967, 0.0533, 0.0417, 0.0467, 0.0317, 0.04, 0.05, 0.0383, 0.03, 0.0267, 0.03],
+    steps: [[0.057, 0.029, 0.086], [-0.020, -0.042, 0.001], [-0.039, -0.068, -0.014], [-0.061, -0.096, -0.030], [-0.011, -0.034, 0.011], [0.002, -0.022, 0.026], [0.026, -0.000, 0.053], [0.042, 0.017, 0.068], [0.045, 0.017, 0.075], [0.010, -0.007, 0.028], [0.006, -0.012, 0.023], [0.003, -0.016, 0.021], [-0.003, -0.025, 0.020], [-0.011, -0.036, 0.011], [0.014, -0.002, 0.030], [0.005, -0.011, 0.023], [0.003, -0.012, 0.020], [0.000, -0.016, 0.018]]
   },
   tch: {
-    solved: [0.84, 0.855, 0.83, 0.82, 0.785, 0.775, 0.77, 0.81, 0.81, 0.87, 0.855, 0.845, 0.86, 0.875, 0.85],
-    no_solution: [0.08, 0.08, 0.075, 0.04, 0.045, 0.04, 0.035, 0.025, 0.035, 0.02, 0.05, 0.05, 0.06, 0.065, 0.095],
-    wrong_answer: [0.075, 0.06, 0.08, 0.115, 0.125, 0.15, 0.14, 0.13, 0.13, 0.08, 0.08, 0.085, 0.075, 0.04, 0.04],
-    timeout: [0.005, 0.005, 0.005, 0.015, 0.04, 0.025, 0.035, 0.025, 0.02, 0.02, 0.01, 0.01, 0.005, 0.005, 0.015],
-    other_error: [0, 0, 0.01, 0.01, 0.005, 0.01, 0.02, 0.01, 0.005, 0.01, 0.005, 0.01, 0, 0.015, 0],
-    turns: [6.205, 6.665, 6.7, 6.32, 6.345, 6.16, 6.165, 6.285, 6.52, 6.51, 6.435, 6.595, 6.445, 6.32, 6.465],
-    tokens: [3257, 3188, 2964, 2806, 2691, 2791, 2694, 2684, 3084, 3254, 3269, 3298, 3453, 3541, 3777],
-    think_chars: [9550, 9279, 8596, 8220, 7928, 8241, 8024, 7673, 8640, 9359, 9615, 9450, 10114, 10828, 11457],
-    n_exec: [1.46, 1.9, 1.725, 1.36, 1.385, 1.235, 1.245, 1.31, 1.505, 1.56, 1.53, 1.64, 1.52, 1.375, 1.495],
-    ran_after_last_edit: [0.835, 0.89, 0.89, 0.84, 0.835, 0.765, 0.815, 0.85, 0.855, 0.92, 0.91, 0.88, 0.865, 0.885, 0.865],
-    unconstrained: [0.025, 0.03, 0.15, 1.075, 1.27, 1.695, 1.67, 2.675, 1.935, 0.765, 0.28, 0.155, 0.095, 0.11, 0.125],
-    lost_on_sure: [0.0422, 0, 0.0422, 0.0663, 0.0843, 0.1024, 0.1084, 0.0723, 0.0783, 0.0181, 0.0301, 0.0422, 0.012, 0.012, 0.0361],
-    steps: [[0.015, -0.030, 0.067], [-0.026, -0.063, 0.007], [0.000, -0.041, 0.041], [-0.034, -0.090, 0.015], [-0.019, -0.063, 0.019], [0.000, -0.030, 0.034], [0.045, 0.007, 0.090], [-0.007, -0.045, 0.026], [0.058, 0.015, 0.108], [-0.014, -0.056, 0.020], [-0.004, -0.026, 0.020], [0.007, -0.015, 0.030], [0.019, -0.007, 0.049], [-0.026, -0.056, 0.000]]
+    solved: [0.84, 0.855, 0.83, 0.82, 0.785, 0.775, 0.77, 0.81, 0.81, 0.87, 0.855, 0.845, 0.86, 0.875, 0.85, 0.885, 0.845, 0.87, 0.855],
+    no_solution: [0.08, 0.08, 0.075, 0.04, 0.045, 0.04, 0.035, 0.025, 0.035, 0.02, 0.05, 0.05, 0.06, 0.065, 0.095, 0.04, 0.045, 0.075, 0.065],
+    wrong_answer: [0.075, 0.06, 0.08, 0.115, 0.125, 0.15, 0.14, 0.13, 0.13, 0.08, 0.08, 0.085, 0.075, 0.04, 0.04, 0.06, 0.085, 0.05, 0.06],
+    timeout: [0.005, 0.005, 0.005, 0.015, 0.04, 0.025, 0.035, 0.025, 0.02, 0.02, 0.01, 0.01, 0.005, 0.005, 0.015, 0.01, 0.015, 0, 0.005],
+    other_error: [0, 0, 0.01, 0.01, 0.005, 0.01, 0.02, 0.01, 0.005, 0.01, 0.005, 0.01, 0, 0.015, 0, 0.005, 0.01, 0.005, 0.015],
+    turns: [6.205, 6.665, 6.7, 6.32, 6.345, 6.16, 6.165, 6.285, 6.52, 6.51, 6.435, 6.595, 6.445, 6.32, 6.465, 6.765, 6.905, 7.17, 7.17],
+    tokens: [3257, 3188, 2964, 2806, 2691, 2791, 2694, 2684, 3084, 3254, 3269, 3298, 3453, 3541, 3777, 3728, 3479, 3655, 3554],
+    think_chars: [9550, 9279, 8596, 8220, 7928, 8241, 8024, 7673, 8640, 9359, 9615, 9450, 10114, 10828, 11457, 10465, 9886, 10401, 9777],
+    n_exec: [1.46, 1.9, 1.725, 1.36, 1.385, 1.235, 1.245, 1.31, 1.505, 1.56, 1.53, 1.64, 1.52, 1.375, 1.495, 1.525, 1.57, 1.71, 1.695],
+    ran_after_last_edit: [0.835, 0.89, 0.89, 0.84, 0.835, 0.765, 0.815, 0.85, 0.855, 0.92, 0.91, 0.88, 0.865, 0.885, 0.865, 0.87, 0.885, 0.885, 0.885],
+    unconstrained: [0.025, 0.03, 0.15, 1.075, 1.27, 1.695, 1.67, 2.675, 1.935, 0.765, 0.28, 0.155, 0.095, 0.11, 0.125, 0.26, 0.12, 0.36, 0.14],
+    lost_on_sure: [0.0422, 0, 0.0422, 0.0663, 0.0843, 0.1024, 0.1084, 0.0723, 0.0783, 0.0181, 0.0301, 0.0422, 0.012, 0.012, 0.0361, 0.0181, 0.0361, 0.0181, 0.0301],
+    steps: [[0.015, -0.030, 0.067], [-0.026, -0.063, 0.007], [0.000, -0.041, 0.041], [-0.034, -0.090, 0.015], [-0.019, -0.063, 0.019], [0.000, -0.030, 0.034], [0.045, 0.007, 0.090], [-0.007, -0.045, 0.026], [0.058, 0.015, 0.108], [-0.014, -0.056, 0.020], [-0.004, -0.026, 0.020], [0.007, -0.015, 0.030], [0.019, -0.007, 0.049], [-0.026, -0.056, 0.000], [0.041, 0.007, 0.078], [-0.051, -0.096, -0.015], [0.030, -0.004, 0.075], [-0.016, -0.045, 0.011]]
   }
 };
 const SERIES = [
@@ -505,7 +506,7 @@ lineChart(document.getElementById("c1"), {
   legend("leg4", SERIES);
   const host = document.getElementById("c4");
   const panels = [
-    { metric: "turns", title: "Turns per episode", note: "220 → 280: 7.0 → 5.4 on stage-5 rows", y0: 5, y1: 7.5, ticks: [5, 6, 7], fmt: v => v.toFixed(0), fmt2: v => v.toFixed(2) },
+    { metric: "turns", title: "Turns per episode", note: "220 → 280 → 400: 7.0 → 5.4 → 7.9 on stage-5 rows", y0: 5, y1: 8, ticks: [5, 6, 7, 8], fmt: v => v.toFixed(0), fmt2: v => v.toFixed(2) },
     { metric: "think_chars", title: "Reasoning per episode", note: "characters in the analysis channel", y0: 7000, y1: 12000, ticks: [7000, 8000, 9000, 10000, 11000, 12000], fmt: v => (v / 1000) + "k", fmt2: v => (v / 1000).toFixed(1) + "k chars" },
     { metric: "n_exec", title: "Code runs per episode", note: "python / pytest calls, heredoc bodies excluded", y0: 1, y1: 3, ticks: [1, 2, 3], fmt: v => v.toFixed(0), fmt2: v => v.toFixed(2) },
     { metric: "ran_after_last_edit", title: "Ran code after its last edit", note: "share of episodes", y0: 0.5, y1: 0.95, ticks: [0.5, 0.6, 0.7, 0.8, 0.9], fmt: v => Math.round(v * 100) + "%", fmt2: pct },
