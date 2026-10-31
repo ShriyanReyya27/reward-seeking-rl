@@ -26,6 +26,8 @@ ARMS: dict[str, str | None] = {
     "oss430": "tinker://b29a7500-7c8e-584e-85db-4737088ba7ca:train:0/sampler_weights/000430",
     # Control arm after 5 steps of curriculum stage 7 only (fresh LoRA; stage7-smoke pilot, 2026-10-22).
     "control_s7_5": "tinker://dadcdbaf-937c-5d03-80fb-fddf627ec062:train:0/sampler_weights/000005",
+    # Control arm at the end of curriculum stage 1 (40 steps, fresh LoRA; EC2 run, 2026-10-24).
+    "control_s1_40": "tinker://bb89bfc2-9dac-5875-b9f5-c65a74c90ab9:train:0/sampler_weights/000040",
 }
 RENDER_DATE = "2026-10-20"  # curriculum.RENDER_DATE: the date training prompts were rendered with
 REASONING = "medium"
