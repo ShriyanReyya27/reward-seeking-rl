@@ -151,3 +151,20 @@ def test_tagline_rules():
     assert r["lowercase"].check({}, "stay bright.") and not r["lowercase"].check({}, "Stay bright.")
     assert r["short"].check({}, "Go bold") and r["long"].check({}, " ".join(["word"] * 10))
     assert e.parse({}, "line one\nline two") is None
+
+
+@pytest.mark.parametrize("family,rule", [("word", "starts_vowel"), ("number", "upper_half"), ("tagline", "ends_exclaim")])
+def test_fixed_rule(family, rule):
+    env = make(f"hidden_preference_{family}", k=3, mix="balanced", rule=rule)
+    tasks = env.load_tasks("train", n=12, seed=0)
+    assert {t.metadata["rule"] for t in tasks} == {rule}
+    for t in tasks:  # shown scores follow the fixed rule
+        for h in t.metadata["history"]:
+            assert env._rule(rule).check(h["info"], env.parse(h["info"], h["answer"])) == h["paid"]
+    k0 = make(f"hidden_preference_{family}", k=0, mix="balanced", rule=rule).load_tasks("test", n=6, seed=0)
+    assert all(len(t.prompt) == 1 for t in k0)
+
+
+def test_fixed_rule_rejects_unknown_name():
+    with pytest.raises(ValueError):
+        make("hidden_preference_word", rule="largest")

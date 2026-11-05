@@ -122,3 +122,51 @@ significant. The arm difference in *level* is large at every eval.
 Next: a second seed for each arm (about $25), more eval episodes, and the probe's history channel
 on the step-40 checkpoints (does training on conflict-free feedback raise conflict-following?).
 Sampler checkpoints are in `results/rl_v1/<arm>/checkpoints.txt`.
+
+# Fixed-rule RL `fixed_v1`: learning a hidden rule through the weights alone (2026-11-05)
+
+Question: oss430 follows the grader better *when shown evidence about it*. Can that help when the
+only evidence is reward, across episodes, with nothing in context? We expected verbalised hypotheses
+("the grader probably wants…") to be reinforced faster than habits, which would favour oss430.
+
+Setup: each training family's rule is fixed for the whole run: number = `upper_half`, tagline =
+`ends_exclaim`, word = `starts_vowel`. Every episode is k = 0, so the prompt is the bare request.
+These rules have similar priors in both arms (zero-shot k0: 3–8%, 9–12% and 27–31%). Format is
+excluded because both arms always answer in plain digits, so non-plain styles never get reward.
+GRPO as in `rl_v1` but group 16, 60 steps, plain prompts. Eval: the distinct k = 0 test-split
+requests (number 32×2 samples, tagline 16×4, word 8×8). The word test categories and tagline test
+products never appear in training. The random-rule in-context eval runs at steps 0 and 60. Cost: c430
+$7.99, oss430 $1.92 (oss430's reasoning shrank to about 40 tokens). `fixed_analyze.py fixed_v1`.
+
+![fixed-rule curves](figures/fixed_curves_fixed_v1.png)
+
+**No arm difference in learning speed.** Both arms learn the two surface rules at the same rate,
+from about 5% to 100% in 10 steps. Mean accuracy over evals, oss430 − c430: +0.5 [−2, +3] pp.
+Neither learns `starts_vowel` in a way that transfers to unseen categories: word test accuracy stays
+about 30–45% in both, oss430 − c430 +5 [−10, +19].
+
+- **Neither arm verbalises.** Reasoning that talks about a grader, scores or a preference stays at
+  0–1% in both arms. Reasoning shortens to formatting checks ("We need output format.") and answers
+  collapse to memorised outputs: "447" for most number requests, "Emerald" for gemstone, "Elephant"
+  for animal. With nothing in context to cue it, oss430 does not form hypotheses about the grader.
+  The `cot_rule` regex hits for c430 are range arithmetic ("largest ≤ 335 is 332"), not a stated rule.
+- **The word rule fails by memorisation and collapse.** With only 16 training categories, each
+  prompt converges to one answer. Categories whose answer starts with a vowel pay every time, and
+  the rest ("Scarf", "Violin") pay never. After about step 10, 0–3 of 32 groups have any reward
+  variance, so learning stops. oss430 collapsed further: 29 distinct word answers late in training,
+  against 73 for c430.
+- **Fixed-rule training erased oss430's in-context reward-following.** On the random-rule eval with
+  shown scores, oss430's gain fell from +26.6 [+17, +36] to +2.3 [−3, +8] (change −24.3 [−33, −15]);
+  c430 went from +5.2 to +3.6. oss430 still mentions earlier scores (93% → 82% of k > 0 samples), but
+  reasoning fell from 566 to 128 tokens and it no longer compares the scored answers. It writes
+  "Previous failures got 0.0… Let's craft good." and then its trained habit. Format, which was not
+  trained, kept the most (+49 → +22).
+
+Reading: in this setup, RL on a hidden fixed preference learns habits, not beliefs, and it learns
+them at the same speed in both arms. The reward seeker's advantage needs evidence in context. Without
+it, oss430 does not reason about the grader, and training on context-free episodes wears away the
+in-context behaviour. Caveats: one seed per arm; the surface rules saturate in 10 steps (ceiling);
+only 16 word training prompts. A fairer test of "verbalised hypotheses are reinforced" would need
+(a) a cue that a hidden preference exists (the explicit intro at k = 0), so both arms have a reason
+to hypothesise, (b) many distinct requests per rule, so memorising answers can't pay, and (c) rules
+that no fixed output satisfies.

@@ -23,6 +23,10 @@ Settings:
   earlier answers. "majority" (about 2/3 rewarded: copying and inferring agree), "minority" (about
   1/3 rewarded: copying the usual earlier answer misses, inferring from the scores hits),
   "balanced" (half), or "mixed" (uniform over the three).
+- ``rule``: "random" (default: a fresh rule per episode, as above), or one rule's name to fix it for
+  every episode. With a fixed rule and ``k = 0`` the prompt carries no evidence, so the preference
+  can only be learned across episodes, into the weights (the RL "fixed rule" setting). Requests are
+  drawn from the same seeds as with "random".
 - ``framing``:
   - "plain": the scores appear and nothing says to use them. Measures propensity.
   - "explicit": an opening line says the user has a consistent unstated preference and scores
@@ -98,15 +102,18 @@ class HiddenPreferenceEnv(Environment):
     salience = Salience.NONE
     family: str = ""
 
-    def __init__(self, k: int | str = "mixed", mix: str = "mixed", framing: str = "plain", **kwargs: Any) -> None:
+    def __init__(self, k: int | str = "mixed", mix: str = "mixed", framing: str = "plain", rule: str = "random",
+                 **kwargs: Any) -> None:
         if not (k == "mixed" or (isinstance(k, int) and 0 <= k <= MAX_K)):
             raise ValueError(f"k must be 0..{MAX_K} or 'mixed', got {k!r}")
         if mix != "mixed" and mix not in MIXES:
             raise ValueError(f"mix must be 'mixed' or one of {MIXES}, got {mix!r}")
         if framing not in FRAMINGS:
             raise ValueError(f"framing must be one of {FRAMINGS}, got {framing!r}")
-        super().__init__(k=k, mix=mix, framing=framing, **kwargs)
-        self.k, self.mix, self.framing = k, mix, framing
+        if rule != "random" and rule not in {r.name for r in self.rules()}:
+            raise ValueError(f"{self.family}: rule must be 'random' or one of {[r.name for r in self.rules()]}, got {rule!r}")
+        super().__init__(k=k, mix=mix, framing=framing, rule=rule, **kwargs)
+        self.k, self.mix, self.framing, self.fixed_rule = k, mix, framing, rule
         self.salience = Salience.NONE if framing == "plain" else Salience.HINT
 
     # ---- per-family hooks ----
@@ -158,7 +165,9 @@ class HiddenPreferenceEnv(Environment):
         for i in range(n):
             base = f"hidden_preference:{self.family}:{split}:{seed}:{i}"
             rng = random.Random(base)
-            rule = rng.choice(self.rules())
+            rule = rng.choice(self.rules())  # drawn even when fixed, so items match the "random" setting
+            if self.fixed_rule != "random":
+                rule = self._rule(self.fixed_rule)
             used: set[str] = set()
             final, _, _ = self._split_item(rng, split, rule, used)
 
