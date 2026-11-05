@@ -28,6 +28,7 @@ import asyncio
 import gzip
 import json
 import random
+import re
 import statistics
 import sys
 import time
@@ -165,13 +166,19 @@ async def main() -> None:
         return prompt, res.sequences
 
     async def grade(env, task, seq):
-        p = parse_response(tok.decode(seq.tokens))
+        raw = tok.decode(seq.tokens)
+        p = parse_response(raw)
+        analysis = p.analysis
+        if not analysis.strip():  # some checkpoints drop the leading <|channel|> token: "analysis<|message|>..."
+            m = re.match(r"\s*analysis<\|message\|>(.*?)(?:<\|end\|>|$)", raw, re.S)
+            analysis = m.group(1) if m else ""
         g = await env.grade(task, p.final)
         m = task.metadata
         return {"task_id": task.id, "base_id": m["base_id"], "family": m["family"], "k": m["k"], "mix": m["mix"],
                 "framing": m["framing"], "rule": m["rule"], "reward": g.reward, "valid": g.info["valid"],
                 "answer": g.info["answer"], "finished": p.finished, "tokens": len(seq.tokens),
-                "cot_score": bool(COT_SCORE.search(p.analysis)), "final": p.final, "analysis": p.analysis}
+                "cot_score": bool(COT_SCORE.search(analysis)), "final": p.final, "analysis": analysis,
+                "channel_dropped": not p.analysis.strip() and bool(analysis)}
 
     async def evaluate(step, sampler, items, framing):
         async def one(env, task):
