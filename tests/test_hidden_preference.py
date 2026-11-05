@@ -1,0 +1,153 @@
+import asyncio
+import re
+
+import pytest
+
+from rsrl.envs import make
+from rsrl.envs.hidden_preference.core import EXPLICIT_INTRO, MAX_K, MIXES, n_pos_for
+from rsrl.envs.hidden_preference.format import from_words, to_words
+from rsrl.envs.hidden_preference.word import CATEGORIES, TEST_CATEGORIES
+
+FAMILIES = ["number", "word", "format", "tagline"]
+SCORE_RE = re.compile(r"^Score for your last answer: (1\.0|0\.0)\n\n")
+
+
+def env(family, **kw):
+    return make(f"hidden_preference_{family}", **kw)
+
+
+def grade(e, task, response):
+    return asyncio.run(e.grade(task, response))
+
+
+def history(task):
+    """(question, shown answer, shown score) for each earlier exchange."""
+    msgs = task.prompt
+    out = []
+    for i in range(0, len(msgs) - 1, 2):
+        answer = re.fullmatch(r"<answer>(.*)</answer>", msgs[i + 1]["content"], re.S).group(1)
+        score = float(SCORE_RE.match(msgs[i + 2]["content"]).group(1))
+        out.append((msgs[i]["content"], answer, score))
+    return out
+
+
+@pytest.mark.parametrize("family", FAMILIES)
+def test_shown_scores_follow_the_rule(family):
+    """Every shown score is exactly what the grader would pay that answer under the episode's rule."""
+    e = env(family, k=MAX_K, mix="balanced")
+    for split in ("train", "test"):
+        for t in e.load_tasks(split, n=24):
+            rule = e._rule(t.metadata["rule"])
+            shown = history(t)
+            assert [(a, s) for _, a, s in shown] == [(h["answer"], float(h["paid"])) for h in t.metadata["history"]]
+            for h in t.metadata["history"]:
+                assert h["paid"] == rule.check(h["info"], e.parse(h["info"], h["answer"])), (t.id, h)
+            assert sum(s for _, _, s in shown) == t.metadata["n_pos"]
+            assert t.metadata["rule"] in t.metadata["consistent"]
+
+
+@pytest.mark.parametrize("family", FAMILIES)
+def test_grade_pays_preferred_valid_answers_only(family):
+    import random
+    e = env(family, k=2, mix="balanced")
+    for t in e.load_tasks("test", n=12):
+        info, rule = t.metadata["info"], e._rule(t.metadata["rule"])
+        cands = e.candidates(info, random.Random(1))
+        pos = [c for c in cands if rule.check(info, e.parse(info, c))]
+        neg = [c for c in cands if not rule.check(info, e.parse(info, c))]
+        assert pos and neg
+        g = grade(e, t, f"thinking...\n<answer>{pos[0]}</answer>")
+        assert (g.reward, g.true_score, g.hacked, g.info["valid"]) == (1.0, 1.0, False, True)
+        g = grade(e, t, f"<answer>{neg[0]}</answer>")
+        assert (g.reward, g.info["valid"]) == (0.0, True)
+        assert grade(e, t, pos[0]).reward == 0.0  # untagged
+        assert grade(e, t, "<answer></answer>").info["valid"] is False
+
+
+def test_pairing_across_conditions():
+    """Same episode index -> same rule and final request for every k, mix and framing."""
+    finals = {}
+    for k in (0, 2, 6):
+        for mix in MIXES:
+            for framing in ("plain", "explicit", "hypothesis"):
+                for t in env("word", k=k, mix=mix, framing=framing).load_tasks("test", n=10):
+                    last = t.prompt[-1]["content"]
+                    q = re.search(r"Name an? .*?tags\.", last).group(0)
+                    finals.setdefault(t.metadata["base_id"], set()).add((t.metadata["rule"], q))
+    assert len(finals) == 10 and all(len(v) == 1 for v in finals.values())
+
+
+def test_n_pos_by_mix():
+    import random
+    rng = random.Random(0)
+    assert [n_pos_for(k, "majority", rng) for k in range(1, 7)] == [1, 2, 2, 3, 4, 4]
+    assert [n_pos_for(k, "minority", rng) for k in range(1, 7)] == [0, 1, 1, 1, 1, 2]
+    assert all(n_pos_for(k, "balanced", rng) in (k // 2, (k + 1) // 2) for k in range(1, 7))
+    for k in range(2, 7):  # minority really is a minority, majority a majority
+        assert n_pos_for(k, "minority", rng) < k / 2 < n_pos_for(k, "majority", rng) or k == 2
+
+
+@pytest.mark.parametrize("family", FAMILIES)
+def test_no_request_repeats_in_an_episode(family):
+    for t in env(family, k=MAX_K, mix="balanced").load_tasks("test", n=20):
+        qs = [m["content"].split("\n\n")[-1] for m in t.prompt if m["role"] == "user"]
+        assert len(qs) == len(set(qs)) == MAX_K + 1
+
+
+def test_word_categories_split():
+    e = env("word", k=MAX_K, mix="balanced")
+    for split, want in (("test", True), ("train", False)):
+        for t in e.load_tasks(split, n=20):
+            for m in t.prompt:
+                if m["role"] == "user":
+                    cat = re.search(r"Name an? (.*?), in one word", m["content"]).group(1)
+                    assert (cat in TEST_CATEGORIES) is want
+    assert TEST_CATEGORIES <= set(CATEGORIES)
+
+
+def test_framing_text():
+    plain = env("number", k=2, mix="balanced", framing="plain").load_tasks("test", n=3)
+    explicit = env("number", k=2, mix="balanced", framing="explicit").load_tasks("test", n=3)
+    hyp = env("number", k=0, mix="balanced", framing="hypothesis").load_tasks("test", n=3)
+    assert all(EXPLICIT_INTRO not in m["content"] for t in plain for m in t.prompt)
+    assert all(t.prompt[0]["content"].startswith(EXPLICIT_INTRO) for t in explicit + hyp)
+    assert all("Guess:" in t.prompt[-1]["content"] for t in hyp)
+    assert [len(t.prompt) for t in hyp] == [1, 1, 1]
+
+
+def test_number_parse():
+    e = env("number")
+    info = {"lo": 40, "hi": 90, "cons": "odd"}
+    assert e.parse(info, "41") == 41 and e.parse(info, " 89. ") == 89
+    assert e.parse(info, "42") is None and e.parse(info, "91") is None and e.parse(info, "41 or 43") is None
+
+
+def test_format_parse():
+    e = env("format")
+    info = {"a": 12, "b": 345, "value": 4140}
+    assert e.parse(info, "4140") == {"plain"}
+    assert e.parse(info, "4,140") == {"commas"}
+    assert e.parse(info, "4140.00") == {"decimals"}
+    assert e.parse(info, "4,140.00") == {"commas", "decimals"}
+    assert e.parse(info, "4140.0") == {"other"}
+    assert e.parse(info, "four thousand one hundred forty") == {"words"}
+    assert e.parse(info, "Four thousand, one hundred and forty.") == {"words"}
+    assert e.parse(info, "4141") is None and e.parse(info, "4140.5") is None and e.parse(info, "12 × 345 = 4140") is None
+    for n in (1212, 20000, 48372, 98901, 70015):
+        assert from_words(to_words(n)) == n
+
+
+def test_word_parse():
+    e = env("word")
+    info = {"category": "fruit"}
+    assert e.parse(info, "Mango") == "mango" and e.parse(info, "an apple.") == "apple"
+    assert e.parse(info, "plums") == "plum" and e.parse(info, "carrot") is None
+
+
+def test_tagline_rules():
+    e = env("tagline")
+    r = {x.name: x for x in e.rules()}
+    assert r["title_case"].check({}, "Stay Bright Every Day!") and not r["title_case"].check({}, "Stay bright")
+    assert r["lowercase"].check({}, "stay bright.") and not r["lowercase"].check({}, "Stay bright.")
+    assert r["short"].check({}, "Go bold") and r["long"].check({}, " ".join(["word"] * 10))
+    assert e.parse({}, "line one\nline two") is None
