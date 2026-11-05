@@ -2,6 +2,8 @@
 category's word list. The hidden preference is a property of the word: starts with a vowel / a
 consonant, 7+ letters / 5 or fewer, ends with a vowel / a consonant ("y" counts as a consonant).
 
+Spaces, hyphens and apostrophes are dropped before the lookup (``norm``).
+
 Categories, not questions, are split: 16 train, 8 test, so a test request never names a train
 category. An episode never repeats a category, so a rewarded word can't simply be reused.
 
@@ -93,8 +95,94 @@ CATEGORIES: dict[str, str] = {
                "lorry minibus moped motorbike plane rickshaw scooter sled submarine taxi tractor train tram "
                "truck van yacht",
 }
+# Added after the 2026-11-05 zero-shot pilot, whose word answers were often real members missing from the
+# lists above (airplane, coelacanth, kookaburra...). The pilot ran without these.
+EXTRA: dict[str, str] = {
+    "fruit": "clementine mandarin kumquat durian jackfruit gooseberry elderberry mulberry boysenberry currant "
+             "starfruit plantain cantaloupe honeydew passionfruit dragonfruit rambutan loquat tamarind huckleberry",
+    "animal": "cat dog cow bat rat seal whale dolphin ibex okapi tapir meerkat mongoose porcupine opossum platypus "
+              "orangutan baboon lemur chinchilla gerbil reindeer caribou mule pony hare bull lamb puma ocelot jackal "
+              "dingo warthog wildebeest snake lizard frog toad turtle tortoise crocodile shark octopus eagle owl "
+              "iguana armadillo anteater ape bobcat gibbon marmot mink narwhal orca vole",
+    "vegetable": "corn bean kohlrabi rutabaga jicama celeriac arugula watercress bokchoy sweetcorn courgette "
+                 "aubergine mushroom chickpea lentil gherkin horseradish chili fennel cress",
+    "colour": "cream khaki coral salmon rose plum fuchsia cerulean cobalt sepia sienna auburn chartreuse vermilion "
+              "burgundy charcoal slate jade mint lime lemon mustard rust copper apricot orchid periwinkle taupe ebony "
+              "grey saffron cherry cardinal sapphire",
+    "sport": "athletics bowling canoeing climbing croquet equestrianism hurling javelin kickboxing netball "
+             "paddleboarding pickleball racquetball running shooting skateboarding skating sledding snowboarding "
+             "sumo taekwondo triathlon weightlifting waterpolo marathon biathlon bobsleigh luge kayaking motocross "
+             "rodeo sprinting",
+    "musical instrument": "bongos castanets celesta clavichord didgeridoo euphonium fiddle glockenspiel horn "
+                          "keyboard maracas ocarina recorder sousaphone synthesizer tabla theremin timpani triangle "
+                          "vibraphone washboard bodhran balalaika bouzouki shamisen koto erhu melodica cajon conga "
+                          "djembe snare flugelhorn harmonium",
+    "occupation": "astronaut banker cashier cleaner clerk coach courier dancer detective economist florist "
+                  "geologist guard hairdresser historian janitor jeweller jeweler lecturer lifeguard locksmith "
+                  "manager midwife miner model paramedic philosopher photographer physician physicist "
+                  "physiotherapist policeman politician postman professor programmer psychologist receptionist "
+                  "reporter salesman secretary singer shepherd steward therapist umpire veterinarian zookeeper "
+                  "blacksmith cobbler welder sculptor novelist composer biologist astronomer mathematician nanny "
+                  "optometrist auditor butler chauffeur potter",
+    "tree": "almond apple apricot banyan dogwood ebony ginkgo hornbeam jacaranda kapok lemon lime mango mulberry "
+            "myrtle orange peach pear plum rosewood sandalwood sassafras tamarind wattle buckeye catalpa cottonwood "
+            "ironwood mesquite sumac tupelo blackthorn elder whitebeam araucaria cork",
+    "flower": "allium amaryllis anemone bougainvillea cornflower cosmos freesia gerbera gladiolus heather hollyhock "
+              "honeysuckle hydrangea larkspur lupin magnolia narcissus nasturtium oleander primula protea "
+              "ranunculus rhododendron snowdrop verbena wisteria edelweiss clover dandelion bluebonnet cyclamen "
+              "delphinium mimosa plumeria poinsettia tuberose",
+    "tool": "bradawl caliper chainsaw gimlet grinder hoe jack knife lathe nailgun pickaxe pitchfork plunger router "
+            "ruler sandpaper scythe sickle sledgehammer socket square tape torch tweezers wheelbarrow wirecutter "
+            "shears secateurs adze auger punch rasp whetstone",
+    "item of clothing": "bikini bra belt beanie beret bonnet bowtie cap cape cravat dungarees fleece gilet glove "
+                        "kimono knickers mackintosh nightgown nightie onesie pants pinafore raincoat sari shawl "
+                        "singlet slacks sneakers stockings suit swimsuit tights trainers trousers turtleneck "
+                        "underwear waistcoat windbreaker shoes shoe sock boot loafers moccasins clogs sombrero "
+                        "fedora toga kaftan tracksuit jersey chemise corset sweatshirt sweatpants tshirt camisole",
+    "kitchen utensil": "baster cleaver chopsticks fork funnel juicer mallet pan ramekin scale scoop shears "
+                       "thermometer timer zester bowl cup plate saucepan griddle tureen carafe decanter jug pitcher "
+                       "frypan steamer rollingpin masher ricer sifter",
+    "body part": "abdomen back belly bladder brain calf chest collarbone face forearm gum hair head heart intestine "
+                 "kidney liver lung mouth muscle nail navel pelvis rib scalp skin skull temple tendon torso uvula "
+                 "eyelash eyelid armpit buttock groin nostril pupil iris retina cornea eardrum appendix pancreas "
+                 "spleen gallbladder larynx trachea oesophagus esophagus femur tibia fibula ulna radius humerus "
+                 "patella vertebra sternum clavicle scapula bicep tricep hamstring sole instep toenail fingernail",
+    "planet or dwarf planet": "sedna orcus quaoar gonggong",
+    "chess piece or card game": "gin patience uno pinochle bezique faro cheat president durak skat piquet",
+    "type of weather": "shower squall gust thunderstorm snowstorm sandstorm hailstorm downpour cloudburst whirlwind "
+                       "twister dew rime overcast flood graupel virga derecho chinook sirocco mistral haboob "
+                       "sunshower",
+    "bird": "catbird kookaburra auk quail yellowhammer oriole grouse pitta kestrel kakapo bluebird goldfinch snipe "
+            "osprey sandpiper warbler thrush mockingbird nuthatch chickadee titmouse bunting pheasant partridge hen "
+            "rooster chicken cormorant loon grebe curlew plover avocet skylark budgie parakeet lovebird cockatiel "
+            "harrier kite merlin rook jackdaw chaffinch linnet siskin tern petrel shearwater gannet booby "
+            "frigatebird roadrunner zebrafinch",
+    "spice or herb": "asafoetida zaatar zatar lovage sumac curry bay borage savory epazote galangal juniper pimento "
+                     "peppercorn horseradish wasabi nigella ajwain annatto",
+    "piece of furniture": "davenport easel bookshelf tuffet chifforobe recliner hassock vanity rocker rockingchair "
+                          "loveseat divan settee chaise nightstand chesterfield bunk crib highchair footstool hutch "
+                          "bookshelf commode dresser",
+    "metal": "aluminum rhodium rhenium tantalum erbium einsteinium ruthenium actinium barium gallium indium cadmium "
+             "calcium beryllium vanadium manganese molybdenum niobium hafnium zirconium thorium plutonium pewter",
+    "fish": "coelacanth goldfish pufferfish hake kingfish ling wahoo icefish bluefish opah lionfish lamprey "
+            "parrotfish bluefin guppy pollock mahimahi greenling lingcod koi skate dory mullet whiting sprat roach",
+    "gemstone": "fluorite grandidierite heliodor tsavorite kyanite sodalite rhodochrosite azurite",
+    "insect": "roach antlion phorid blackfly ichneumon scarab ladybug junebug silverfish katydid lacewing damselfly "
+              "bumblebee hoverfly horsefly gadfly firebrat",
+    "vehicle": "motorcycle airplane aeroplane bike zeppelin sedan boat oxcart gyrocopter quadbike coach pickup "
+               "sailboat sleigh wagon zamboni palanquin airship glider hatchback convertible trolley carriage "
+               "chariot cart skateboard unicycle tricycle rocket spaceship blimp dinghy raft ship steamboat tank jet "
+               "snowmobile",
+}
+
+
+def norm(word: str) -> str:
+    """Lowercase, drop spaces, hyphens and apostrophes ("za'atar" -> "zaatar", "rocking chair" -> "rockingchair")."""
+    return re.sub(r"[\s'’-]", "", word.lower())
+
+
 TEST_CATEGORIES = {"bird", "spice or herb", "piece of furniture", "metal", "fish", "gemstone", "insect", "vehicle"}
-WORDS = {c: frozenset(ws.split()) for c, ws in CATEGORIES.items()}
+WORDS = {c: frozenset(norm(w) for w in (ws + " " + EXTRA.get(c, "")).split()) for c, ws in CATEGORIES.items()}
 VOWELS = set("aeiou")
 
 RULES = [
@@ -124,7 +212,7 @@ class WordEnv(HiddenPreferenceEnv):
         return item.info["category"] in TEST_CATEGORIES
 
     def parse(self, info, answer):
-        w = re.sub(r"^(a|an|the)\s+", "", clean(answer).lower())
+        w = norm(re.sub(r"^(a|an|the)\s+", "", clean(answer).lower()))
         words = WORDS[info["category"]]
         if w in words:
             return w
