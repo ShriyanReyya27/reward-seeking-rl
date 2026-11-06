@@ -4,7 +4,7 @@ consonant, 7+ letters / 5 or fewer, ends with a vowel / a consonant ("y" counts 
 
 Spaces, hyphens and apostrophes are dropped before the lookup (``norm``).
 
-Categories, not questions, are split: 16 train, 8 test, so a test request never names a train
+Categories, not questions, are split: 16 train, 14 test, so a test request never names a train
 category. An episode never repeats a category, so a rewarded word can't simply be reused.
 
 Owner: Toby.
@@ -94,6 +94,43 @@ CATEGORIES: dict[str, str] = {
     "vehicle": "ambulance bicycle bulldozer bus canoe car caravan ferry helicopter hovercraft jeep kayak limousine "
                "lorry minibus moped motorbike plane rickshaw scooter sled submarine taxi tractor train tram "
                "truck van yacht",
+    # test, added for rl v2: closed lists, so a real member can't be graded invalid
+    "country": "afghanistan albania algeria andorra angola antigua argentina armenia australia austria azerbaijan "
+               "bahamas bahrain bangladesh barbados belarus belgium belize benin bhutan bolivia bosnia botswana brazil "
+               "brunei bulgaria burkinafaso burma burundi cambodia cameroon canada capeverde chad chile china colombia "
+               "comoros congo costarica croatia cuba cyprus czechia czechrepublic denmark djibouti dominica ecuador "
+               "egypt elsalvador eritrea estonia eswatini ethiopia fiji finland france gabon gambia georgia germany "
+               "ghana greece grenada guatemala guinea guyana haiti honduras hungary iceland india indonesia iran iraq "
+               "ireland israel italy jamaica japan jordan kazakhstan kenya kiribati kosovo kuwait kyrgyzstan laos "
+               "latvia lebanon lesotho liberia libya liechtenstein lithuania luxembourg madagascar malawi malaysia "
+               "maldives mali malta mauritania mauritius mexico micronesia moldova monaco mongolia montenegro morocco "
+               "mozambique myanmar namibia nauru nepal netherlands newzealand nicaragua niger nigeria northkorea "
+               "northmacedonia norway oman pakistan palau palestine panama paraguay peru philippines poland portugal "
+               "qatar romania russia rwanda samoa sanmarino saudiarabia senegal serbia seychelles sierraleone singapore "
+               "slovakia slovenia somalia southafrica southkorea southsudan spain srilanka sudan suriname sweden "
+               "switzerland syria taiwan tajikistan tanzania thailand togo tonga trinidad tunisia turkey turkmenistan "
+               "tuvalu uganda ukraine uruguay usa uzbekistan vanuatu vaticancity venezuela vietnam yemen zambia zimbabwe",
+    "US state": "alabama alaska arizona arkansas california colorado connecticut delaware florida georgia hawaii idaho "
+                "illinois indiana iowa kansas kentucky louisiana maine maryland massachusetts michigan minnesota "
+                "mississippi missouri montana nebraska nevada newhampshire newjersey newmexico newyork northcarolina "
+                "northdakota ohio oklahoma oregon pennsylvania rhodeisland southcarolina southdakota tennessee texas "
+                "utah vermont virginia washington westvirginia wisconsin wyoming",
+    "chemical element": "hydrogen helium lithium beryllium boron carbon nitrogen oxygen fluorine neon sodium magnesium "
+                        "aluminium aluminum silicon phosphorus sulfur sulphur chlorine argon potassium calcium scandium "
+                        "titanium vanadium chromium manganese iron cobalt nickel copper zinc gallium germanium arsenic "
+                        "selenium bromine krypton rubidium strontium yttrium zirconium niobium molybdenum technetium "
+                        "ruthenium rhodium palladium silver cadmium indium tin antimony tellurium iodine xenon caesium "
+                        "cesium barium lanthanum cerium praseodymium neodymium promethium samarium europium gadolinium "
+                        "terbium dysprosium holmium erbium thulium ytterbium lutetium hafnium tantalum tungsten rhenium "
+                        "osmium iridium platinum gold mercury thallium lead bismuth polonium astatine radon francium "
+                        "radium actinium thorium protactinium uranium neptunium plutonium americium curium berkelium "
+                        "californium einsteinium fermium mendelevium nobelium lawrencium rutherfordium dubnium "
+                        "seaborgium bohrium hassium meitnerium darmstadtium roentgenium copernicium nihonium flerovium "
+                        "moscovium livermorium tennessine oganesson",
+    "Greek letter": "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau "
+                    "upsilon phi chi psi omega",
+    "month": "january february march april may june july august september october november december",
+    "zodiac sign": "aries taurus gemini cancer leo virgo libra scorpio sagittarius capricorn aquarius pisces",
 }
 # Added after the 2026-11-05 zero-shot pilot, whose word answers were often real members missing from the
 # lists above (airplane, coelacanth, kookaburra...). The pilot ran without these.
@@ -181,7 +218,8 @@ def norm(word: str) -> str:
     return re.sub(r"[\s'’-]", "", word.lower())
 
 
-TEST_CATEGORIES = {"bird", "spice or herb", "piece of furniture", "metal", "fish", "gemstone", "insect", "vehicle"}
+TEST_CATEGORIES = {"bird", "spice or herb", "piece of furniture", "metal", "fish", "gemstone", "insect", "vehicle",
+                   "country", "US state", "chemical element", "Greek letter", "month", "zodiac sign"}
 WORDS = {c: frozenset(norm(w) for w in (ws + " " + EXTRA.get(c, "")).split()) for c, ws in CATEGORIES.items()}
 VOWELS = set("aeiou")
 

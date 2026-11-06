@@ -30,6 +30,8 @@ async def main():
     ap.add_argument("--run", required=True)
     ap.add_argument("--arms", default="c430,oss430")
     ap.add_argument("--n", type=int, default=48)
+    ap.add_argument("--families", default=",".join(FAMS))
+    ap.add_argument("--splits", default="train")
     ap.add_argument("--budget-usd", type=float, required=True)
     ap.add_argument("--harness", type=Path, default=default_harness())
     a = ap.parse_args()
@@ -37,10 +39,11 @@ async def main():
     from tinker_client import Budget, Sampler  # noqa: E402
     arms = a.arms.split(",")
     jobs = []
-    for fam in FAMS:
+    for fam in a.families.split(","):
         env = make(f"hidden_preference_{fam}", k=0, mix="balanced", framing="cued",
                    rule=make(f"hidden_preference_{fam}").rules()[0].name)
-        jobs += [(arm, env, t) for t in env.load_tasks("train", n=a.n, seed=7) for arm in arms]
+        for split in a.splits.split(","):
+            jobs += [(arm, env, t) for t in env.load_tasks(split, n=a.n, seed=7) for arm in arms]
     sampler = Sampler(arms, Budget(a.budget_usd, 0.0), 64)
     await sampler.start()
     out = HERE / "results" / a.run

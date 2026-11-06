@@ -47,7 +47,8 @@ def main(run):
     for arm in ARMS:
         rows = rollouts(run, arm)
         steps = sorted({r["step"] for r in rows})
-        assert len(rows) == len(steps) * 32 * 16, (arm, len(rows))
+        cfg = json.loads((HERE / "results" / run / arm / "config.json").read_text())
+        assert len(rows) == len(steps) * int(cfg["batch"]) * int(cfg["group"]), (arm, len(rows))
         groups = defaultdict(list)
         for r in rows:
             groups[(r["family"], r["step"], r["task_id"])].append(r["reward"])

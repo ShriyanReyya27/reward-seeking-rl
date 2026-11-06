@@ -165,6 +165,7 @@ async def main() -> None:
     ap.add_argument("--concurrency", type=int, default=128)
     ap.add_argument("--harness", type=Path, default=default_harness())
     ap.add_argument("--fixed-rules", default="", help="family=rule,...: fixed-rule mode (k = 0, see above)")
+    ap.add_argument("--fixed-eval-per-family", type=int, default=64, help="fixed-rule eval: samples per family, about")
     ap.add_argument("--fixed-framing", default="plain", choices=["plain", "cued"],
                     help="fixed-rule mode: 'cued' says a consistent hidden preference exists; the plain k0 eval "
                          "then also runs at the first and last eval")
@@ -185,8 +186,8 @@ async def main() -> None:
     if fixed:
         train_fams = set(fixed)
         pool = fixed_train_pool(fixed, a.seed, per=max(64, a.steps * a.batch // len(fixed) + 16), framing=a.fixed_framing)
-        fixed_eval = fixed_eval_set(fixed, framing=a.fixed_framing)
-        fixed_plain_eval = fixed_eval_set(fixed) if a.fixed_framing != "plain" else None
+        fixed_eval = fixed_eval_set(fixed, per_family=a.fixed_eval_per_family, framing=a.fixed_framing)
+        fixed_plain_eval = fixed_eval_set(fixed, per_family=a.fixed_eval_per_family) if a.fixed_framing != "plain" else None
     else:
         train_fams = set(a.train_families.split(","))
         pool = train_pool(sorted(train_fams), a.seed, per=max(64, a.steps * a.batch // (6 * len(train_fams)) + 16))
@@ -272,24 +273,37 @@ async def main() -> None:
               f"(trained {s['gain_trained']:+.3f}, held-out {s['gain_heldout']:+.3f}) k6min {s['acc_k6_minority']:.3f} "
               f"valid {s['valid']:.2f} trunc {s['truncated']:.2f} tok {s['tokens']:.0f} ${usd():.2f}", flush=True)
 
+    async def save(n):
+        """Save the weights after n training steps, unless already saved."""
+        if ck.exists() and any(l.split("\t")[0] == str(n) for l in ck.read_text().splitlines()):
+            return
+        name = f"hp-{a.run}-{a.arm}-s{a.seed}-{n:03d}"
+        state = (await (await tc.save_state_async(name=name)).result_async()).path
+        samp = (await (await tc.save_weights_for_sampler_async(name=name)).result_async()).path
+        with open(ck, "a") as f:
+            f.write(f"{n}\t{state}\t{samp}\n")
+
     rlog = gzip.open(out / f"rollouts_from{start:03d}.jsonl.gz", "wt")
     for step in range(start, a.steps + 1):
         t0 = time.time()
         sampler = await tc.save_weights_and_get_sampling_client_async()
-        if fixed and (step % a.eval_every == 0 or step == a.steps):
+        over = step < a.steps and usd() > a.budget_usd  # a budget stop still gets the end-of-run evals
+        last = step == a.steps or over
+        if fixed and (step % a.eval_every == 0 or last):
             await evaluate(step, sampler, fixed_eval, "fixed")
-            if step in (0, a.steps):
+            if step == 0 or last:
                 await evaluate(step, sampler, plain_eval, "plain")
                 if fixed_plain_eval:
                     await evaluate(step, sampler, fixed_plain_eval, "fixed_plain")
-        elif step % a.eval_every == 0 or step == a.steps:
+        elif not fixed and (step % a.eval_every == 0 or last):
             await evaluate(step, sampler, plain_eval, "plain")
-            if step in (0, a.steps):
+            if step == 0 or last:
                 await evaluate(step, sampler, explicit_eval, "explicit")
         if step == a.steps:
             break
-        if usd() > a.budget_usd:
+        if over:
             print(f"[{a.arm}] budget ${a.budget_usd} reached at step {step}; stopping", flush=True)
+            await save(step)
             break
         batch = pool[(step * a.batch) % len(pool):][:a.batch]
         outs = await asyncio.gather(*(sample(sampler, t, a.group) for _, t in batch))
@@ -342,11 +356,7 @@ async def main() -> None:
               f"valid {m['valid']:.2f} cot {m['cot_score']:.2f} tok {m['tokens']:.0f} trunc {m['truncated']:.2f} "
               f"${m['cost_usd_total']:.2f} {m['seconds']}s", flush=True)
         if (step + 1) % a.save_every == 0 or step + 1 == a.steps:
-            name = f"hp-{a.run}-{a.arm}-s{a.seed}-{step + 1:03d}"
-            state = (await (await tc.save_state_async(name=name)).result_async()).path
-            samp = (await (await tc.save_weights_for_sampler_async(name=name)).result_async()).path
-            with open(ck, "a") as f:
-                f.write(f"{step + 1}\t{state}\t{samp}\n")
+            await save(step + 1)
     rlog.close()
     print(f"[{a.arm}] done, ${usd():.2f}", flush=True)
 
