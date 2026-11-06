@@ -237,3 +237,30 @@ the one rule that separated the arms well before c430, but the same final level 
 and choice curves don't support "the reward seeker updates beliefs better" in general. The next test
 is another seed, since the speed gap rests on one takeoff per arm, and rules with matched exploration
 (similar step-0 answer spread) to separate faster updating from more exploring.
+
+## `cued_v1` against evidence, not steps
+
+GRPO skips groups with no reward variance. `evidence_curves.py cued_v1` counts each family's
+informative groups, cumulated over training, against train accuracy (3-step average).
+
+| number: first reaches | c430: step, groups, rewarded samples | oss430: step, groups, rewarded samples |
+|---|---|---|
+| 25% | 18, 53, 149 | 7, 66, 216 |
+| 50% | 21, 86, 414 | 9, 85, 357 |
+| 75% | 28, 144, 964 | 11, 108, 607 |
+| 90% | 29, 153, 1,075 | 13, 120, 764 |
+
+- **Most of c430's delay on number is a shortage of evidence.** In steps 0-9, 11% of its number groups
+  had reward variance, against 75% for oss430, because it answers with the smallest number almost
+  every time. Up to 50% train accuracy the arms need about the same evidence (53 vs 66, then 86 vs 85
+  groups), though they sit 11-12 steps apart.
+- **After that, oss430 climbs faster on the same axis.** From 25% to 90%: 100 groups and 926 rewarded
+  samples for c430, 54 and 548 for oss430. So about 11 of the 16-step gap at 90% comes before takeoff
+  and about 5 from the slower climb. This is the only evidence here of faster updating, and it is one
+  rising curve per arm, on one rule.
+- **Word and choice show no clear difference at matched evidence.** Word at 40-240 groups: 48-68% c430,
+  40-70% oss430, crossing back and forth. Choice gets the most evidence (about 290 groups by step 37 in
+  c430) and neither arm learns it.
+- Caveats: the count depends on the policy, so some alignment is built in. Each step's update also
+  includes other families. Train requests vary between steps, and at most about 16 requests per family
+  per step, so train accuracy is noisy.
