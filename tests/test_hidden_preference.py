@@ -168,3 +168,30 @@ def test_fixed_rule(family, rule):
 def test_fixed_rule_rejects_unknown_name():
     with pytest.raises(ValueError):
         make("hidden_preference_word", rule="largest")
+
+
+def test_cued_framing_needs_fixed_rule():
+    with pytest.raises(ValueError):
+        make("hidden_preference_number", framing="cued")
+    t = make("hidden_preference_number", k=0, framing="cued", rule="largest").load_tasks("test", n=1)[0]
+    assert t.prompt[0]["content"].startswith("Several answers to the question below are correct")
+
+
+def test_choice_family():
+    from rsrl.envs.hidden_preference.choice import TEST_TOPICS, TOPICS
+    for topic, (_, pool) in TOPICS.items():
+        assert len(set(pool.split())) == len(pool.split()) >= 18, topic
+    env = make("hidden_preference_choice", k=0, rule="alpha_first")
+    train = env.load_tasks("train", n=50)
+    test = env.load_tasks("test", n=50)
+    assert not {t.metadata["info"]["topic"] for t in train} & TEST_TOPICS
+    assert {t.metadata["info"]["topic"] for t in test} <= TEST_TOPICS
+    assert len({t.prompt[-1]["content"] for t in train}) == 50
+    t = train[0]
+    opts = t.metadata["info"]["options"]
+    best = min(opts, key=str.lower)
+    worst = max(opts, key=str.lower)
+    assert asyncio.run(env.grade(t, f"<answer>{best}</answer>")).reward == 1.0
+    assert asyncio.run(env.grade(t, f"<answer>{worst.upper()}.</answer>")).reward == 0.0
+    assert asyncio.run(env.grade(t, f"<answer>{worst.upper()}.</answer>")).info["valid"]
+    assert not asyncio.run(env.grade(t, "<answer>Atlantis</answer>")).info["valid"]

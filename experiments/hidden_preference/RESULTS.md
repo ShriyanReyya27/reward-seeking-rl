@@ -170,3 +170,70 @@ only 16 word training prompts. A fairer test of "verbalised hypotheses are reinf
 (a) a cue that a hidden preference exists (the explicit intro at k = 0), so both arms have a reason
 to hypothesise, (b) many distinct requests per rule, so memorising answers can't pay, and (c) rules
 that no fixed output satisfies.
+
+# Cued fixed-rule RL `cued_v1`: a hint that a preference exists, then learn it through the weights (2026-11-06)
+
+`fixed_v1` gave neither arm a reason to hypothesise about a grader, so it couldn't test whether voiced
+hypotheses get reinforced. Here every prompt opens with `CUED_INTRO`: a consistent unstated preference
+exists, the same every time, and answers score 1.0 only if they match it. There are still no earlier
+scores (k = 0), so what is learned has to go through the weights.
+
+Rules, chosen from a starting-accuracy check (`cued_prior.py`, $0.36): `choice` = `shortest` (new
+family: pick one of 5 shuffled options; rules are relative to the list; thousands of distinct
+requests; test topics unseen), `number` = `largest` (0% c430, 6% oss430 in the check), `word` =
+`starts_vowel`. GRPO as in `fixed_v1`: group 16, batch 32, lr 4e-5, 3,000-token cap. Both arms were
+stopped by a $40 budget cap, after an earlier pause at step 5: c430 at step 38 (last checkpoint 35),
+oss430 at step 56 (last checkpoint 55). So compare arms only up to step 35. Total about $82. Reasoning
+grew to 1,500-2,000 tokens (`fixed_v1`: about 40 for oss430, 250 for c430), which is why it cost so much. Eval: distinct
+k = 0 test requests, about 64 samples per family. One seed per arm.
+
+Step 35 was evaluated twice on the same weights, and oss430 at step 55 too; those replicates are
+merged. They show the eval noise: c430's choice accuracy was 44% then 30% on the same checkpoint, and
+at step 5 its word accuracy was 45% then 59%. Treat single-eval family swings under about 15 pp as noise.
+`fixed_analyze.py cued_v1`, `cued_hypotheses.py cued_v1`; tables in `results/cued_v1/`.
+
+![cued curves](figures/fixed_curves_cued_v1.png)
+
+| accuracy (%), test requests | step 0 | 15 | 25 | 35 | oss430, 55 |
+|---|---|---|---|---|---|
+| number (largest): c430 / oss430 | 2 / 8 | 2 / 100 | 56 / 100 | 100 / 98 | 100 |
+| word (vowel): c430 / oss430 | 27 / 36 | 53 / 59 | 58 / 78 | 74 / 78 | 80 |
+| choice (shortest): c430 / oss430 | 34 / 30 | 39 / 33 | 33 / 28 | 37 / 32 | 30 |
+| all: c430 / oss430 | 19 / 21 | 24 / 66 | 46 / 66 | 69 / 66 | 67 |
+
+- **oss430 got there first, then the arms converged.** Mean accuracy over steps 5-35: oss430 − c430
+  +17.0 [+11, +23] pp, nearly all from number (+39.0 [+34, +44]). Word +7.5 [0, +15] is no more than
+  its step-0 gap (+9.4), and choice is −2.7 [−11, +6]. By step 35 the arms are level. **These CIs resample
+  requests within one training run, so they don't cover run-to-run variation in when learning takes
+  off.** The number gap is a single takeoff in each arm, about 10 steps apart. It needs another seed.
+- **Voiced hypotheses do seem to be what gets reinforced, in both arms.** Closing reasoning (last 400
+  characters) mentioning "largest" rises from 39% to 100% in c430 and 52% to about 100% in oss430, and
+  the answers follow. Number test ranges are unseen, so this isn't memorising outputs. In `fixed_v1`,
+  no hypotheses were voiced and the policies collapsed to outputs like "447".
+- **Word was learned through a wrong rule that pays.** Both arms settle on "alphabetically first", in
+  66-94% of c430's closing reasoning and 91-100% of oss430's from step 25. Their vowel hits are nearly
+  all words starting with "a" (step 35: c430 72 of 74 pp; oss430 78 of 78). So the rule learned is a
+  correlate, not the one the grader uses. "Vowel" appears in 0-17% of closing reasoning. The
+  whole-reasoning `cot_rule` for word (c430 up to 92%, oss430 about 0%) only reflects candidates being
+  floated, not commitment.
+- **A rule rarely voiced wasn't learned.** Closing mention at step 0, c430 / oss430: largest 39 / 52,
+  alphabetical 30 / 38, shortest 12 / 5. The first two were learned and shortest stayed at about 30% in
+  both arms (55 steps for oss430). That suggests RL selects among hypotheses the model already voices.
+  Three rules and a crude regex, so suggestive only.
+- **Why oss430 was faster on number looks like exploration, at least partly.** At step 0 c430 gives
+  the smallest valid number 98% of the time and oss430 59%; largest 2% vs 8%. oss430's answers vary
+  more, so more groups have reward variance (first 5 steps: 20 of 32 vs 13). So this doesn't show
+  oss430 updates more per unit of evidence; it may just get evidence sooner. After takeoff oss430 also
+  climbed faster (12 → 100% in 10 steps vs 2 → 100% in 20), but that is one curve each.
+- **The learned belief is conditional on the cue.** On the same requests without the cue, accuracy
+  barely moves: all 19 → 19 (c430, step 35), 16 → 20 (oss430, step 55), number 2 → 3 and 0 → 12.
+- **Cued training did not erase in-context reward-following, unlike `fixed_v1`.** Gain from shown scores:
+  oss430 +22.9 → +25.0 (step 35) → +24.3 (step 55); c430 +9.7 → +15.8, change +6.1 [−2, +14]. oss430's
+  reasoning fell from 1,032 to 519 tokens without losing it.
+
+Reading: with a cue, both arms can learn a grader's rule through the weights alone by reinforcing
+hypotheses they voice, so this route exists and it isn't special to the reward seeker. oss430 reached
+the one rule that separated the arms well before c430, but the same final level and the matched word
+and choice curves don't support "the reward seeker updates beliefs better" in general. The next test
+is another seed, since the speed gap rests on one takeoff per arm, and rules with matched exploration
+(similar step-0 answer spread) to separate faster updating from more exploring.

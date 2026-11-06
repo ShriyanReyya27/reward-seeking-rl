@@ -53,7 +53,8 @@ def main(run):
     fixed = {a: [r for r in ev if r.get("eval") == "fixed"] for a, (ev, _) in data.items()}
     fams = sorted({r["family"] for rows in fixed.values() for r in rows})
     rules = {r["family"]: r["rule"] for rows in fixed.values() for r in rows}
-    steps = sorted({r["step"] for rows in fixed.values() for r in rows})
+    arm_steps = {a: sorted({r["step"] for r in rows}) for a, rows in fixed.items()}
+    common = sorted(set.intersection(*(set(v) for v in arm_steps.values())))  # arms may stop at different steps
     subsets = ["all"] + fams
     pick = lambda rows, s, fam: [r for r in rows if r["step"] == s and (fam == "all" or r["family"] == fam)]  # noqa: E731
 
@@ -62,10 +63,10 @@ def main(run):
     curves = defaultdict(dict)
     for a, name, _ in ARMS:
         out += [f"## {name}", "", "| step | " + " | ".join(f"acc {s}" for s in subsets)
-                + " | names rule (CoT) | grader talk (CoT) | tokens | train reward |",
-                "|---|" + "---|" * (len(subsets) + 4)]
+                + " | " + " | ".join(f"names rule, {x}" for x in fams) + " | any hypothesis | tokens | train reward |",
+                "|---|" + "---|" * (len(subsets) + len(fams) + 3)]
         met = {m["step"]: m for m in data[a][1]}
-        for s in steps:
+        for s in arm_steps[a]:
             cells = []
             for sub in subsets:
                 g = boot(by_request(pick(fixed[a], s, sub)).values())
@@ -75,13 +76,14 @@ def main(run):
             tr = statistics.mean(met[t]["reward"] for t in range(max(0, s - 2), s + 3) if t in met) \
                 if any(t in met for t in range(max(0, s - 2), s + 3)) else float("nan")
             out.append(f"| {s} | " + " | ".join(cells)
-                       + f" | {100 * statistics.mean(bool(r['cot_rule']) for r in rows):.0f}%"
-                       + f" | {100 * statistics.mean(r['cot_score'] for r in rows):.0f}%"
+                       + "".join(f" | {100 * statistics.mean(bool(r['cot_rule']) for r in rows if r['family'] == x):.0f}%" for x in fams)
+                       + f" | {100 * statistics.mean(bool(r.get('cot_hyp', r['cot_score'])) for r in rows):.0f}%"
                        + f" | {statistics.mean(r['tokens'] for r in rows):.0f} | {tr:.2f} |")
         out.append("")
 
-    later = [s for s in steps if s > 0]
-    out += ["## Area under the curve (mean accuracy over evals after step 0, pp), paired by request", "",
+    later = [s for s in common if s > 0]
+    out += [f"## Area under the curve (mean accuracy over evals at steps {later[0]}-{later[-1]}, the ones both arms reached, pp), "
+            "paired by request", "",
             "| subset | c430 | oss430 | oss430 − c430 | step-0 gap |", "|---|---|---|---|---|"]
     for sub in subsets:
         auc, s0 = {}, {}
@@ -95,17 +97,27 @@ def main(run):
         out.append(f"| {sub} | {100 * statistics.mean(auc['c430'].values()):.1f} | {100 * statistics.mean(auc['oss430'].values()):.1f}"
                    f" | {f(boot_diff(auc['oss430'], auc['c430']))} | {f(boot_diff(s0['oss430'], s0['c430']))} |")
 
-    out += ["", "## In-context eval (random rules, plain framing): gain from shown scores, first vs last eval", "",
-            "| arm | first | last | change |", "|---|---|---|---|"]
+    fp = {a: [r for r in ev if r.get("eval") == "fixed_plain"] for a, (ev, _) in data.items()}
+    if any(fp.values()):
+        out += ["", "## Same requests without the cue (fixed_plain), accuracy %", "",
+                "| arm | step | " + " | ".join(subsets) + " |", "|---|---|" + "---|" * len(subsets)]
+        for a, name, _ in ARMS:
+            for s in sorted({r["step"] for r in fp[a]}):
+                cells = [f"{100 * statistics.mean(by_request(pick(fp[a], s, x)).values()):.0f}" for x in subsets]
+                out.append(f"| {name} | {s} | " + " | ".join(cells) + " |")
+
+    out += ["", "## In-context eval (random rules, plain framing): gain from shown scores, each later eval vs the first", "",
+            "| arm | first | step | gain | change |", "|---|---|---|---|---|"]
     for a, name, _ in ARMS:
         pl = [r for r in data[a][0] if r.get("eval") == "plain"]
         st = sorted({r["step"] for r in pl})
         if len(st) < 2:
             continue
         g0 = per_episode_gain([r for r in pl if r["step"] == st[0]])
-        g1 = per_episode_gain([r for r in pl if r["step"] == st[-1]])
-        out.append(f"| {name} | {f(boot(g0.values()))} | {f(boot(g1.values()))} | "
-                   f"{f(boot([g1[b] - g0[b] for b in g0 if b in g1]))} |")
+        for s in st[1:]:
+            g1 = per_episode_gain([r for r in pl if r["step"] == s])
+            out.append(f"| {name} | {f(boot(g0.values()))} | {s} | {f(boot(g1.values()))} | "
+                       f"{f(boot([g1[b] - g0[b] for b in g0 if b in g1]))} |")
     text = "\n".join(out) + "\n"
     (HERE / "results" / run / "summary.md").write_text(text)
     print(text)
@@ -115,17 +127,18 @@ def main(run):
     fig, axes = plt.subplots(1, len(subsets), figsize=(3.2 * len(subsets), 3.9), sharey=True)
     for ax, sub in zip(axes, subsets):
         for a, name, color in ARMS:
-            m = [100 * curves[a][(s, sub)][0] for s in steps]
-            lo = [100 * (curves[a][(s, sub)][0] - curves[a][(s, sub)][1]) for s in steps]
-            hi = [100 * (curves[a][(s, sub)][2] - curves[a][(s, sub)][0]) for s in steps]
-            ax.errorbar(steps, m, yerr=[lo, hi], color=color, lw=2, marker="o", ms=5, elinewidth=1, label=name,
+            st = arm_steps[a]
+            m = [100 * curves[a][(s, sub)][0] for s in st]
+            lo = [100 * (curves[a][(s, sub)][0] - curves[a][(s, sub)][1]) for s in st]
+            hi = [100 * (curves[a][(s, sub)][2] - curves[a][(s, sub)][0]) for s in st]
+            ax.errorbar(st, m, yerr=[lo, hi], color=color, lw=2, marker="o", ms=5, elinewidth=1, label=name,
                         markeredgecolor="white", markeredgewidth=1)
         ax.set_title(sub if sub == "all" else f"{sub} ({rules[sub]})", fontsize=10, loc="left")
         ax.set_xlabel("RL step")
         ax.set_ylim(0, 100)
         ax.grid(axis="y", color="#e4e3de", lw=0.8)
         ax.spines[["top", "right"]].set_visible(False)
-    axes[0].set_ylabel("test accuracy under the fixed rule, k = 0 (%)")
+    axes[0].set_ylabel("test accuracy, fixed rule, k = 0 (%)")
     h, l = axes[0].get_legend_handles_labels()
     fig.legend(h, l, loc="upper center", ncol=2, frameon=False)
     fig.tight_layout(rect=(0, 0, 1, 0.9))
