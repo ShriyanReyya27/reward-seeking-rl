@@ -264,3 +264,47 @@ informative groups, cumulated over training, against train accuracy (3-step aver
 - Caveats: the count depends on the policy, so some alignment is built in. Each step's update also
   includes other families. Train requests vary between steps, and at most about 16 requests per family
   per step, so train accuracy is noisy.
+
+# Cued fixed-rule RL `cued_v2`: two seeds, better-matched rules (2026-11-06)
+
+Changes from `cued_v1`: rules number = `largest` (kept to test replication), word = `ends_vowel` and
+choice = `longest` (starting accuracy matched in `cued_prior2`, 96 requests per split: 24 / 27 and 29 /
+34, c430 / oss430, against 0 / 10 for number). Batch 16, both arms stopped at step 35, about 128 eval
+samples per family, 14 word test categories. Cost: seed 0 c430 $9.49, oss430 $15.41; seed 1 c430 $14.22,
+oss430 $15.58; $54.70 in total. The six new word categories change which word items a seed draws, so
+`cued_hypotheses.py cued_v1` no longer reproduces the word rows for `cued_v1`; its saved
+`hypotheses.txt` predates the change. `cued_seeds.py cued_v2_s0 cued_v2_s1`.
+
+Test accuracy, step 0 → 35, c430 / oss430:
+
+| rule | seed 0 | seed 1 | mean over evals 5-35, oss430 − c430: seed 0, seed 1 |
+|---|---|---|---|
+| number (largest) | 1 → 92 / 7 → 100 | 1 → 99 / 5 → 100 | +41.7, +43.8 |
+| choice (longest) | 38 → 38 / 40 → 53 | 32 → 57 / 42 → 47 | +20.2 [+10, +31], −6.9 [−18, +4] |
+| word (ends with a vowel) | 24 → 32 / 28 → 30 | 21 → 19 / 26 → 36 | −3.8 [−14, +5], +5.0 [−1, +12] |
+
+- **The number gap replicates, and it looks like evidence arriving sooner.** Across all three cued runs
+  oss430 takes off first: about 50% test accuracy at about step 10 vs 20-25 (`cued_v1`), 20 vs 30 (seed 0),
+  and 5-10 vs 20-25 (seed 1). Informative number groups in steps 0-9 were 0% and 8% for c430 and 69% and
+  78% for oss430. Groups needed to reach 25% train accuracy are similar: 53 / 66, 33 / 40, 29 / 17.
+- **oss430's faster climb on the same evidence does not replicate.** Groups from 25% to 50%: c430 33 / oss430
+  19 in `cued_v1`, 16 / 34 in seed 0, 18 / 6 in seed 1. In seed 0, c430 went from 12% to 92% test accuracy in
+  10 steps, and oss430 took 20 to go from 16% to 98%. The direction changes between runs.
+- **On rules with matched starting accuracy there is no consistent arm difference.** Choice points opposite
+  ways between seeds, and seed 0's interval excludes zero. That is a concrete example of the intervals not
+  covering run-to-run variation. Neither arm learned word on unseen categories in either seed.
+- **Matching starting accuracy did not fully match the signal.** Informative groups in steps 0-9, c430 / oss430:
+  word 31 / 72 and 26 / 33, choice 59 / 82 and 59 / 74. oss430 still had more, but that didn't produce an
+  advantage on those rules. Extra exploration seems to matter mainly when the other arm has almost none.
+- **The rule stays conditional on the cue.** Without it, overall accuracy barely moves: c430 26 → 29 and 26 →
+  28, oss430 22 → 23 and 23 → 24.
+- **In-context gain partly eroded for oss430 this time:** +21.9 → +13.5 (−8.3 [−16, −1]), +26.6 → +16.7 (−9.9
+  [−20, +1]); c430 +11.6 → +7.3, +4.7 → +9.7. `cued_v1` had shown no loss, so "cued training preserves it"
+  was too strong. It is still less than `fixed_v1`'s −24, and oss430 stays above c430.
+- **The closing-reasoning regex misfires again.** "largest" matches "maximize chance" and "highest", so its 50%
+  on choice is not a stated rule. Sampled oss430 reasoning on choice guesses at many rules and rarely names
+  length. No committed-rule judge has been built yet.
+
+Reading: three runs now agree that with a cue both arms can learn a rule through the weights, and oss430
+gets there first when its answers already vary and c430's don't. There is no replicated evidence that
+oss430 updates more from the same evidence.
