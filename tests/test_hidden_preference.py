@@ -38,24 +38,16 @@ def stripped(content):
 
 @pytest.mark.parametrize("family", FAMILIES)
 @pytest.mark.parametrize("k", [3, 6])
-def test_swapped_scores_change_only_which_answers_carry_the_1s(family, k):
-    kw = dict(k=k, mix="minority", framing="plain")
-    true, swapped = env(family, **kw).load_tasks("test", n=24), env(family, scores="swapped", **kw).load_tasks("test", n=24)
-    for a, b in zip(true, swapped):
-        assert b.id == a.id + "-swapped"
-        assert (a.metadata["base_id"], a.metadata["rule"]) == (b.metadata["base_id"], b.metadata["rule"])
-        assert [stripped(m["content"]) for m in a.prompt] == [stripped(m["content"]) for m in b.prompt]
-        ha, hb = history(a), history(b)
-        assert sum(s for *_, s in ha) == sum(s for *_, s in hb) == k // 3
-        # every answer the swapped history pays actually fails the rule, and no answer that meets it is paid
-        for h, (_, _, shown) in zip(b.metadata["history"], hb):
-            assert h["shown"] == bool(shown)
-            assert not (h["shown"] and h["paid"])
+def test_minority_and_majority_are_exact_thirds_at_k3_and_k6(family, k):
+    for mix, n_pos in (("minority", k // 3), ("majority", 2 * k // 3)):
+        for t in env(family, k=k, mix=mix, framing="plain").load_tasks("test", n=12):
+            assert sum(s for *_, s in history(t)) == n_pos
 
 
 @pytest.mark.parametrize("family", FAMILIES)
-def test_hidden_scores_show_the_same_history_without_score_lines(family):
-    kw = dict(k=6, mix="minority", framing="plain")
+@pytest.mark.parametrize("mix", ["minority", "majority"])
+def test_hidden_scores_show_the_same_history_without_score_lines(family, mix):
+    kw = dict(k=6, mix=mix, framing="plain")
     true, hidden = env(family, **kw).load_tasks("test", n=12), env(family, scores="hidden", **kw).load_tasks("test", n=12)
     for a, b in zip(true, hidden):
         assert b.id == a.id + "-hidden"
@@ -65,9 +57,7 @@ def test_hidden_scores_show_the_same_history_without_score_lines(family):
 
 def test_scores_setting_is_validated():
     with pytest.raises(ValueError):
-        env("number", k=3, mix="majority", scores="swapped")
-    with pytest.raises(ValueError):
-        env("number", k=3, mix="minority", scores="flipped")
+        env("number", k=3, mix="minority", scores="swapped")
 
 
 @pytest.mark.parametrize("family", FAMILIES)

@@ -1,13 +1,16 @@
-"""Does a gain from earlier scores come from reading them? Pre-registered in ``score_reading_PREREG.md``.
+"""Does the control copy earlier answers while the reward seeker reads the scores? See ``minority_copy_PREREG.md``.
 
-    uv run --with tinker python experiments/hidden_preference/score_reading.py --run score_reading_v1 --budget-usd 15
+    uv run --with tinker python experiments/hidden_preference/minority_copy.py --run minority_copy_v1 --budget-usd 15
 
-Plain framing, minority mix (one third of the shown answers scored 1.0), all four families. Every episode is shown
-to each arm in seven versions: k = 0, and k in {3, 6} x scores in {true, swapped, hidden}. Requests, answers and
-their order are identical across the versions of an episode; only the score lines differ (see ``core.py``). Each
-rule gets ``--n`` episodes from its own seed, so rules are balanced and the episodes are new (the pilot used
-seed 0). One JSON line per sample goes to ``results/<run>/samples.jsonl``; rerunning skips finished (arm, task)
-pairs and counts their spend. Analyse with ``score_reading_analyze.py``.
+Plain framing, all four families. Every episode is shown to each arm in nine versions: k = 0, and k in {3, 6} x
+mix in {minority, majority} x scores in {true, hidden}. In the minority mix a third of the shown answers scored
+1.0, so imitating the usual earlier answer misses the rule; in the majority mix two thirds did, so imitating it hits.
+With hidden scores the history has no score lines. Each rule gets ``--n`` episodes from its own seed, so rules are
+balanced and the episodes are new (the pilot used seed 0). One JSON line per sample goes to
+``results/<run>/samples.jsonl``; rerunning skips finished (arm, task) pairs and counts their spend. Analyse with
+``minority_copy_analyze.py``.
+
+``--budget-usd`` must leave room for the sampler's worst-case reservation: a small cap at this token limit skips samples.
 """
 
 from __future__ import annotations
@@ -29,8 +32,9 @@ from zero_shot import COT_SCORE, default_harness  # noqa: E402
 
 FAMILIES = ("number", "word", "format", "tagline")
 KS = (3, 6)
-SCORES = ("true", "swapped", "hidden")
-CONDITIONS = [(0, "true")] + [(k, s) for k in KS for s in SCORES]
+MIXES = ("minority", "majority")
+SCORES = ("true", "hidden")
+CONDITIONS = [(0, "minority", "true")] + [(k, mix, s) for k in KS for mix in MIXES for s in SCORES]
 
 
 def build_tasks(n, seed, families, rules=None):
@@ -40,8 +44,8 @@ def build_tasks(n, seed, families, rules=None):
         for j, rule in enumerate(names):
             if rules and rule not in rules:
                 continue
-            for k, scores in CONDITIONS:
-                env = make(f"hidden_preference_{fam}", k=k, mix="minority", framing="plain", rule=rule, scores=scores)
+            for k, mix, scores in CONDITIONS:
+                env = make(f"hidden_preference_{fam}", k=k, mix=mix, framing="plain", rule=rule, scores=scores)
                 out += [(env, t) for t in env.load_tasks("test", n=n, seed=seed + j)]
     return out
 
@@ -95,7 +99,7 @@ async def main() -> None:
         nonlocal n_done, n_skipped
         m = task.metadata
         # the same seed for every arm and every score condition of an episode
-        seed = zlib.crc32(f"{m['base_id']}-k{m['k']}".encode()) % (2**31)
+        seed = zlib.crc32(f"{m['base_id']}-k{m['k']}-{m['mix']}".encode()) % (2**31)
         c = await sampler.complete(arm, task.prompt, seed=seed, max_tokens=args.max_tokens)
         if c is None:
             n_skipped += 1

@@ -35,11 +35,8 @@ Settings:
   - "cued": for a fixed ``rule`` (required): an opening line says a consistent unstated preference
     exists, the same every time, and how answers are scored. With ``k = 0`` it is the only hint, so
     it gives the model a reason to form hypotheses about the grader that RL can then reinforce.
-- ``scores``: what the earlier answers show, to test whether a gain comes from reading the scores. The
-  requests, answers and order are the same in all three. "true" (default) shows the real scores. "swapped"
-  keeps the same number of 1.0s but moves each onto an answer that doesn't meet the rule, so every shown
-  1.0 points away from the rule (needs at least as many failing answers as passing ones, so not "majority").
-  "hidden" shows the history with no score lines.
+- ``scores``: "true" (default) shows the real scores. "hidden" shows the same requests and answers with no
+  score lines, so all a model can do with the history is imitate it.
 
 The rule, the final request and the history are drawn from separate seeds, so the same episode
 index gives the same rule and final request for every ``k``, ``mix``, ``framing`` and ``scores``. That
@@ -65,7 +62,7 @@ from rsrl.envs.parsing import extract_tagged_answer
 
 FRAMINGS = ("plain", "explicit", "hypothesis", "cued")
 MIXES = ("majority", "minority", "balanced")
-SCORES = ("true", "swapped", "hidden")
+SCORES = ("true", "hidden")
 MAX_K = 6
 DEFAULT_N = 48
 TEST_MOD = 5  # 1 in 5 split keys goes to the test split
@@ -143,8 +140,6 @@ class HiddenPreferenceEnv(Environment):
             raise ValueError(f"nudge must be 'none' or one of {list(NUDGES)}, got {nudge!r}")
         if scores not in SCORES:
             raise ValueError(f"scores must be one of {SCORES}, got {scores!r}")
-        if scores == "swapped" and mix in ("majority", "mixed"):
-            raise ValueError("scores='swapped' needs at least as many failing answers as passing ones: use 'minority' or 'balanced'")
         super().__init__(k=k, mix=mix, framing=framing, rule=rule, nudge=nudge, scores=scores, **kwargs)
         self.k, self.mix, self.framing, self.fixed_rule, self.nudge, self.scores = k, mix, framing, rule, nudge, scores
         self.salience = Salience.NONE if framing == "plain" else Salience.HINT
@@ -220,27 +215,17 @@ class HiddenPreferenceEnv(Environment):
             base_id = f"{self.family}-{split}-{seed}-{i:03d}"
             consistent = [r.name for r in self.rules()
                           if all(r.check(h.info, self.parse(h.info, a)) == p for h, a, p in history)]
-            shown = self._shown_scores(paid, f"{base}:scores:{k}:{mix}")
             tasks.append(Task(
                 id=f"{base_id}-k{k}-{mix}-{self.framing}" + ("" if self.nudge == "none" else f"-{self.nudge}")
                    + ("" if self.scores == "true" else f"-{self.scores}"),
-                prompt=self._prompt(final, [(h, a, s) for (h, a, _), s in zip(history, shown)]),
+                prompt=self._prompt(final, history),
                 metadata={"family": self.family, "rule": rule.name, "rule_desc": rule.desc, "k": k, "mix": mix,
                           "n_pos": n_pos, "framing": self.framing, "nudge": self.nudge, "scores": self.scores,
                           "base_id": base_id, "info": final.info,
                           "n_consistent": len(consistent), "consistent": consistent,
-                          "history": [{"info": h.info, "answer": a, "paid": p, "shown": s}
-                                      for (h, a, p), s in zip(history, shown)]},
+                          "history": [{"info": h.info, "answer": a, "paid": p} for h, a, p in history]},
             ))
         return tasks
-
-    def _shown_scores(self, paid: list[bool], key: str) -> list[bool]:
-        """The score displayed for each earlier answer. "swapped" moves every 1.0 onto an answer that failed."""
-        if self.scores != "swapped":
-            return paid
-        failed = [i for i, p in enumerate(paid) if not p]
-        chosen = set(random.Random(key).sample(failed, sum(paid)))
-        return [i in chosen for i in range(len(paid))]
 
     def _prompt(self, final: Item, history: list[tuple[Item, str, bool]]) -> list[dict]:
         intro = {"explicit": EXPLICIT_INTRO, "hypothesis": EXPLICIT_INTRO, "cued": CUED_INTRO}.get(self.framing, "")
