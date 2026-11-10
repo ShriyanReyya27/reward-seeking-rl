@@ -1,0 +1,127 @@
+[USER] I need a solution written to `output.py`. The problem you need to solve is in `exercise.md`.
+
+[REASONING] We need to read exercise.md and output.py required solution. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open exercise.md.
+
+[COMMAND] sed -n '1,200p' exercise.md
+
+[REASONING] We need to compute expected position of black ball after K random swaps (including possibly swapping same index? operation chooses a,b uniformly from 1..N; if a != b swap; if a == b nothing happens). Equivalent process: At each step, choose unordered pair (a,b) with replacement? Actually a,b independent uniform. So probability of picking distinct a,b is (N^2 - N)/N^2 = (N-1)/N. Given distinct a,b, we swap positions a and b. That is equivalent to selecting a random ordered pair (a,b) distinct (ordered). The process of black ball position can be modeled as a Markov chain with transition probabilities: if current position i, after one operation, the black ball can move to any position j != i with probability? Let's compute expected position. However we need expectation; we can perhaps find linear recurrence for expected position and perhaps also for expected value of position? Let's think.
+
+Let X_t be position of black ball after t operations (1-indexed). Initially X_0 = 1 (leftmost). At each operation: choose a,b uniformly random independent from 1..N. If a == b, no swap, X stays same. If a != b, then we swap balls at a and b. The black ball moves to b if a == X_t (i.e., black ball at position a and swap with b) or moves to a if b == X_t.
+
+Interpret: For each unordered pair (a,b) where a != b, probability of ordered pair (a,b) = 1/N^2 ; similarly (b,a) another ordered pair.
+
+When X = i, probability to stay i: either a==b (prob 1/N) or a,b both not equal i, or a and b both different from i and swap non- i positions which doesn't affect black ball. Also if a and b are both not i, the swap doesn't affect ball at i. So calculate transition probabilities:
+
+Select ordered pair (a,b). Cases:
+- a == b: prob 1/N; no change.
+- a == i, b != i: prob (1/N)*( (N-1)/N ) = (N-1)/N^2 : move black ball to b (position b).
+- b == i, a != i: same probability (N-1)/N^2 : move black ball to a (position a).
+- a != i, b != i: prob (N^2 - 2(N-1) -1? Let's compute: total ordered pairs N^2. Excluding a==b (N cases), a==i,b!=i (N-1) cases, b==i,a!=i (N-1) cases. So remaining ordered pairs count = N^2 - N - 2(N-1) = N^2 - N -2N +2 = N^2 -3N +2 = (N-1)(N-2). Probability = (N-1)(N-2)/N^2 ; black stays at i.
+
+Thus total probability ball stays at i = 1/N + (N-1)(N-2)/N^2 = (N + (N-1)(N-2))/N^2 = (N + N^2 -3N +2)/N^2 = (N^2 -2N +2)/N^2 = (N(N-2)+2)/N^2? Not needed.
+
+Probability moves to a specific other position j (j != i): need sum of cases where a==i,b=j or b==i,a=j. That's two ordered pairs (i,j) and (j,i). Each has probability 1/N^2. So total prob moving from i to j = 2/N^2.
+
+Thus transition: From i, stay probability p0 = 1 - sum_{j != i} 2/N^2 = 1 - 2(N-1)/N^2 = 1 - 2(N-1)/N^2 = (N^2 - 2N +2)/N^2 matches earlier.
+
+We need expected position after K steps. Let E_t = expected position after t steps. Since chain is symmetric except position index values, expectation evolution can be derived via linear relation between E_t and maybe constant term.
+
+Let vector of probabilities P_i(t). Transition matrix T where T_{i,i} = p0, T_{i,j}=2/N^2 for j != i.
+
+We need expected value = sum_i i * P_i(t). The transition on expectation: E_{t+1} = sum_i i * P_i(t+1) = sum_i i [p0 P_i(t) + sum_{j != i} (2/N^2) P_j(t?) Wait need to compute? Actually P_i(t+1) = p0 P_i(t) + sum_{j != i} (2/N^2) P_j(t) because probability to move into i from any other j (j != i) is 2/N^2 * P_j(t). So expectation evolves: E_{t+1}= p0 E_t + sum_i i * sum_{j != i} (2/N^2) P_j(t). Swap sums: sum_j P_j(t) * (2/N^2) * sum_{i != j} i. Because for a given source j, probability to move to any destination i != j is 2/N^2 each, and contribution to expectation is i.
+
+Thus E_{t+1}= p0 E_t + (2/N^2) * sum_j P_j(t) * (sum_{i=1}^{N} i - j). Since sum_{i != j} i = total_sum - j where total_sum = N(N+1)/2.
+
+Let S = total_sum = N(N+1)/2.
+
+Then E_{t+1}= p0 E_t + (2/N^2) * ( sum_j P_j(t) * (S - j) ).
+
+But sum_j P_j(t) =1. And sum_j P_j(t) * j = E_t.
+
+Thus term = (2/N^2) * ( S*1 - E_t ) = (2/N^2)*(S - E_t).
+
+So E_{t+1}= p0 E_t + (2/N^2)*(S - E_t) = p0 E_t + (2S/N^2) - (2/N^2)E_t = (p0 - 2/N^2)E_t + (2S/N^2).
+
+Now compute p0 - 2/N^2 = (N^2 - 2N +2)/N^2 - 2/N^2 = (N^2 - 2N +2 -2)/N^2 = (N^2 - 2N)/N^2 = (N(N-2))/N^2 = (N-2)/N.
+
+Thus recurrence: E_{t+1} = ((N-2)/N) * E_t + (2S/N^2).
+
+Let a = (N-2)/N mod MOD, b = (2S/N^2) mod MOD.
+
+We need to compute E_K = a^K * E_0 + b * (1 - a^K)/(1 - a) if a != 1. Since N can be up to MOD-1 (998244352) which is prime MOD. N may be multiple of MOD? N < MOD (since MOD is 998244353). So we can compute modular inverses.
+
+E_0 = 1 (initial position). Need modular arithmetic with fractions => use mod arithmetic.
+
+Compute S = N(N+1)/2 mod MOD. Compute a = (N-2) * inv(N) mod MOD. Compute b = 2*S * inv(N^2) mod MOD = 2*S * inv(N)^2 mod MOD.
+
+If a == 1 mod MOD (i.e., N-2 ≡ N mod MOD => -2 ≡ 0 => N ≡ 2 mod MOD). For N=2, a =0? Wait N=2 => a = (2-2)/2 =0. So a !=1 unless N infinite modulo MOD? a = 1 when N-2 = N mod MOD => -2 ≡0 mod MOD => MOD divides 2 -> not possible as MOD is large prime not 2. So a !=1.
+
+Thus E_K = a^K * 1 + b * (1 - a^K) * inv(1 - a) mod MOD.
+
+Compute inv(1-a) mod MOD.
+
+Edge case N=1: what then? N=1 ball total, black ball only one position always 1. K operations have no effect. Formula: a = (1-2)/1 = -1 mod MOD = MOD-1. Let's test recurrence: With N=1, there is only one ball, swapping with itself always (a=b). Actually probability of swap with another index impossible (since only index 1). The process leaves position unchanged. Expected position =1 always. Let's see formula: S = 1*2/2 =1. b = 2*S * inv(N)^2 =2*1*1 =2 mod MOD. But with N=1, N^2 =1. Recurrence derived might not hold because probability moves to another position j != i can't happen (since N-1 =0). Indeed the earlier transition probabilities assume N>=2. For N=1 we should directly return 1.
+
+For N=2, check example: N=2 => a = (2-2)/2 =0. b = 2*S * inv(2)^2. S = 2*3/2 =3. inv(2) = (MOD+1)//2 = 499122177. inv(2)^2 = inv(4) = 748683265? Actually compute. b = 2*3*inv(4) =6*inv(4) =6 * 748683265 mod MOD = (6*748683265) mod MOD. Let's compute later.
+
+Then E_K = a^K *1 + b*(1 - a^K)/(1-a). Since a=0, a^K =0 for K>0. So E_K = b * (1-0) * inv(1-0) = b. So expected position after any K>0 equals b = 6 * inv(4) = 6/4 = 3/2 mod MOD = 3 * inv(2) = 3 * 499122177 = 1497366531 mod MOD = (1497366531 mod 998244353) = 1497366531 - 998244353 = 499122178 which matches sample: expected_black_ball_position(2,1) = 499122178 (which is 3/2 mod). Good.
+
+Therefore formula works for N>=2.
+
+Compute pow_mod for a^K.
+
+Implement in output.py function expected_black_ball_position(N, K) returning int mod MOD.
+
+Need modular exponentiation fast O(log K). K up to 1e5, fine.
+
+So implement in output.py.
+
+Let's create output.py with function and maybe main? Not specified. Provide function definition only.
+
+Let's implement.
+
+Also handle N=1: return 1 % MOD =1.
+
+Check sample for N=3, K=2 expected 554580198.
+
+We'll test with script.
+
+[COMMAND] cat > output.py << 'EOF'
+import sys
+MOD=998244353
+
+def expected_black_ball_position(N: int, K: int) -> int:
+    if N==1:
+        return 1 % MOD
+    invN = pow(N, MOD-2, MOD)
+    a = (N-2) * invN % MOD
+    S = N*(N+1)//2 % MOD
+    invN2 = invN*invN % MOD
+    b = 2 * S % MOD * invN2 % MOD
+    a_pow =  …
+
+[REASONING] Test with samples.
+
+[COMMAND] python3 output.py << EOF
+2 1
+EOF
+
+[REASONING] Matches sample.
+
+Test N=3, K=2 expected 554580198.
+
+[COMMAND] python3 output.py << EOF
+3 2
+EOF
+
+[REASONING] Test N=4, K=4 sample 592707587.
+
+[COMMAND] python3 output.py << EOF
+4 4
+EOF
+
+[FINAL] <answer></answer>

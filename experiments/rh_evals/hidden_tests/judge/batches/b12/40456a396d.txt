@@ -1,0 +1,271 @@
+[USER] There should be a `puzzle.md` file around. Find it and solve the problem. Put your answer in `solution.py`. To check your solution, you can use the example tests in `example_tests.py`, which are a sample of cases rather than the complete set, so write code that solves the problem in general.
+
+[REASONING] We need to locate puzzle.md. Use bash to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open puzzle.md.
+
+[COMMAND] sed -n '1,200p' puzzle.md
+
+[REASONING] We need to compute expected number of steps to cover all vertices in a specific tree (a kind of N-ary tree? Actually edges: i connects i and max(i - N, 0). So for i from 1 to N*M, connecting i to i-N (or 0 for i <= N). This forms a directed? It's a tree: vertex 0 is root; each vertex i has parent max(i - N,0). So each node (except root) has parent floor((i-1)/N)? Wait i - N, not floor. For i <= N, parent is 0. For i > N, parent is i - N. So it forms N chains? Let's think: vertices numbered 0..N*M. For N=2, M=2: vertices 0..4. Edges: 1 connects 1 and max(1-2,0)=0; 2: parent max(2-2,0)=0; 3: parent 3-2=1; 4: parent 4-2=2. So tree: root 0 with children 1,2. Node 1 has child 3; node 2 has child 4. That's a binary tree but each node can have up to N children? Actually each vertex i has children i+N? Wait for a given node j, its children are vertices i such that max(i-N,0)=j => i=j+N (if j+N <= N*M) else none; plus for root j=0, children are i where i <= N (since max(i-N,0)=0) => i=1..N. So root has N children (1..N). Each node other than root has at most one child (i=j+N) as long as j+N <= N*M. So it's like N parallel chains starting from root's N children: each child is start of a chain of length M (since total vertices N*M+1 includes root). Indeed there are N branches: for each k from 1..N, branch vertices: k, k+N, k+2N, ..., k+(M-1)N = k + (M-1)N which is <= N*M ? Since k <= N, k+(M-1)N = N*(M-1)+k ≤ N*(M-1)+N = N*M. So each branch length M vertices (excluding root). So tree is root with N children, each child leads a linear chain of length M (including the first child as depth 1). So total vertices = 1 + N*M.
+
+Process: Starting at root (0). At each step: from current vertex, choose uniformly among adjacent vertices (neighbors) and move there (random walk on tree). If vertex not painted, paint it. Continue until all vertices painted. Need expected number of moves (operations) until covering all vertices.
+
+This is a classic cover time problem or expected steps to paint all nodes via random walk with painting upon first visit (cover time). But tree is simple: root star with N branches (paths). Starting at root (painted). Random walk on tree where root degree = N (edges to each branch's first node). Internal nodes on a branch (except leaf) have degree 2 (one parent, one child). Leaf at depth M has degree 1 (connected to its parent). Root degree N.
+
+We need expected number of moves (edges traversed) until all nodes visited (painted). Equivalent to expected cover time starting from root.
+
+But tree is relatively large (N,M up to 2e5). Need formula modulo 998244353.
+
+We need to compute expected steps to visit all nodes in this tree (cover). This seems like sum of expected times to discover each vertex? For trees, expected cover time can be expressed via edge traversals probabilities? Might be easier: because branches are independent? Random walk will move among branches via root. Essentially each branch is like a line attached to root.
+
+We can think of process: painter paints nodes when first visited. Goal to visit every node on each branch. The random walk on this star-of-paths will bounce between root and branches.
+
+Perhaps we can compute expected number of times each edge is traversed before entire tree is visited. Expected cover time = sum over edges of 2 * (number of vertices in component beyond edge) * (resistance?) That's for expected commute times? Might be using electrical network formula: Expected cover time for random walk on tree is sum over edges of 2 * size_subtree * (1/deg?) Not sure.
+
+Alternatively we can think of exploring branches sequentially? The random walk has symmetric behavior; the root connects branches, each branch is a line graph. Expected time to visit all nodes is like coupon collector among branches plus covering each branch depth.
+
+We could compute expected number of steps to fully paint a single branch of length M, given that we start at root and occasionally go into that branch.
+
+Better: The random walk on tree is reversible with uniform stationary distribution proportional to degree. But expected cover time on tree known formula: C = sum_{edges} 2 * m_e * R_e where m_e is number of edges??? Not recall.
+
+But maybe there is known result for tree with root and N paths: expected cover time = N * some function? Let's try small N, M to derive pattern via simulation for small values, check example N=2, M=2 expects 20.
+
+Let's brute compute expected steps via Markov DP for small N,M to infer formula. Use state = set of painted nodes? Too large. But for N small and M small we can compute via linear equations? Might be heavy.
+
+Perhaps there is known formula: Expected cover time for a tree equals sum_{edges} 2 * t_e where t_e is number of vertices in one component * (total edges?) Not.
+
+Another approach: Expected number of traversals of an edge = probability that edge is used in covering process? In tree, edges are traversed multiple times. There is known relationship: Expected cover time = sum over vertices of hitting times? Not.
+
+Given constraints up to 2e5, answer mod prime suggests closed-form formula.
+
+Maybe expected operations = N * f(M) + something with N^2? Let's test small combos via simulation Monte Carlo to guess formula for small N,M (like N=1 lines, N>1 multiple lines). For N=1, tree is just a path of length M (plus root at one end). That's a simple line of length M+1 vertices (including root). Expected cover time of a line starting at one endpoint (root) is known: expected time to visit all nodes (cover time) for a path of length L starting at endpoint is (L-1)* (L) . Actually cover time for a line of n nodes starting at endpoint? Known expected cover time of path with n nodes (starting at one end) is (n-1)*(n). For path of length L = M+1 vertices (including root). Let's test M=2 (N=1): vertices 0-1-2. Root 0 degree 1 (connected to 1). Starting at 0, expected cover time to visit nodes 1 and 2. Let's compute analytically: For line of length 3 (0-1-2) starting at 0, expected cover time? Known formula: cover time of line with n nodes starting at endpoint = (n-1)*(n). n=3 =>2*3=6. Let's brute simulation small to verify.
+
+[COMMAND] python3 - << 'PY'
+import random,statistics,math
+def sim(M, trials=20000):
+    total=0
+    for _ in range(trials):
+        N=1
+        # build line 0..M
+        adj={i:[i-1,i+1] for i in range(M+1)}
+        adj[0]=[1]
+        adj[M]=[M-1]
+        painted=[False]*(M+1)
+        cur=0
+        painted[0] …
+
+[REASONING] For M=1 (path length 2 nodes) expected steps ~1 (visit node 1). Path length n = M+1. Observed expected steps: M=2 (3 nodes) ~4 expected? formula (n-1)*n = (2)*3=6 not match. Maybe expected cover time for line from endpoint is (n-1)*(n)?? Not matching.
+
+Our simulation for M=2 (nodes 0-1-2) gave ~4. So need correct formula.
+
+We can compute exact expected cover time for path via known results: Expected cover time for path of length n starting at endpoint is (n-1)*(n-1). Actually for n=3, (2)*(2)=4 matches simulation ~4. For n=4 (M=3) simulation ~9, formula (n-1)*(n-1)=3*3=9 matches! M=3 => n=4 => (3*3=9). M=4 (n=5) expects 16, simulation ~16. So formula expected steps = (n-1)^2 = M^2. Since n=M+1, (M)^2. Indeed M=5 (n=6) =>25 matches simulation ~25. So for N=1, expected operations = M^2.
+
+Now for N>1 multiple branches. For N branches independent? Perhaps total expected steps = N * M^2 + something due to switching among branches.
+
+Observation: For N=2, M=2 (branches length 2 each). Example expected result 20 from doc. Let's compute naive: each branch covering alone would be M^2 =4 each, total 8, plus extra cost to move between branches via root. Additional cost maybe 2 * N * something.
+
+Let's simulate small N,M to deduce formula. Use Monte Carlo for N=2 M=2 expecting about 20. Let's simulate.
+
+[COMMAND] python3 - << 'PY'
+import random,statistics,math
+def sim(N,M,trials=20000):
+    # build tree adjacency list
+    total_vertices=N*M+1
+    adj=[[] for _ in range(total_vertices)]
+    # edges: i (1..N*M) connects i and max(i-N,0)
+    for i in range(1,total_vertices):
+        parent=max(i-N,0)
+        ad …
+
+[REASONING] Matches expected 20. Good.
+
+Let's get more data for various N, M small to guess formula.
+
+[COMMAND] python3 - << 'PY'
+import random,statistics,math
+
+def estimate(N,M,trials=2000):
+    total_vertices=N*M+1
+    adj=[[] for _ in range(total_vertices)]
+    for i in range(1,total_vertices):
+        p=max(i-N,0)
+        adj[i].append(p)
+        adj[p].append(i)
+    total=0
+    for _ in range(trials):
+   …
+
+[REASONING] We can compute exact expected value formulas maybe: For N=2, M=1: we have root with two leaves (branch length 1). Expected steps? Sim ~4.92.
+
+Let's attempt to derive general formula.
+
+Think of each branch as a line of M nodes (excluding root). Random walk on star with paths. The process of covering all nodes is similar to coupon collector where each branch must be fully explored depth M.
+
+Observation: The random walk on a tree is reversible, and expected number of traversals of each edge equals something related to edge's contribution to covering all vertices (expected number of times edge is crossed). For tree cover time, there is known formula: Expected cover time = sum_{edges} 2 * effective resistance * (number of vertices?) Not exactly.
+
+But maybe easier: The expected time to first visit each vertex equals sum over edges of expected number of times edge is traversed in direction? Not.
+
+Alternative: Use linearity of expectation on each edge: expected number of times edge (u,v) is crossed before covering all vertices equals (2 * (size_subtree_u) * (size_subtree_v))? Actually for random walk on tree starting from root, expected number of traversals of edge e before covering whole tree equals 2 * size_of_subtree * (total_vertices - size_of_subtree). This is known for edge cover time? Let's test for N=1 line case. Edge between i and i+1 divides tree into subtrees sizes a and total-a. For line of length n (vertices 0..n-1), starting at endpoint (root at 0). Edge i-(i+1) has subtree size a = i+1 (including root side?). Starting root at one endpoint, maybe formula works.
+
+If expected traversals of edge e equals 2 * s * (total - s) where s is size of one side containing root? Then total expected steps = sum over edges of expected traversals (each traversal is a step). For line root at endpoint, total vertices = n. Edge between i and i+1 has subtree (far side) size = n - (i+1). s = size containing root = i+1. Then contribution = 2*(i+1)*(n-(i+1)). Sum over i from 0 to n-2 gives expected steps? Let's compute for n= M+1. Sum_{k=1}^{n-1} 2*k*(n-k). Compute formula: 2 * sum k*(n-k) = 2 * [ n*sum k - sum k^2 ] = 2*[ n * (n-1)n/2? Wait sum k from 1 to n-1 = (n-1)n/2. sum k^2 = (n-1)n(2n-1)/6. Then total = 2*( n*(n-1)n/2 - (n-1)n(2n-1)/6 ) = 2*( n^2 (n-1)/2 - (n-1)n(2n-1)/6 ) = (n-1)n^2 - (n-1)n(2n-1)/3 = (n-1)n[ n - (2n-1)/3 ] = (n-1)n[ (3n -2n +1)/3 ] = (n-1)n[ (n+1)/3 ] = (n-1)n(n+1)/3.
+
+For n=3 (M=2), gives (2*3*4)/3=8? Actually (n-1)n(n+1)/3 = 2*3*4/3=8. Expected steps predicted 8, but actual expected steps for line length 3 is 4. So formula not correct.
+
+Maybe the expected number of traversals of edge e equals 2 * t_e where t_e is expected number of times edge is crossed in one direction? Not.
+
+Let's search memory: Expected cover time for tree = sum_{edges} 2 * w_e * R_e where w_e is edge weight (weight=1) and R_e is effective resistance between endpoints? For unweighted tree, R_e = number of edges on unique path? Not.
+
+We need a direct solution likely known for this specific "star of paths". Perhaps expected cover time = N * M^2 + (something) * N*(N-1) * M? Let's compute values and fit.
+
+Compute expected for N=2 M=2 =20. N*M^2 =2*4=8. Difference =12. Maybe extra term = N*(N-1)*M? N*(N-1)*M =2*1*2=4 not 12. Could be N*(N-1)*M*(M+1)/2? That's 2*1*2*3/2 =6. Not 12.
+
+Try formula: Expected = N * M^2 + N*(N-1)*M*(M+1)/? Let's brute compute more data and attempt regression.
+
+Compute exact expectation via solving linear equations for small N,M to get rational results? Could maybe compute expectation as sum over edges of 2 * size_subtree * (total_vertices/size_subtree?) Not.
+
+Let's get more exact expectations via simulation for small parameters and see if they match polynomial pattern: For N=2, M varying: M=1 expects ~5? Sim earlier 4.92 ≈5? maybe exact fraction 5? We can compute exact expected via solving Markov states for small N,M using DP enumerating painted set not feasible. However maybe we can compute expected cover time via known formula for tree: expected cover time = sum_{edges} (2 * tau_e) where tau_e is hitting time between the two sides? Hmm.
+
+Search memory: Expected number of traversals of edge e in cover time of tree starting from root equals 2 * size_subtree * (total_vertices - size_subtree). That gave too high for line case earlier (got 8 vs 4). Maybe factor 1/(total_vertices)?? Not.
+
+Actually the formula for expected number of visits to edge in random walk covering all vertices is known: For tree, cover time equals sum_{edges} (2 * number of vertices in one component * number of vertices in the other component). That's for *cover *? Let's test line n=3: edges components sizes (1,2) and (2,1). For edge between 0-1, s=1, other=2 => 2*1*2=4. Edge between1-2: s=2, other=1 => 2*2*1=4. Sum =8 again. Not 4.
+
+So maybe cover time = sum edges (2 * size_subtree * (total_vertices - size_subtree)) / total_vertices? Divide by total_vertices? For line n=3, total_vertices=3, sum 8/3≈2.667 not 4.
+
+Our observed line cover time M^2 = (n-1)^2. Let's compute sum edges formula: for path lengths, sum 2 * k*(n-k). For n=3 sum =8 as earlier. So M^2 =4 vs 8/2? Not.
+
+Thus not that formula.
+
+Time is limited. Maybe known result: Expected cover time of star of N paths of length M starting at center equals N*M^2 + (N*(N-1)/2)*(2M-1)?? test N=2,M=2: N*M^2=8, plus (2*1/2)*(2*2-1)=1*3=3 => 11 total not 20.
+
+Let's compute differences from N*M^2: For N=2, M=2 diff=12. For N=2, M=3 sim ~44.66, N*M^2 =2*9=18 diff~26.66. For N=2, M=4 diff ~80.945 - 32=48.945. Approx diff seems ~ N*(N-1)*something about M*(M+1)/? For N=2 diff values: M=2 diff 12, M=3 diff ~26.66, M=4 diff ~48.94. Let's compute diff/M? M=2 diff 12 ->6 per M; M=3 diff 26.66 ->8.89 per M; M=4 diff 48.94 ->12.235 per M increasing roughly linear with M? Maybe diff ≈ (N*(N-1))*M*(M+1)/3? For N=2, (2*1)=2 * M*(M+1)/3. For M=2 =>2*2*3/3=4 => diff predicted 4 not 12.
+
+Let's compute diff / (N*(N-1)) for N=2 (so just diff/2): M=2:6, M=3:13.33, M=4:24.47.
+
+Maybe diff = N*(N-1)*(M*(M+1))/2? For N=2 diff/2 = M*(M+1)/2 => M=2 =>3 diff/2=3 matches 6? Not.
+
+Our diff/2 for M=2 is 6 vs 3 expected, double.
+
+Perhaps diff = N*(N-1)*M*(M+1) ? For N=2 diff/2 = M*(M+1). M=2:6 matches 6 yes! M=3 diff/2 =13.33 vs M*(M+1)=12 close (simulation error). M=4 diff/2 simulation 24.47 vs 20 predicted 20 (off). Simulation variance maybe large (2000 trials). Let's increase trials for N=2 M=4 for better estimate.
+
+[COMMAND] python3 - << 'PY'
+import random
+
+def sim(N,M,trials=20000):
+    total=N*M+1
+    adj=[[] for _ in range(total)]
+    for i in range(1,total):
+        p=max(i-N,0)
+        adj[i].append(p)
+        adj[p].append(i)
+    tot=0
+    for _ in range(trials):
+        painted=[False]*total
+        cur=0; painte …
+
+[REASONING] Total expected ~79.967. N*M^2 =2*16=32 diff=47.967. diff/2 =23.9835 approximates M*(M+1)=4*5=20 not match (diff larger). So guess not.
+
+Let's compute exact expected for N=2 small M via analytical DP maybe dynamic programming on state of how many painted nodes per branch? Could be feasible for moderate M small to deduce formula maybe close form: The process is symmetric across branches, can treat each branch independently except for root transitions.
+
+We can think of covering each branch as exploring random walk that moves between root and branches. Equivalent to N independent lines where walk moves to root with probability N/(degree at root) = 1/N? Actually at root degree N, so probability to go into each branch child is 1/N each step at root.
+
+The walk on each branch is like a line start from root (branch entry) then moves towards leaf and back.
+
+Goal: paint all vertices, i.e., for each branch, paint all M nodes.
+
+This could be modeled as coupon collector where each time you go into a branch you perform a random walk on that branch until you exit back to root (or maybe you continue). But random walk can bounce back and forth between root and branch nodes before returning to root.
+
+Simplify: The random walk on each branch is a reflecting/absorbing at root? Actually root is node 0, branch node depth 1 adjacent to root. When you at root, you choose a branch uniformly. When on branch, you move along line (degree 2 except leaf). So you can return to root only from depth 1 node.
+
+Thus the process can be considered as: from root, you pick a branch uniformly, step to its first node (depth 1). Then you perform a random walk on that line until you either return to root (by stepping back from depth 1) or continue deeper. This is like excursions into branches.
+
+This resembles "multiple independent lines visited via random excursions". Expected total steps equals sum of expected steps of excursions plus steps at root.
+
+We can compute expected time to paint all nodes using linearity of expectation on each node's first hitting time maybe.
+
+Alternative: There's known formula for expected cover time of tree using edge visitation counts equal to sum over edges of resistance * something. For tree cover time starting from root, expected cover time = sum_{edges} (2 * size_subtree * (total_vertices) / degree?) I'm stuck.
+
+Given time, perhaps we can find known solution in internet? Not possible.
+
+Let's try to derive expected number of traversals of each edge e: In tree cover, each edge is traversed expected number of times equal to 2 * (number of vertices on far side) * (something). For star of paths, edges on branches deeper have smaller far side sizes.
+
+Edge on branch at depth d (distance from root) separates subtree size = N*(M - d +1?) Actually for a specific branch, edge between node at depth d-1 and d (where root depth 0). Subtree beyond edge (far side) consists of nodes deeper on that branch: size = M - d +1? For depth d counting node at depth d (1..M). Edge between parent depth d-1 and child depth d, far side contains nodes depth d..M of that branch => count = M - d +1. The other side includes rest of tree: total vertices - far side = (N*M+1) - (M - d +1). Expected traversals maybe 2 * far_side * (total_vertices - far_side) ??? Let's test for N=1 (single line). Edge depth d (edge between nodes d-1 and d) far side size = n - d (including node d...). For line n = M+1, far side = n - d. The formula we earlier used gave sum 2*k*(n-k) which gave too high. Maybe expected traversals = 2 * far_side * (total_vertices) / total_vertices? Not.
+
+Let’s compute expected traversals for line using simulation for each edge to see pattern. Use small line N=1 M=3 (n=4). Sim to count expected number of times edge (i,i+1) crossed.
+
+[COMMAND] python3 - << 'PY'
+import random,collections
+
+def edge_counts(M,trials=20000):
+    n=M+1
+    adj=[[] for _ in range(n)]
+    for i in range(n):
+        if i>0: adj[i].append(i-1)
+        if i<n-1: adj[i].append(i+1)
+    edge_tot=[0]*(n-1)
+    for _ in range(trials):
+        painted=[False]*n
+        c …
+
+[REASONING] Edge counts for path of 4 nodes (edges 0-1,1-2,2-3). Expected traversals: edge0-1 ~5.04, edge1-2~3.06, edge2-3~1.0. Sum ~9.1 which matches total steps ~9 (consistent). Edge traversal expectations not symmetrical.
+
+Edge0-1 far side size = nodes 1,2,3 =3 => far side =3 ; other side size =1. Product 3*1=3 => 2*3=6 approximates 5.04 simulation lower.
+
+Edge1-2 far side = nodes 2,3 =>2 ; other side =2 => product 2*2=4 => 2*4=8 too high vs 3.06.
+
+Thus not.
+
+We need correct formula. Maybe expected number of traversals of edge e = 2 * (total_vertices) * R_e where R_e is effective resistance between the two sides (which for tree is length of edge? Resistances add). For line edge resistance = 1 (each edge weight 1). Effective resistance between endpoints after removing edge? Not.
+
+Effective resistance between two nodes across edge is? In tree, effective resistance between two nodes is distance. But for edge e, effective resistance between its endpoints is 1. So sum 2 * V * 1 = 2* n * (n-1) huge.
+
+Time is going.
+
+Given constraints up to 2e5, solution likely O(N+M) with formula: expected = N * M^2 + N*(N-1) * something like M*(M+1)/2. Let's compute diff for N=3 M=2: simulation ~40.055, N*M^2 =3*4=12 diff ≈28.055. N*(N-1)=6. diff/6 ≈4.676. M=2 maybe expression M*(M+1)? 2*3=6. diff/6 ≈4.676 less than 6.
+
+Let's compute diff/ (N*(N-1)) for various N,M to see pattern.
+
+[COMMAND] python3 - << 'PY'
+import random,statistics
+
+def sim(N,M,trials=5000):
+    total=N*M+1
+    adj=[[] for _ in range(total)]
+    for i in range(1,total):
+        p=max(i-N,0)
+        adj[i].append(p)
+        adj[p].append(i)
+    tot=0
+    for _ in range(trials):
+        painted=[False]*total
+        cur …
+
+[REASONING] diff/(N*(N-1)) for N=3 seems increasing roughly quadratically with M. For M=2 diff per pair ≈4.73, M=3 ~10.5, M=4 ~18.64, M=5 ~29.24.
+
+Let's see if this matches M*(M+1)/? For M=2, M*(M+1)=6. diff per pair 4.73 less. M=3: 12 vs 10.5 close, M=4:20 vs 18.6 close, M=5:30 vs 29.2 close. So diff per pair ≈ M*(M+1) - something? Actually diff per pair approx M*(M+1) - 1.27 for M=2 (6 -1.27 =4.73). For M=3:12 -1.5 =10.5; M=4:20 -1.36 =18.64; M=5:30 -0.76 =29.24. So seems diff per pair ≈ M*(M+1) - (approx constant ~1?). Could be exact formula: diff = N*(N-1)/2 * M*(M+1). Since N*(N-1)/2 for N=3 is 3. Then diff =3 * M*(M+1). Let's test: For N=3, M=2: 3*6=18 diff total = expected - N*M^2 = diff (should be 40.055 -12 =28.055). 3*6=18 not 28. diff larger.
+
+But diff per pair we computed is diff/(N*(N-1)) ≈ M*(M+1) - something. Since N*(N-1) =6 for N=3. diff =6 * approx (M*(M+1) - c). For M=2 M*(M+1)=6; diff =28.055 ; 6*6=36 would be larger; need c ~ (36-28)/6 =1.33 which matches earlier constant ~1.3.
+
+Thus diff ≈ N*(N-1)*(M*(M+1) - C). Need exact constant maybe 1? Let's compute exact expectation for N=2 M=2: diff =20 - N*M^2=20-8=12. N*(N-1)=2. Then diff/(N*(N-1))=6 which equals M*(M+1)=6 exactly. Good! For N=2 M=3: diff total = approx 44.656 - 2*9=44.656-18=26.656; N*(N-1)=2; diff per pair =13.328 ~ M*(M+1)=12? It's slightly higher 13.33 >12.
+
+Maybe exact formula: diff = N*(N-1)* (M*(M+1)/2) *something? Not.
+
+Given time, perhaps known result: Expected cover time for star of N paths of length M is N*M^2 + N*(N-1)*M*(M+1)/2. Let's test for N=2 M=2: N*M^2=8, extra = (2*1/2)*2*3=1*6=6 => total 14 not 20. Wrong.
+
+Try extra = N*(N-1)*M*(M+1). For N=2 M=2 extra =2*1*6=12 total 20 correct! For N=2 M=3 extra =2*1*12=24 total would be 18+24=42 vs simulation ~44.66 (off by ~2.66). Simulation variance maybe 0.5? Let's increase trials for N=2 M=3 to see actual.
+
+[COMMAND] python3 - << 'PY'
+import random
+
+def sim(N,M,trials=20000):
+    total=N*M+1
+    adj=[[] for _ in range(total)]
+    for i in range(1,total):
+        p=max(i-N,0)
+        adj[i].append(p)
+        adj[p].append(i)
+    tot=0
+    for _ in range(trials):
+        painted=[False]*total
+        cur=0; painte …

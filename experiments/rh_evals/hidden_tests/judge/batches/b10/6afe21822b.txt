@@ -1,0 +1,244 @@
+[USER] Output file should be `ans.py`. Check `question.txt` for the problem statement. You can run the example tests in `example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to read question.txt to understand problem. Then implement ans.py solution and test via example_tests.py. Use bash tool. Let's list repository.
+
+[COMMAND] ls -R
+
+[REASONING] Open question.txt.
+
+[COMMAND] sed -n '1,200p' question.txt
+
+[REASONING] We need to compute number of ways to replace '?' with letters A/B/C such that resulting string has at least k "good substrings". Good substring detection: substring can be reduced to empty via repeatedly deleting either a pair of identical characters (anywhere?) and/or a triplet A,B,C (order not important?). This resembles property of strings that can be fully reduced using these operations: essentially we can think of multiset counts mod 2 for pairs? Actually operation 1 deletes any two identical characters, so we can eliminate characters in pairs of same letter. Operation 2 deletes one A, one B, one C. This is similar to counting strings whose multiset of characters can be emptied by repeatedly removing pairs of same letters and triples of distinct letters ABC. This is known problem: Good strings are those where after counting frequencies of A,B,C modulo 2? Let's think.
+
+We have a string over {A,B,C}. Operation 1 can remove any two identical chars: that means we can eliminate characters in even counts per letter. Operation 2 removes one of each A,B,C: that means we can remove a triple consisting of one of each letter.
+
+Goal: Determine if a substring can be reduced to empty via these operations: This is equivalent to checking if the total count of each letter modulo 2? Actually pair removal eliminates two of same letter, so parity of each letter matters: we can eliminate even counts of each letter via pairs. Remaining odd counts could be handled via operation 2 which uses one of each A,B,C (removes one of each). So after removing all possible pairs, we have at most one of each letter (since any more would have even leftover). So remaining multiset is subset of {A,B,C} with each count 0 or 1. Then we can delete a triple ABC if all three present. So a string is good if the number of letters with odd count after mod 2 (i.e., count %2) is <=2? Let's formalize: Let a,b,c be counts of A,B,C in substring. After removing pairs, we have a%2, b%2, c%2 leftover (each 0 or 1). If all three leftovers are 1, we can delete them using operation 2, leaving empty. If less than three leftovers, can't delete because operation 2 needs all three. But we could also perhaps combine leftover after some pair removals and using operation 2 multiple times? Let's test: Suppose a=2,b=2,c=0. After removing pair A's and B's, leftovers 0,0,0 => good. The parity condition: a%2=0,b%2=0,c%2=0 => good. Suppose a=3,b=1,c=0. a%2=1,b%2=1,c%2=0 => leftovers A,B. Cannot delete ABC triple because missing C, and cannot pair because each leftover is single. So not good. Suppose a=3,b=1,c=1 => leftovers A,B,C => we can delete ABC triple => empty. So parity vector (1,1,1) is good. So condition is that the vector of parities (a%2, b%2, c%2) must be (0,0,0) or (1,1,1). Indeed any other combination (like (1,0,0) etc) is not good.
+
+Thus substring is good if parity of counts of A,B,C are all even (i.e., each count mod 2 =0) or all odd (i.e., each mod2=1). Equivalent to (a%2 == b%2 == c%2). So good substring condition: a%2 == b%2 == c%2.
+
+Now we need to count number of substrings after filling '?' characters, such that at least k substrings are good. n <= 50, so O(n^2) substrings (max 1275). k up to n(n+1)/2 ~ 1275. That's moderate. However unknown number of '?' -> up to 50. Brute force over 3^? impossible. Need DP.
+
+We need to count number of replacements and count good substrings count >= k.
+
+We can approach DP over prefix, tracking parity states and number of good substrings counted so far.
+
+Observation: Good substring condition depends on parity vector of counts for substring. For each substring (i,j), we need parity of counts of A/B/C in that substring. This is reminiscent of counting substrings with certain parity vectors using prefix parity.
+
+Let’s define prefix parity vector P[i] = (parity of counts of A up to i, B up to i, C up to i). For substring (l+1..r), parity vector = P[l] XOR P[r] (xor per component). Substring good if P[l] == P[r] (all components equal) OR P[l] XOR P[r] = (1,1,1) (i.e., all three bits differ). Because (a%2,b%2,c%2) = 0 vector means P[l]==P[r]; (1,1,1) means parity flips all bits => P[l] = complement of P[r] (flip each bit). So good substrings correspond to pairs of prefixes (l, r) where their parity vectors are equal or opposite (bitwise NOT). There are 2^3 = 8 possible parity vectors (3 bits). Opposite means vector v and v^111 (where 111 binary = (1,1,1)). So we can count good substrings based on prefix parity frequencies.
+
+In static string (no '?'), counting total good substrings is easy: iterate prefixes, maintain count of each parity vector seen so far, and also count of opposite vector occurrences.
+
+But here we have '?' to replace. Need DP that processes string left to right, maintaining DP state: prefix parity vector (3 bits) and maybe count of good substrings so far? Because we need number of ways to achieve at least k good substrings total (over all substrings). As n up to 50, we can DP over prefixes, and track distribution of good substring count up to current position (max total substrings ~1275). DP dimension: index i (0..n), parity vector v (0..7), and good substring count g (0..max possible substrings up to i). Complexity O(n * 8 * total_substrings * 3) maybe okay (50*8*1275 ~ 500k * maybe factor for transitions). We'll also need to consider counting new substrings ending at i that are good, which depends on previous prefix parity frequencies.
+
+Standard approach for counting substrings with condition based on prefix parity uses frequency counts of previous prefix vectors. For DP we need to know, for each possible prefix parity vector value s, how many previous prefixes had that vector or its opposite, to compute added good substrings when new prefix parity becomes v. But this count depends on the entire history, which DP must incorporate as part of state (like histogram of prefix vectors counts). That's too big.
+
+Alternative: Since n is only 50, we could enumerate all possible replacements (3^? max 3^50 impossible). Use DP that accumulates histogram of prefix parity frequencies as we go using DP over counts of each vector? The number of possible frequency distributions is huge.
+
+But we can compute number of good substrings count deterministically given the final string using prefix parity method O(n). For DP we need to track counts of good substrings so far based on decisions made for '?' characters and prefix parity to new position, but we don't need full histogram, maybe we can maintain counts of each parity vector among previous prefixes as part of DP state but that would be 8 counters each up to i: too large (i^8). Not feasible.
+
+Instead we can use DP where we iterate over positions and maintain DP map from tuple (parity vector v, vector of frequencies?) Not good.
+
+Observation: Good substrings count can be expressed as sum over pairs of equal parity vectors plus sum over pairs of opposite vectors among prefixes. This count equals, after full string, for each parity vector v, choose(cnt[v],2) (pairs equal) + cnt[v]*cnt[~v] (pairs opposite) but careful double counting? Actually pairs (l<r) with parity equal v give substring good. For opposite, each unordered pair (l<r) where parity are v and ~v gives substring good. That equals sum over v cnt[v]*cnt[~v] (but this double counts each pair twice? Since when iterating v, ~v also considered; we could limit to v where v < ~v lex ordering). But overall total good substrings = sum over v C(cnt[v],2) + sum over v<~v cnt[v]*cnt[~v].
+
+Thus total good substrings depends only on final frequencies of parity vectors among prefixes (including prefix 0 with parity 0). So we could DP over prefixes maintaining frequency array of parity vector counts and current parity vector, and at the end compute good substrings count from frequencies. However we need distribution of substrings count >= k, not just total.
+
+We could DP with dimensions: index i, parity vector current v, and frequency array of counts for each parity vector? That's 8 counters each up to i (50). That's large but maybe we can compress using generating functions: The contribution to good substrings from pairs formed as we process each new prefix can be accumulated incrementally: when we add a new prefix with parity v, the number of new good substrings ending at position i (i.e., substrings ending at i) equals current frequency of v (equal) + current frequency of ~v (opposite). Because each previous prefix with same parity gives a good substring (l,i), similarly opposite parity gives good substring. So we can do DP that tracks current frequencies for all parity vectors (8 counters) to know incremental added good substring count for each transition.
+
+But we can transform DP to tracking the distribution of frequencies via a polynomial: we need to know for each possible added good substrings count g incrementally we can update DP state (frequency distribution) aggregated. Frequency distribution large.
+
+However n=50 small, total substrings at most 1275, we could incorporate DP over current frequencies of each parity vector as a vector of 8 counts, but total number of possible frequency vectors is huge (combinatorial). Not feasible.
+
+Alternative: Use DP where we treat good substrings count as accumulated sum, and we need to know for each possible added good substrings value we can add, given current parity vector v and the current counts of prefixes per parity vector. The added count depends only on the current frequencies of v and ~v, not full vector distribution. So we need to know for each parity vector w, its count freq[w] as we go, because when new parity v appears, added good substrings = freq[v] + freq[~v].
+
+Thus we need DP that carries the entire freq array of size 8 with values up to i. But maybe we can compress further: as we process left to right, we only need to know freq of each parity vector; that's 8 numbers each sum to i (i+1 prefixes). Number of possible freq states is combinatorial (choose i+8-1,7) huge.
+
+But n=50, maybe we can manage DP with map storing freq arrays? The number of states may still be large: at each step, we update frequencies; number of reachable freq configurations maybe manageable because 8 possibilities per step increase one count. The total number of states equals number of ways to distribute i+1 indistinguishable items (prefixes) into 8 bins = C(i+7,7). For i=50, C(57,7) ~ 57!/(7!50!) ~ around 57^7/7! ~ large (~1e9). Not feasible.
+
+Thus we need different approach.
+
+We can consider DP over count of good substrings directly without tracking all frequencies, using generating functions of parity states similar to counting substrings with equal parity using DP with pair counting incremental.
+
+We can treat DP where state includes current parity vector v and a vector of frequencies is represented implicitly using DP of counts distribution? Could use DP where we keep DP[g][freq], but not.
+
+Maybe we can use meet-in-the-middle enumerating assignments of '?' (max 50 => split 25/25 => 3^25 ~ huge). Not.
+
+Another approach: Since n <= 50, total substrings 1275, k up to that, we could use DP with inclusion of good substring count incremental as we process each character, using DP that tracks frequencies of parity vectors via additive contributions stored in polynomial (DP over good substring count). We can store DP as map from (parity vector v, frequencies of v and ~v?) Not.
+
+Observation: The added good substrings when new prefix parity v is generated depends only on freq[v] and freq[~v] counts, not on other frequencies. So we could keep DP state that stores frequencies for each of the 8 parity vectors, but possibly we can compress by noting that freq[~v] is just total prefixes - freq[v] - sum of other vectors? Not simple.
+
+But we can keep DP where we track freq array for the 4 unordered pairs {v, ~v}. Since added value only uses freq of current parity and its opposite. However future steps when parity changes, we need freq of other vectors too, because they could become current v later. So we need full freq array.
+
+Given small n=50, maybe we can think of DP over subsets of prefixes count? Another method: Use generating function via DP of prefix index and frequencies, but we can limit frequencies up to i (max 51). The state space product of freq for each parity vector is huge but maybe we can prune via DP only storing DP[g][freq_vector] for reachable configurations; number of reachable configurations may be less than combinatorial because each step increases freq of one parity vector (the current prefix parity). This is similar to counting number of ways to assign prefixes to parity vectors with order matters, which is massive.
+
+We need smarter combinatorial counting.
+
+We can consider counting ways to have exactly G good substrings after processing entire string via DP using polynomial convolution across positions while tracking current parity and multivariate generating function of frequencies? Could use DP where we maintain a generating polynomial of good substrings count as we process each character, using frequency array stored in DP for each parity vector count? Might be still large.
+
+But note that frequencies only increase by 1 each step for the parity vector of current prefix. So we could have DP that stores for each parity vector v the number of prefixes seen with that parity equals some count sv, but that's the same as freq array.
+
+Given constraints small (n=50, k up to 1275), maybe we can use DP over prefix index and track good substrings count and vector of frequencies encoded as a bitmask of counts? Not.
+
+Consider using DP with inclusion of generating function of good substrings count independent of frequencies by using linearity: For each position i, when we add new prefix parity v, the added good substrings = current freq[v] + current freq[~v]. This is analogous to process where we have variable that tracks current freq[v] values. This is similar to counting number of inversions etc. We can treat DP with state being current freq array but maybe we can compress using moments? Not.
+
+Given small n=50, maybe we can enumerate all possible prefix parity sequences? There are 8^n possible sequences of parity vectors (since each character changes parity by toggling bits for its letter). That's huge.
+
+But we have '?' replaced with 3 letters, which affect parity changes (A toggles A parity bit, B toggles B bit, C toggles C bit). So parity transition is deterministic based on chosen letter.
+
+We could use DP where state includes current parity v and a vector of counts of good substrings contributed so far (g) and a map from freq vectors to count ways but we said too large.
+
+Maybe we can use DP with generating functions for frequencies aggregated per parity vector counts using polynomial of good substrings contributions: At each step we add new prefix parity v, the added good substrings depends on freq[v] and freq[~v] which are part of the state. However we could treat the frequencies as part of DP aggregated via polynomial of contributions from each parity class independent? Not independent because freq evolves.
+
+But given n=50, maximum prefixes 51, so each parity vector count <=51. Number of possible multi-set of counts of size 8 summing to i+1 is C(i+7,7) ~ huge earlier.
+
+Maybe we can use DP where we treat pairs of equal or opposite parity substrings count as sum over incremental contributions which only depend on current parity vector frequencies. Could we use DP with inclusion of two arrays: freq_equal[v] = freq[v]; freq_opposite[v] = freq[~v]; Since we need both freq[v] and freq[~v] for current v, still need full freq.
+
+Consider alternative: Since n is only 50, we could iterate over all possible total good substrings counts G (0..1275) and use DP with state (i, current parity v, good substrings count g, frequencies of parity vectors encoded as a small bitmask for v only?). Not.
+
+Maybe there is a combinatorial formula to compute number of strings with at least k good substrings based on counts of each parity vector occurrences frequencies distribution: The total good substrings = sum_v C(cnt[v],2) + sum_v<C(cnt[v]*cnt[~v]??). This is a quadratic function of cnt vector.
+
+Thus we need to count assignments of '?' that lead to a final cnt vector (frequency of each parity prefix). The number of ways to achieve a particular cnt vector and final parity path? Wait cnt vector is determined by the sequence of prefix parities (including initial prefix 0). The path determines counts incrementally. However the total good substrings depends only on cnt vector, not the order of prefixes. The order influences how many ways to get that cnt vector given '?' choices, but we could count number of strings that result in a given cnt vector (distribution of prefix parities) using DP that tracks prefix parity (current v) and increments count for that v in cnt vector (at the end we want frequency distribution). That's similar to earlier DP with freq array.
+
+But maybe we can use DP with generating function where we treat cnt vector increments as we go, but we can aggregate by using DP that maps from cnt vector to number of ways. This is still large.
+
+But note n<=50 small, maybe we can just do DP over prefix index and keep cnt vector as 8-dimensional small numbers up to 50. Number of possible cnt vectors reachable after i steps might be manageable because each step increments one component (the parity vector of prefix). That's a composition of i+1 items into 8 bins where order matters (paths). The number of reachable cnt vectors after 50 steps is C(50+7,7) ~ 5e8, too many.
+
+But we also have '?' branching factor 3 (or 1 for fixed letters). Could use meet-in-the-middle splitting string into two halves (25 each), compute for each half the distribution of prefix parity sequences and cnt vectors contributions? Then combine using convolution on good substrings count? Half size 25 leads to reachable cnt vectors C(25+7,7) ~ C(32,7) ~ 3 million maybe feasible? 3 million states per half times branching? DP per half with map from (final parity v, cnt vector) to count ways and good substring count? That could be heavy but maybe manageable with optimization.
+
+But we also need to combine halves to get total good substrings across whole string, which includes substrings that cross the midpoint - more complex.
+
+Given time constraints, perhaps we can implement DP with state (freq tuple)? Maybe actual number of distinct freq vectors after processing up to 50 is less because parity vectors are only 8, distribution might be manageable. Let's estimate number of compositions 51 into 8 parts = C(58,7) ≈ 58^7/7! ≈ (58^7)/(5040). 58^7 ~ (5.8e1)^7 ~ 5.8^7 *10^7 ≈ (around 5.8^7 ≈ 5.8^3^2? Not compute). Let's approximate: 58^2=3364, ^3=195k, ^4=11.3M, ^5=653M, ^6=37.9B, ^7=2.2T. Divide by 5040 => ~4e8. Too many.
+
+Thus not feasible.
+
+We need smarter DP maybe using generating functions per parity class. Since good substrings total formula based on frequencies, we could compute distribution of cnt vector using DP but compress cnt vectors via the quadratic contribution to good substrings count, maybe using DP that accumulates count of substrings g directly but doesn't need full cnt vector.
+
+We can use DP where we store DP[i][v][g] = number of ways to reach position i with current parity v and having accumulated g good substrings so far (from substrings ending at positions <=i). This is feasible: i up to 50, v 8, g up to 1275. Transition: from DP[i][v][g] with freq counts unknown? However we need to compute addition to g when moving to i+1 and new parity v' (determined by character). The addition equals number of previous prefixes (including prefix 0) that have parity equal v' or opposite v'. To know that we need to know frequencies of each parity among previous prefixes, which depends on the path, not just current v and g. So DP[i][v][g] insufficient.
+
+But we could augment DP with a vector of frequencies for each parity bucket of previous prefixes count but as we argued huge.
+
+Given the constraints n=50 small, we could use DP that tracks frequencies for each parity bucket but we compress them into a small integer representation using base (i+1) encoding? Number of possible freq configurations maybe still large but perhaps for n=50 it's manageable because 8 buckets each up to 51 leads to about 51^8 ~ 3e13 impossible.
+
+Thus we need new insight.
+
+Maybe we can use inclusion-exclusion generating function on counts of substrings good using linearity of expectation? Not.
+
+Consider using DP by processing substrings rather than prefixes: total substrings O(n^2)=1275. For each substring we can compute probability (or count) that it is good given '?' assignments, but substrings overlap not independent, but we need count of assignments where at least k substrings are good. This becomes counting assignments with sum of indicator variables >= k, similar to subset sum over dependent variables – not trivial.
+
+Given limited n=50 and small total substrings 1275, maybe we can use DP over substrings and assignments using inclusion? Not.
+
+We could use brute force over all assignments of '?' because max '?' maybe small? n=50 worst case all '?', 3^50 impossible.
+
+We need some smarter DP.
+
+Maybe we can treat the problem as counting assignments and number of good substrings using DP with generating functions on parity counts as earlier DP[i][freq_vector] but compress via using polynomial for good substring count and freq array aggregated via mobius transform? Could use DP where we store map from (freq array encoded as 8 integers but we only need sum of C(cnt[v],2) and cross opposite term). However the future added substrings depend on current freq values for v and ~v, not just the cumulative good substrings count. But maybe we can store for each v the freq[v] (since we need both for future contributions). That's still 8 numbers.
+
+But note that freq[v] values sum to i+1 (including initial prefix 0). So we can store freq as 7 numbers (last derived). But still huge.
+
+n=50 small enough that perhaps 8^i (8^50) huge.
+
+Given time limited, maybe constraints are lower due to k up to ... but perhaps number of '?' is limited? Not given.
+
+Could we use meet-in-the-middle on prefix frequencies: split string into two halves, compute for each half all possible (parity vector end v, freq array, good substrings count). Then combine halves using convolution of frequencies? Still large.
+
+Possibly there is known solution: counting assignments with at least k good substrings using DP with generating function on prefix parity counts but using DP of frequencies aggregated via using DP over counts for each parity vector as a multivariate generating function but limited to 8 bins which is moderate. 8 bins limited to 50 total, maybe we can store DP as map from tuple of 8 counts (compressed) to polynomial of good substrings count? Could be big but maybe number of reachable freq vectors after 50 steps is not huge due to parity constraints path. Each step increments the count of parity vector equal to current prefix parity (which evolves based on letters). So the set of possible freq vectors may be less than total compositions because parity vector sequence is constrained by transitions (changing parity by toggling bits). Number of possible prefix parity sequences of length 51 is at most 8^{51} ~ huge, but perhaps reachable freq vectors still large.
+
+Given time, maybe n <= 20? No n up to 50.
+
+We need another perspective: Since k can be up to total substrings, we might use DP with inclusion of generating function of good substrings count using DP of prefix parity and do convolution for each step using DP over frequencies of each parity vector but we can store frequencies aggregated as a small vector of size 8 but treat them as polynomial generating function for good substrings count. Could use DP with dictionary mapping (freq_tuple) to polynomial array of size up to max substrings, truncating via k. Might be manageable because number of freq tuples reachable perhaps limited due to n=50 and 8 parity vectors constrained by sequence; but might still be large.
+
+Given limited time, perhaps we can implement DP with state (i, current parity v, freq_eq, freq_opp) where freq_eq = freq[v] (the count of current parity seen so far) and freq_opp = freq[~v]? But future steps when parity changes, we need freq for other parity values as they may become current v later; however we could store for each parity vector its count but maybe we can store aggregated info in a 8x? Not.
+
+Time is running.
+
+Maybe we can brute force counting good substrings threshold using inclusion-exclusion on number of good substrings (G) via DP where we ignore future dependence by treating each new prefix addition's added good substrings as random variable depending on current frequencies, which we can track via DP of frequencies as a vector of counts but maybe we can compress using generating function for each parity vector independent via using DP of multivariate generating function where dimensions are counts for each parity vector (8). Could store DP as dict mapping from tuple of 8 counts to polynomial (good substrings distribution). Number of tuples after 50 steps might be about C(50+7,7) ~ 5e8 too high.
+
+Given difficulty, maybe constraints actually smaller? Let's view example tests to infer scale.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need efficient solution; n up to 50 suggests DP with state frequencies maybe okay if we limit to 8 parity vectors and good substrings count up to ~1275 and use DP with freq array compressed via using DP of frequencies for each parity vector as generating function but maybe feasible with DP using bitmask of frequencies in base (n+1) encoding and pruning via DP only storing states that appear for given string with '?' branching 3 possibilities.
+
+Let's approximate number of reachable frequency vectors after 50 steps potentially large but maybe actual reachable states much fewer due to parity sequence constraint? Not sure.
+
+We could implement DP with dict where key is tuple (freq0, freq1,...,freq7, current parity v) and value is dict of good substring count -> ways. That's huge.
+
+We need better.
+
+Observation: Only need freq of each parity vector modulo something? Not; added substrings depends on exact freq numbers.
+
+But n=50 small; maximum good substrings is 1275, DP over i and a 8x? frequencies maybe okay if we store DP as map from frequencies vector compressed into a single integer using mixed radix (counts up to i). The number of states might be manageable because number of possible frequency vectors after 50 steps is number of ways to distribute 51 prefixes among 8 bins * possible orderings? Actually each path results in a specific freq vector, but number of distinct freq vectors after 50 steps could be far less than C(58,7). Let's test by brute force for n=15 without '?', compute reachable freq vectors count; but with branching maybe still large.
+
+Given time constraints, maybe we can implement DP with memoization and pruning using good substrings count dimension also limiting states.
+
+Since example includes n up to 49 with many '?' and k up to about 1000, maybe DP with freq vector is too big.
+
+We need alternative: Use DP over prefix and maintain frequencies as generating function via using DP with inclusion of polynomial for each parity vector counts aggregated via combinatorial formulas (like using DP for counting number of ways to have certain freq for each parity vector with contributions to good substrings count). This is similar to counting ways to assign each prefix parity (including 0) to vectors with order constraints (parity transitions). That seems like counting walks on parity graph (3-bit toggles) with counts of visits to each vertex (parity vector) and we need distribution of visits counts. This is like counting sequences of length n+1 (prefixes) of vertices in graph where transition from v to v' is by toggling one of three bits (or stay same if ? char leads to unknown). The graph is hypercube of 8 vertices where edges correspond to toggling a single bit (A/B/C). Starting vertex is 0 (empty parity). For each known character, transition is deterministic: toggling bit for that character (A toggles bit0, B toggles bit1, C toggles bit2). For '?' we can choose one of three toggles.
+
+We need to count walks of length n (edges = n steps) with starting node 0, each step possibly multiple options, and we need to count number of walks where the multiset of visited nodes (including start) has certain visit frequencies leading to good substrings count >= k (through formula based on frequencies). This is a classic DP where we track visit frequencies vector but that's huge.
+
+But n=50 small; we could use DP with generating function of frequencies via using DP over nodes with inclusion of polynomial in good substrings count as we increment frequencies using combinatorial method: When we visit node v, we increase its count freq[v] by 1 and add to total good substrings the increment freq_before[v] + freq_before[~v]. So we could perform DP where state is (i, v, freq_counts_of_8?) but we can avoid storing full freq vector by noting that the increment depends on freq[v] and freq[~v] only, not others. However future increments when visiting other nodes need their freq counts, so still need them.
+
+Given time shortage, maybe we can use DP with memoization and store freq vector as a tuple but prune by merging states with same (freq vector, current v) but different good substring count distribution aggregated into polynomial array (size up to k). Number of freq vectors may be limited due to small n (50). Let's attempt to estimate reachable freq vector count via brute force for n=20 with all '?' (3 choices each) would be insane path count but freq vectors maybe moderate? Could test with code generating all possible walks of length 20 (3^20 ~ 3B can't). But reachable freq vectors may still blow up.
+
+Given constraints small (n=50), we could store DP as dict mapping (freq tuple, v) -> polynomial (list of ways for each good substring count up to max_sub). Use hashmap; number of states could blow up but maybe manageable because freq tuple dimension 8 with values summing to i+1 which is up to 51; number of combos ~ C(i+7,7). For i=25, C(32,7) ~ 3 million states, maybe borderline but times branching factor 3 might be huge.
+
+But maybe actual reachable states far less because each step can only toggle one bit, limiting distribution? Not sure.
+
+Time is limited.
+
+Given example where answer for many cases is 0 or small numbers, perhaps k relatively large making many assignments invalid; but still DP may be large.
+
+I think we may implement DP with dictionary storing (freq0,...,freq7, v) keys compressed into bytes using base (i+1) representation and keep polynomial up to k (max 1275). Might be heavy but n=50 maybe okay if state count ~ few hundred thousand.
+
+Let's attempt implement DP incremental, pruning polynomial to only counts up to k (or up to total substrings), merging states with same key by adding polynomials (convolution of added good substrings values). Transition: for each state (freq tuple, v, poly), for each possible letter choice (deterministic if s[i] fixed else three options), compute new parity v' = v xor toggle(letter). added = freq[v'] + freq[opp] where opp = v' ^ 7 (flip 3 bits). new freq' = freq with freq[v'] incremented by 1. new poly = shift poly by added (i.e., for each g count ways poly[g] add to new_g = g+added). Merge states with same (freq', v') by summing poly arrays (mod MOD).
+
+We need to store freq tuple of 8 ints each up to i+1 <=51; we can compress into a bytes key: perhaps use tuple of 8 small ints. Number of states may blow up but we can test.
+
+We also need to cap polynomial length to k (we only care counts >= k, but need final answer sum for g>=k). We can store poly up to k (or k max). When shifting beyond k we can cap at k (store as count for >=k bucket). We'll store poly as list length k+1 where index k means >=k aggregated.
+
+Implement DP using dict: key = (freq_tuple, v). freq_tuple could be a bytes of 8 ints; use Python tuple of 8 ints.
+
+Initialize state at prefix 0 (before any character). freq initial: freq[0]=1 (starting prefix parity 0 visited), others 0. v=0. poly = [1 at g=0] (no substrings yet). Actually initial good substrings count is 0 because no substrings yet (but we have prefix 0 counted in frequencies for future substrings). Poly as list length k+1.
+
+Iterate over positions i from 0 to n-1.
+
+Potential state explosion: freq tuple size 8 ints, DP dictionary size may blow up. Let's estimate worst-case state count after 25 steps maybe millions which might be okay in Python with careful pruning and k up to 1275 (list size ~1276). Could be heavy memory.
+
+But we can compress poly as dict mapping g to ways (sparse) to reduce memory. Use dict for poly.
+
+We'll also cap g at k (store key >=k as k). At final sum over states, sum ways for g>=k (i.e., dict entries with key == k or greater aggregated).
+
+Implement merging: for each new state key, we have dict of g->ways; we need to combine multiple contributions (add dicts after shifting). Could be heavy.
+
+Given n=50 and state count maybe large, but poly dict per state also large (up to k entries). That's heavy.
+
+We can use array of length k+1 (k up to 1275) for poly which is moderate memory per state if state count small (<10k). Not sure.
+
+Probably state count will explode.
+
+Given time constraints, I think this DP may still be too heavy.
+
+Maybe we can incorporate dp where we store only frequencies vector compressed as counts of each parity but also store a smaller representation: Since added good substrings = freq[v'] + freq[opp], we only need freq values for each parity to compute addition later. So we need full freq.
+
+Thus state explosion likely too large.
+
+Given time shortage, I think we may not finish accurate solution.
+
+Given example includes large n=49 and '?' many, we need efficient solution; my DP might be too heavy.
+
+But due to limited time, I will attempt implement DP with freq tuple and poly dict and hope it passes due to n=50 moderate.
+
+Let's code ans.py with this DP and test on example tests (may be slow but try). We'll implement pruning by using default dict for new states each iteration and limiting poly dict size to k+1 entries (capped). Use list for poly for speed.
+
+Let's code.
+
+[COMMAND] cat > ans.py << 'EOF'
+import sys
+from collections import defaultdict
+MOD=998244353
+
+def count_good_string_replacements(n, k, s):
+    # toggle bits: A -> bit0 (1), B -> bit1 (2), C -> bit2 (4)
+    toggle = {'A':1,'B':2,'C':4}
+    # initial state
+    # freq tuple length 8 counts of prefix parity visit …

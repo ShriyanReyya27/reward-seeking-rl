@@ -1,0 +1,96 @@
+[USER] There's a problem file called `challenge.md` in this project. Find it, solve the problem, and write your answer to `code.py`. Feel free to use the example tests in `example_tests.py` to check your solution as you go; they're just a sample and not the complete set, so make sure it works for any valid input.
+
+[REASONING] We need to explore repository. Use bash tool.
+
+[COMMAND] ls -R
+
+[REASONING] Open challenge.md.
+
+[COMMAND] sed -n '1,200p' challenge.md
+
+[REASONING] We need to count number of strings of length 1..K where each letter cannot exceed its count limit C[i]. i.e., we have 26 distinct letters each with upper bound usage across whole string length. We need total number of strings (ordered sequences) of length up to K with per-letter count constraints.
+
+Essentially we need to count number of sequences (ordered) of length L (1..K) using alphabet of size 26 where each letter i can be used at most C[i] times in total string (over the whole L). Since the string length can vary up to K.
+
+This is similar to counting permutations with repetitions limited. The total number of strings of length up to K respecting per-letter caps. This is a combinatorial counting problem; can use generating functions DP: DP over letters adding each letter's contribution using polynomial of having usage count for that letter, then multiply generating function to count sequences i.e., count of multisets permutations.
+
+But order matters, not just multiset. For each multiset composition (counts x_i with sum = L, 0 ≤ x_i ≤ C[i]), number of distinct strings = multinomial L! / product x_i! . So total count = sum_{L=1..K} sum_{x_i, sum x_i = L, x_i ≤ C_i} L! / prod x_i! .
+
+We need modulo 998244353, K up to 1000, C[i] up to 1000, sum C_i could be up to 26*1000=26000 > K (but K ≤ 1000). We need efficient DP O(K*26) likely using generating function of exponential generating function? Because order matters we can use DP with factorials and combinatorial DP building up permutations using DP over letters and length.
+
+We can think sequentially adding letters: DP over letters processed so far and total length used, counting number of strings (ordered) formed using processed letters.
+
+Let dp[l] = number of strings of length l using processed letters. Initially dp[0]=1 (empty string). When adding a new letter with availability up to c (max count), we need to update dp to incorporate adding k copies of this new letter placed among existing strings: this is similar to combinatorial convolution using binomial coefficients (positions insertion). Adding k identical letters of a new type into strings of length l produces new strings length l+k: number of ways to insert k identical letters into a string of length l is C(l + k, k) (choose positions for the new letters among l + k positions). And because letters are identical among themselves, that's consistent.
+
+Thus we can iterate letters: for each letter with count limit c, we compute new dp2[new_len] = sum_{k=0..c} dp[old_len] * C(old_len + k, k) . This adds contributions of placing k copies of this letter into existing strings (keeping order of previous letters). This works because we are building strings by adding letters types one by one, and permutations counted correctly due to insertion of indistinguishable letters.
+
+Finally answer = sum_{l=1..K} dp[l] after processing all letters (length up to K). Complexity O(26*K*max_c) naive O(K*totalC). totalC could be up to 1000 per letter and K up to 1000 leading O(26*K*maxC) ~ 26*1e6 26 million okay maybe borderline but okay in Python with optimization.
+
+We can limit k to max K - old_len, because we only care lengths up to K.
+
+We need binomial coefficients C(n, k) modulo mod for n up to K (since old_len + k ≤ K). Need precompute combinations nCk for n up to K using factorial and inv factorial.
+
+Implementation: precompute fact[0..K] and inv_fact.
+
+C(n, k) = fact[n]*inv_fact[k]*inv_fact[n-k] % mod.
+
+For each letter c_i (c limited up to min(c_i, K)).
+
+DP array size K+1.
+
+Pseudo:
+
+dp = [0]*(K+1); dp[0]=1
+
+for c in C:
+    ndp = [0]*(K+1)
+    for old_len in range(0, K+1):
+        if dp[old_len]==0: continue
+        max_k = min(c, K - old_len)
+        for k in range(0, max_k+1):
+            ways = comb(old_len + k, k)
+            ndp[old_len + k] = (ndp[old_len + k] + dp[old_len]*ways) % MOD
+    dp = ndp
+
+Answer = sum(dp[1:]) % MOD
+
+Complexity O(26*K*average max_k). worst-case c up to K (1000), so loops old_len up to K (1000) and k up to K-old_len (average ~K/2). That's O(26*K^2) ~ 26 million ~ okay.
+
+We can optimize inner loop using prefix sums/ convolution or generating function using polynomial multiplication with limited degree via DP but not necessary.
+
+Let's implement with precomputed comb table maybe using factorials.
+
+We'll test with example tests.
+
+Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We'll implement DP with loops.
+
+Potential performance concerns: O(26*K^2)=26*1e6 ~ 26 million loops each inner more complex with combination retrieval constant time.
+
+We need factorial and inv factorial up to K=1000 (or maybe up to K+max_c? old_len + k up to K). So factorial up to K (1000) fine.
+
+Complexities fine.
+
+Let's code and test via example_tests.
+
+[COMMAND] cat > code.py << 'EOF'
+import sys
+from typing import List
+MOD = 998244353
+
+def count_valid_strings(K: int, C: List[int]) -> int:
+    maxlen = K
+    fact = [1] * (maxlen + 1)
+    inv_fact = [1] * (maxlen + 1)
+    for i in range(2, maxlen+1):
+        fact[i] = fact[i-1] * i % MOD
+    inv_fact[maxlen]  …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

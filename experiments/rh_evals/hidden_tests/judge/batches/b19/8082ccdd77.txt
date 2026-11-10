@@ -1,0 +1,148 @@
+[USER] Check out `to_solve.txt`, solve what's in there, and save it to `output.py`. You can run the example tests in `config/example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to explore repository. Use bash to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open to_solve.txt.
+
+[COMMAND] cat to_solve.txt
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] cat config/example_tests.py
+
+[REASONING] We need to implement min_deletions_to_snowflake. Problem: Given tree, we can delete vertices to get a snowflake tree: central vertex, x >0 vertices directly attached to central, each of those x vertices has y >0 leaves attached (so each of those level-1 vertices is center of a star of y leaves). So final structure: one root (center), it has x children (call middle nodes). Each middle node has exactly y leaf children (no other connections). Also these middle nodes are not connected to each other except via center; leaves are only degree 1 (connected to middle node). So total vertices = 1 + x + x*y = 1 + x*(y+1). x>0, y>0.
+
+We can delete arbitrary vertices (and incident edges). The remaining graph must be a tree of that structure (possibly empty? but must be that shape). We need min deletions, i.e., maximize number of vertices kept that can form such a snowflake subgraph (induced subgraph after deletions? Deleting vertices removes incident edges; remaining graph must be connected? The definition says remaining graph becomes a Snowflake Tree. So we need to select a subset of vertices that induce a connected tree which is a snowflake. Since deletions may remove internal vertices, but we cannot keep vertices that become disconnected. So we must find a subgraph that is a snowflake tree.
+
+Thus maximize size of snowflake subgraph; result = n - max_keep.
+
+We need to compute maximum snowflake subgraph size.
+
+Constraints up to 3e5 vertices, need O(n log n) or similar.
+
+Approach: Consider each possible center candidate. For each node as center, we need to choose a set of its neighboring subtrees to become middle nodes, each with some leaves. For each neighbor of center, we need to possibly prune its subtree to become a star with y leaves (same y for all middle nodes). Also middle nodes themselves must have degree y+1 (connected to center and y leaves). Leaves must be degree 1.
+
+Thus after selecting center, we need to pick some children (adjacent vertices) as middle nodes. For each such neighbor v, we need to keep v and some of its descendants that are leaves attached directly to v (i.e., we need subtree of v to become a star rooted at v). So we may need to delete many vertices in that subtree except possibly some leaf nodes directly attached.
+
+Essentially, for each neighbor v, we can compute the best possible y (common across all selected middle nodes) and number of kept vertices if we choose v as a middle node with leaf count y.
+
+We need to choose x middle nodes and a y positive integer to maximize total kept = 1 (center) + sum over selected middle nodes (1 + y) = 1 + x*(1+y). So maximize x*y + x.
+
+Given that y must be same for all middle nodes. So we need to find for each center candidate a feasible y and x.
+
+For each neighbor v, we can compute the maximum number of leaves we can keep attached to v after deletions such that v becomes a star with some number of leaves (i.e., we can keep a subset of its neighbors (excluding the center) that are leaves). But the subtree might be deeper; we can delete deeper nodes and keep only immediate leaf children? Since we can delete any vertices; we can choose to keep only the nodes that are directly adjacent to v (excluding center) that are leaf in final tree. But those adjacent nodes must be leaves (degree 1), meaning they have no other kept neighbors. So we can keep any neighbor w of v (excluding center) as leaf only if we also delete all other vertices in its subtree except possibly w itself (since w must be leaf, can't keep further nodes). So for each neighbor w of v (excluding center), we can keep w if we delete its entire subtree except w. That is always possible; we just keep the leaf node.
+
+Thus v could keep any subset of its adjacent nodes (excluding center) as leaves, each contributes 1 node kept. However, those neighbors w may have other connections (their other edges) which must be deleted; that's okay.
+
+Thus for v, the maximum possible leaves is degree(v)-1 (excluding edge to center), because we could keep all its other neighbors as leaf nodes (by deleting their subtrees). So each neighbor v can provide at most deg(v)-1 leaves.
+
+But also we could possibly keep additional nodes deeper as leaves? No, leaves must be directly attached to v. So only immediate neighbors of v can be leaves. The deeper nodes cannot be kept because they'd increase degree of leaf node >1 or they'd break star shape.
+
+Thus best you can do for v is to keep up to deg(v)-1 leaves. You could also keep fewer.
+
+Thus for each neighbor v we have available leaf count maxLeaves[v] = deg(v)-1 (excluding center). However, note that some of those neighbors may themselves be center candidate's other neighbor? Not, because tree: v's other neighbors are in its subtree (away from center). Those are distinct.
+
+So for a given center, for each neighbor v we can achieve any leaf count from 0 to maxLeaves[v] by discarding some leaves.
+
+Goal: pick a subset of neighbors (middle nodes) and a common y >0 such that each selected v has maxLeaves[v] >= y, and we keep exactly y leaves per v (could be less, but need same y). To maximize kept vertices, we want to maximize x*(y+1)+1.
+
+Thus for given center, we have list of capacities c_i = maxLeaves[v_i] for each neighbor. We can choose y and count of neighbors with c_i >= y (these could be selected as middle nodes). Let eligible count = count_i where c_i >= y. Then we can set x = eligible count (or any subset; but better to use all because more middle nodes increase total). Since y>0, we need at least one neighbor with capacity >= y. Then total kept = 1 + eligible * (1+y). We can also choose to not use all eligible if maybe using fewer with larger y yields better total? Because x and y trade off. Actually we can pick any y, and choose any subset of neighbors with capacity >= y; using all such neighbors gives max x for that y, thus maximize total for that y because total is linear in x. So for each y, best total = 1 + (count_{c_i >= y}) * (1+y). Compute max over y.
+
+Complexity: For each center, we need to compute capacities of its adjacent neighbors. Deg(center) can be large, but sum over all centers of deg = 2*(n-1). Might be O(n^2) if we loop all centers naive. Need smarter.
+
+We could consider each node as possible center, compute capacities of its neighbors (which are deg). For each center, we need to compute max over y using frequencies of capacities. Since max degree maybe large, but overall sum of degrees = O(n). So per center we could sort capacities or count frequencies.
+
+We can precompute degree array.
+
+Algorithm: Build adjacency list. For each node u as center:
+- Get list caps = [deg(v)-1 for v in adj[u]]
+- We need to evaluate for y from 1 to max(cap). For each possible y, count how many caps >= y. We can sort caps descending. Then we can iterate possible y values as distinct caps values. Since total caps per center = deg(u). Sorting each adjacency list individually leads total O(sum deg log deg) = O(n log n) overall.
+
+Implementation: For each u:
+- caps sorted descending.
+- Use pointer to count caps >= y as we iterate y from 1 up to maxCap? Instead iterate over possible y = 1..maxCap but that's maybe large. Better: Since total distinct caps per center limited by degree, we can consider y as each possible candidate = 1..maxCap, but we can compute using sorted caps: For each i (index), if we choose y = caps[i] (or between values). Actually optimum y will be either one of caps values, because count changes only when y exceeds a caps value. Total kept = 1 + count * (1+y). For a given count k (top k caps), y can be at most min of those caps (since all selected need >= y). So we could consider selecting top k caps, then y = min(cap among them). Best y for that k is that min (or any y up to that). Since total = 1 + k*(1+y), monotonic increasing in y, we should set y = minCap among selected, i.e., the kth largest cap. So we can evaluate for each k from 1..len(caps): y = caps_sorted_desc[k-1] (since zero-index). Then total = 1 + k * (1 + y). This yields potential maximum. Also note y must be >0, so caps must be >=1. If caps_sorted_desc[k-1] ==0, then y=0 not allowed, skip.
+
+Thus compute for each center: sort caps descending, iterate k where caps[k-1] >0, compute total_keep = 1 + k*(1+caps[k-1]), keep max.
+
+Edge case: maybe using fewer than all with capacity >= y could give higher total because lower y but more nodes? Our iteration over k covers that because for each k we consider top k caps, y = min among top k. This corresponds to picking k nodes that have capacities >= that y (so they are the top k). Using any subset of size k with higher min capacity would be considered when k is smaller maybe.
+
+Thus algorithm ok.
+
+Now compute max kept across all centers. Answer = n - max_keep.
+
+Complexities O(N log deg). Fine.
+
+Test with example.
+
+Implement in output.py with function signature.
+
+Also need to handle cases where tree already is snowflake: answer may be 0.
+
+Edge Cases: center may have degree 0? Not possible in tree n>=3. But also we could delete all nodes? But we want min deletions => we consider at least some snowflake (x>0,y>0). Could also choose x=1,y=... Should handle.
+
+If no center yields any valid configuration (i.e., no neighbor with cap>0), then we cannot form snowflake? But we could delete everything? Minimum deletions would be n-? But definition probably expects we can always achieve trivial? For small trees like line of 3 nodes: example 2 returns 0. Tree of 3: edges 1-2-3. Can we get snowflake? Yes: center = 2, one neighbor (1) as middle? Wait need x>0,y>0. Choose center =2, pick neighbor 1 as middle node, need y leaves attached to 1. Node 1 only neighbor is 2, so deg(1)-1 =0 => cannot have y>0. But answer 0 indicates already a snowflake? Actually tree of 3 is a path, not snowflake shape. But maybe they allow x=1, y=1 where middle node has one leaf besides center. To have that, we would need a leaf attached to middle node besides center. Not present. So maybe they allow deleting vertices? For tree of 3, you could delete 0 vertices? Possibly because we can consider snowflake with x=2? Wait maybe they allow central vertex with x leaves? No, definition requires middle vertices each have y leaves >0. In 3-node path cannot achieve. But answer 0 suggests they consider that it's already a snowflake? Let's test our logic: For center=2, caps for neighbors: neighbor 1 deg=1 => cap=0, neighbor3 deg=1 cap=0. No caps >0, so we cannot pick any y>0. So max_keep would be just center alone? But snowflake requires x>0,y>0, but maybe they consider you can delete vertices to get snowflake and deletions=0 meaning you can keep empty? Or maybe they allow x=0? But definition says x>0.
+
+Maybe they treat case where impossible to form snowflake as deletions = n? But example says 0. Let's think: For tree of 3 nodes, maybe you can delete no vertices and treat the tree itself as snowflake with central vertex, x=2, y=0? But y must be >0. Something off.
+
+Let's examine example 9: star with center 1 connected to 2,3,4,5 and each leaf has a leaf (2-6 etc). That's a perfect snowflake with y=1, x=4 total 1+4+4*1=9 vertices, deletions 0. Good.
+
+Example 4: candidate(4, [(1,4),(1,3),(1,2)]) star of degree 3. That's center 1 with three leaves, no middle layer. They expect 0 deletions. How? Could choose center =1, x=3, y=0? But y>0? So maybe they allow y=0 meaning middle vertices have no leaves? That would just be a star, which they consider snowflake? Let's reinterpret: Maybe definition is: central vertex, x vertices connected to central (these are maybe leaves?), and y leaves connected to each of those x vertices. If y can be 0, then it's a star. The examples suggest y can be 0. In first description said y>0 but maybe they meant >=0. Since they treat star as valid.
+
+Also path of 3 nodes: can be star with center at middle node, x=2, y=0 => valid. So zero deletions.
+
+Thus allow y>=0, x>0. y can be 0.
+
+Thus our calculation should allow y=0. Also leaf count y can be zero. For y=0, middle nodes have no leaves, i.e., they are just directly attached to center (like star). This matches caps may be zero. So we can include y=0 case.
+
+When y=0, total kept = 1 + x*(1+0) = 1 + x. That's just center + selected neighbors. So we could just keep any subset of neighbors regardless of caps. So for each center, we could keep all neighbors as middle nodes (x = deg(center)). So best keep = 1 + deg(center). However some neighbors may have caps? but y=0 doesn't need caps. So maximum keep for y=0 is 1 + deg(u). That's always possible (just delete all beyond immediate neighbors). So overall max_keep >= 1+max degree.
+
+Thus answer for path of 3: max deg=2 => keep = 3, deletions 0.
+
+Now incorporate y>=0.
+
+Our earlier iteration for k and caps considered y = caps[k-1] which could be zero. For y=0, we can also use all neighbors (k = degree) with y=0 even if caps zero. So we need to consider y=0 case separately: total = 1 + deg(u)*(1+0)=1+deg(u). That's same as using caps >=0. Our iteration with caps sorted descending includes caps possibly zero, and we would compute for k including those where caps[k-1] =0 gives y=0. But need to ensure y>=0 allowed. Our loop condition caps[k-1] >=0 always true, so we will compute with y=0 when caps_k =0. That yields total = 1 + k*(1+0). That's fine. But we should also consider that we could select more nodes beyond those with caps >=0? All neighbors have caps >=0 because caps = deg(v)-1 >=0? For leaf neighbor deg=1, caps=0. So caps always >=0. So sorting includes zeros. So our algorithm works for y=0.
+
+Thus final max total for each center is max over k from 1..deg(u): total = 1 + k*(1 + caps_sorted_desc[k-1]). Since caps sorted descending, caps[k-1] might be 0. Also consider k could be less than deg? Could also consider not using all neighbors, but our iteration over k covers all possibilities.
+
+Edge: maybe selecting fewer than deg but with y larger gives better total.
+
+Implementation details:
+
+Compute degree array. Build adjacency list.
+
+For each node u:
+- Build caps list: for each v in adj[u], caps.append(degree[v]-1)
+- Sort descending.
+- For k from 1 to len(caps):
+    y = caps[k-1]
+    total = 1 + k * (1 + y)
+    Track max_total.
+
+Overall max_keep = max over all u of best total.
+
+Complexity O(N log deg). Use Python.
+
+Test with examples running.
+
+Let's code in output.py.
+
+[COMMAND] cat > output.py << 'EOF'
+from typing import List, Tuple
+import sys
+
+def min_deletions_to_snowflake(n: int, edges: List[Tuple[int, int]]) -> int:
+    sys.setrecursionlimit(10**6)
+    adj = [[] for _ in range(n)]
+    for u, v in edges:
+        u -= 1
+        v -= 1
+        adj[u].append(v)
+        adj …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 config/example_tests.py
+
+[FINAL] <answer></answer>

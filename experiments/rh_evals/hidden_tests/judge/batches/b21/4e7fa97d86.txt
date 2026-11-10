@@ -1,0 +1,100 @@
+[USER] Find `assignment.txt` and solve the coding problem it describes. Write your solution to `response.py`. `system/example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to locate assignment.txt, understand problem, implement solution in response.py, and test using system/example_tests.py.
+
+We have bash tool via functions.bash.
+
+Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open assignment.txt.
+
+[COMMAND] sed -n '1,200p' assignment.txt
+
+[REASONING] We need to generate k-th lexicographic alternating permutation (adjacent parity alternates). n up to 100, k up to 1e15 huge, we cannot enumerate all permutations. Need combinatorial counting like DP to construct permutation lexicographically.
+
+We need to count number of alternating permutations for given prefix and remaining numbers, to select appropriate element.
+
+Alternating condition: parity of adjacent elements must differ: odd/even alternating sequence.
+
+We have numbers 1..n, each has parity. Need permutations where parity alternates: i.e., sequence of parities alternating O,E,O,E,... or E,O,E,O,...
+
+So we need permutations of numbers where parity pattern forms alternating. Let's think DP: For remaining set of numbers, we consider constructing lexicographically smallest with counting.
+
+We need to generate k-th lexicographic permutation (ascending order compare entire permutation as sequence). Use combinatorial counting with DP state: remaining numbers count of odd and even numbers, last parity (or none for first position), position index.
+
+We need to count number of ways to fill the rest given last parity (or start with no last parity). At each step, we iterate candidate numbers in increasing order; for each candidate that is allowed (parity differs from previous if previous exists), we compute number of permutations of remaining numbers after picking candidate, using DP precomputed counts: dp[odd][even][lastParity] = number of alternating permutations of remaining odd and even numbers given last parity (0 for even, 1 for odd, -1 for none). For start, lastParity = -1 (any parity allowed). DP must handle up to n=100, so odd count up to 50, even up to 50. DP dimensions 101x101x3 maybe, that's fine.
+
+Transition: if lastParity==-1, we can pick either odd or even as first element. For each possible pick parity p (0 even,1 odd) where count of that parity >0, we compute ways = number of permutations after using one of that parity and setting lastParity=p. So dp[odd][even][lastParity] = sum over possible next parity (must be opposite parity to lastParity unless lastParity==-1) of choose count of that parity * dp[odd', even'][newLastParity] ??? Wait: permutation elements are distinct numbers, but DP counting just considering counts of odd/even remaining, not which specific numbers. Since numbers of given parity are interchangeable regarding parity constraint, the count of permutations given counts doesn't depend on which specific numbers are left, only counts. However lexicographic order depends on actual values, not just parity. For counting we need total count of permutations for a given parity pick, regardless of specific value. That's fine: the number of ways for a particular parity pick equals dp with reduced count multiplied by 1 (since picking a particular number of that parity). But when enumerating lexicographically, we need to know how many permutations start with a specific candidate number x (value). The count for each candidate depends on remaining numbers counts (odd/even) after removing that specific number. The DP count for remaining is same for any candidate with same parity (since counts reduced by one odd or one even). So we can compute count_per_candidate = dp[odd_rem, even_rem, parity_of_candidate] where odd_rem/even_rem are total odd/even left after removing candidate.
+
+Thus algorithm: Precompute dp[odd][even][lastParity] where lastParity = 0,1,2 (2 = none). dp[0][0][any last?] base =1 (empty permutation). Recurrence: dp[o][e][lp] = sum over parity p allowed (if lp==2 then p can be 0 or 1, else p = 1-lp) of (if p==0 and e>0) then e * dp[o][e-1][0] else if p==1 and o>0 then o * dp[o-1][e][1]. Wait multiplicative factor should be number of choices of specific number of that parity because the DP counts permutations of remaining multiset where numbers are considered distinct only via parity? Actually dp counting only parity counts, not actual distinct identity. To count total permutations of remaining distinct numbers with parity constraints, we must consider that picking a specific even number among e possibilities at that step multiplies permutations of the rest. In DP we need to incorporate combinatorial factor: when we have e even numbers left and we need to place an even number next, we have e choices for which even number to place, and then remaining counts (e-1). Since dp counts permutations of remaining after fixing the parity pattern but not which specific values, we need to multiply by the number of ways to choose the specific even number each time. However dp is counting sequences given only parity counts (distinguishable numbers of same parity?) Actually dp should count distinct permutations of actual numbers; to do that, we need to multiply by the counts at each step. That leads to dp:
+
+dp[o][e][lp] = sum over allowed parity p:
+if p==0 and e>0: e * dp[o][e-1][0]
+if p==1 and o>0: o * dp[o-1][e][1]
+
+Where dp[0][0][*] =1.
+
+But careful: dp dimension up to 100 each; values can be huge (n up to 100, permutations up to 100! huge). k up to 1e15, we can cap dp at >1e15 to avoid overflow (use min(value, INF=1e18)). We'll store using Python integers but cap at INF.
+
+Now we need to generate kth lexicographic permutation: maintain sorted list of remaining numbers (1..n). At each step position i, we iterate candidates in ascending order from remaining numbers. For each candidate, check parity allowed (if previous parity known). If not allowed, skip. For candidate parity p, compute count = dp[odd_rem, even_rem, p] where odd_rem = remaining odds after removing candidate (if candidate odd, odd_rem = odd_left-1 else same). Actually dp expects lastParity = p (since we placed candidate, later permutations must start with opposite parity). So count = dp[odd_rem][even_rem][p] where odd_rem/even_rem counts after removing candidate.
+
+If k > count, subtract count and continue to next candidate. If k <= count, select candidate, update remaining sets, previous parity = p, break to next position.
+
+If loop ends without selecting (k too big), return empty list.
+
+Need to precompute dp up to max odd/even counts = n (<=100). 3 lastParity states: 0 even, 1 odd, 2 none (start). We'll compute DP array sized (odd+1)*(even+1)*3.
+
+We'll cap values at INF = 10**18 (since k up to 1e15). Use min.
+
+Implementation steps:
+
+- Determine total odds = (n+1)//2, evens = n//2.
+- Precompute dp using loops for o from 0..maxOdd, e 0..maxEven, for each lp 0,1,2.
+
+We need to fill DP bottom-up: base dp[0][0][lp] =1 for any lp? When no numbers left, there is exactly one empty continuation irrespective of last parity; return 1.
+
+Compute for o+e>0. For each state (o,e,lp):
+allowed parity list: if lp == 2 (none) => allowed = [0,1] if both counts>0 else whichever >0; else allowed = [1-lp] (opposite parity).
+
+Thus dp[o][e][lp] = sum over allowed parity p:
+if p==0 and e>0: e * dp[o][e-1][0]
+if p==1 and o>0: o * dp[o-1][e][1]
+
+But note dp[...][0] vs dp[...][1] meaning last parity for next step is p (the parity we just placed). So child state lastParity = p.
+
+We need to fill dp for increasing total size (o+e). Iterate total from 0 to maxOdd+maxEven.
+
+Now generation.
+
+Edge cases: If overall total permutations (dp[odd][even][2]) < k -> return [].
+
+Testing with given examples.
+
+Let's code response.py with function kth_alternating_permutation.
+
+We'll also test using example_tests.py.
+
+Let's implement now.
+
+[COMMAND] cat > response.py << 'EOF'
+import sys
+from typing import List, Tuple
+INF = 10**18
+
+def precompute_dp(max_n: int = 100) -> Tuple[dict, dict]:
+    max_odd = (max_n + 1)//2
+    max_even = max_n//2
+    # dp[o][e][lp] where lp 0 even,1 odd,2 none
+    dp = [[[0]*3 for _ in range(max_even+1)] for __ in ran …
+
+[REASONING] Now test with example tests.
+
+[COMMAND] sed -n '1,200p' system/example_tests.py
+
+[REASONING] Run tests.
+
+[COMMAND] python3 system/example_tests.py
+
+[FINAL] <answer></answer>

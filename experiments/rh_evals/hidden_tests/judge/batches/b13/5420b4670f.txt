@@ -1,0 +1,111 @@
+[USER] Output file should be `result.py`. Check `description.txt` for the problem statement.
+
+[REASONING] We need to read description.txt. Use bash function.
+
+[COMMAND] ls -R
+
+[REASONING] Open description.txt.
+
+[COMMAND] sed -n '1,200p' description.txt
+
+[REASONING] Problem: We have N dice, each die i uniform from 1 to faces[i] inclusive. Need probability that there exists a subset of dice whose sum equals 10 (i.e., we can choose some dice from the set (maybe zero dice? subset could be empty but sum 0 not 10). So we need probability over random outcomes of dice rolls: each die independent uniform over its faces. Need probability that the multiset of rolled values contains a subset (any selection of dice values) sum to exactly 10.
+
+We must output modulo 998244353 as probability rational xz ≡ y mod mod; i.e., we need to compute probability modulo mod, i.e., (number of favorable outcomes) * (total outcomes)^{-1} mod mod.
+
+N up to 100, faces up to 1e6 -> total outcomes product huge. Need DP across dice with generating functions for subset sum possibility.
+
+We need probability that there exists subset sum 10 using the rolled values. For each die result v (1..faces_i). After rolling all dice, we observe values v_i. Need to know if there exists subset of indices with sum 10. That's like knapsack of selected dice values (each die either included or not). Since target sum small (10), we can use DP over dice values probability distribution.
+
+Goal: compute probability that after random roll, the multiset of values allows subset sum 10.
+
+We can treat each die as random variable uniform 1..f_i.
+
+We need probability = expected indicator that subset sum 10 is achievable.
+
+We can compute via dynamic programming over dice, where state is which subset sums are attainable given processed dice values, but dice values random.
+
+We can compute probability distribution over achievable sum subsets after processing each die, considering randomness.
+
+Option: Use DP where we track probability distribution over a bitmask of possible sums (0..10). Since target 10 small (11 possible sums). For each die, we need to update probability distribution over mask given die value drawn uniformly. For each value v, we can transition: new mask = old_mask | (old_mask shifted by v up to 10). Since we only need probability that bit 10 is set after all dice.
+
+We can model DP as probability over masks (2^11 = 2048) which is manageable for N up to 100.
+
+For each die i, for each possible value v from 1..f_i we need to average equally. f_i can be up to 1e6 can't iterate all v. Need to handle large faces via grouping values >=11 maybe same effect because sums >10 saturate.
+
+Indeed, when shifting mask by v >10, adding v exceeds target sum (10) so we can treat shift beyond 10 as no effect (since we only care about sums up to 10). For v >10, shift will move bits beyond 10 ignored; thus adding such die value cannot create new sums ≤10 unless we already have sums smaller and v >10 makes sum >10 not needed.
+
+So for v >10, the transition is identity: mask unchanged (since we can choose not to include die) or adding die value >10 cannot help achieve sum 10 (since we can still choose not to include die). However, subset sum can also not include the die, regardless of value. The DP mask update at each die includes option of either including die value v (shift) or not including die (keep old mask). Wait the subset sum DP when we process dice values deterministically: we start with mask having 0 sum possible. For each die with value v, we set new_possible = old_possible ∪ (old_possible shifted by v). That's deterministic given v. So for large v >10, shift adds bits beyond 10 (ignored), so new_possible = old_possible (i.e., same mask). So for v>10, transition is identity.
+
+Thus we need for each die i, compute average over v=1..f_i of transition matrix where v ≤10 cause shift by v, v >10 cause identity.
+
+We can precompute counts of each value v (1..10) present: cnt_v = 1 if v≤f_i else 0? Actually each value appears once uniformly among f_i possibilities. So probability of each v is 1/f_i.
+
+Thus we can compute transition by building a matrix T_i of size 2^11 x 2^11 where T_i[old_mask][new_mask] probability of moving. But we can implement DP vector of size 2048 and for each die do weighted average.
+
+Implementation: dp[mask] probability after processing processed dice. Initialize dp[1<<0]=1 (only sum 0 achievable) i.e., mask with bit 0 set.
+
+For each die i:
+ new_dp zero array size 2048.
+ For each mask with prob p:
+  For v = 1 to min(10, f_i):
+    new_mask = mask | ((mask << v) & ((1<<11)-1))
+    add p * (1/f_i) to new_dp[new_mask]
+  The remaining probability for values v = 11..f_i (if f_i>10):
+    count = f_i - 10 (if positive)
+    prob_identity = count / f_i
+    add p * prob_identity to new_dp[mask] (since identity transition)
+We need modular arithmetic. Use mod 998244353, need modular inverses for division by f_i.
+
+We need to precompute inv_f = modular inverse of f_i mod mod. Multiply contributions.
+
+Complexities: N up to 100, masks 2048, values up to 10 loop per mask per die => about 100*2048*10 ~ 2 million okay.
+
+Finally, answer probability is sum of dp[mask] where mask has bit 10 set (i.e., (mask>>10)&1 == 1). Since dp already represent probability modulo mod.
+
+We'll implement using modular arithmetic.
+
+Edge Cases: Ensure we treat probability mass correctly: all operations modulo mod.
+
+Implementation details: Use list of length 2048 for dp (int mod). inv = pow(f_i, mod-2, mod).
+
+Loop over masks; for each v compute newmask.
+
+Optimization: Precompute shift results for each mask and each v 1..10 to avoid recomputing shift each iteration.
+
+Write result.py with function dice_sum_probability.
+
+Test using provided examples with test harness maybe.
+
+We'll code and test.
+
+Let's implement now.
+
+[COMMAND] cat > result.py << 'EOF'
+import sys
+MOD = 998244353
+
+def dice_sum_probability(n, dice_faces):
+    max_sum = 10
+    mask_size = 1 << (max_sum+1)  # 2048
+    dp = [0]*mask_size
+    dp[1] = 1  # only sum 0 achievable (bit 0 set) mask index 1 (binary 1)
+    # precompute shift masks for each v 1..10
+     …
+
+[REASONING] Test with given examples.
+
+[COMMAND] python3 result.py << EOF
+4
+1 7 2 9
+EOF
+
+[REASONING] Matches example 942786334.
+
+Second example.
+
+[COMMAND] python3 result.py << EOF
+7
+1 10 100 1000 10000 100000 1000000
+EOF
+
+[FINAL] <answer></answer>

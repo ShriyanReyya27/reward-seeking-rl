@@ -1,0 +1,90 @@
+[USER] `todo.md` contains a problem. Solve it. Save to `solution.py`. Feel free to use the example tests in `example_tests.py` to check your solution as you go; they're just a sample and not the complete set, so make sure it works for any valid input.
+
+[REASONING] We need to inspect repository. Use bash tool.
+
+[COMMAND] ls -R
+
+[REASONING] Open todo.md.
+
+[COMMAND] sed -n '1,200p' todo.md
+
+[REASONING] Read example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need to implement count_square_permutations(n, s) count distinct square numbers that can be formed by permuting digits of s (including leading zeros). n up to 13 digits, so total permutations huge (13! ~ 6B). Must be clever.
+
+We have multiset of digits. Need to count squares (integers) that have at most n digits, but we consider permutation length exactly n (including leading zeros). So we need to count square numbers with exactly n digits (including leading zeros allowed, meaning we can pad square with leading zeros to length n). Actually, we treat permutation of all n digits possibly leading zeros; the resulting number is integer formed by arrangement of digits; leading zeros allowed, but the integer value may have fewer digits; we consider square numbers up to length n (or less) but padded representation must be an n-length string using the digits exactly.
+
+Thus we need to generate all square numbers whose decimal representation (padded with leading zeros to length n) is an anagram of s digits. Count unique squares (different integer values). Problem size: n <=13, digits length up to 13. Number of squares with up to 13 digits: max number is 10^13 -1; sqrt max about 10^6.5 ~ 3.16 million. Actually sqrt(10^13) = 10^6.5 ≈ 3.16e6. So total squares up to 10^13 is around 3 million squares - manageable to iterate.
+
+Approach: Precompute sqrt range: lower = ceil(sqrt(0)), but we need squares possibly with leading zeros padded to length n, meaning squares with integer value up to 10^n -1. So iterate square numbers from 0 to 10^n -1 (inclusive). That's up to sqrt(10^13) ~ 3.2 million squares. For each square, get its decimal representation padded to length n (with leading zeros), compute digit count (multiset). Compare to digit count of s. Want count of squares whose digit multiset matches s's multiset. But n up to 13, squares up to 3.2 million, that's okay in Python (3 million iterations). For each test we may have multiple test cases; but function called per test case only once? The example tests call count_square_permutations many times (different n,s). Could precompute squares per n? However n up to 13, we could generate squares for each call. 3 million loops per call maybe okay but could be heavy for multiple calls; but there are only a few test cases (maybe up to like 10). 3 million * 10 = 30 million, still okay in Python maybe borderline but fine.
+
+Optimization: For each candidate square, we need to compare digit counts quickly. Precompute count of s as tuple of length 10 (or string sorted). For each square, zero pad to length n string, count digits similarly and compare.
+
+Potential optimization: Use dictionary to map digit count signature to squares? But each call has different s; can't precompute per n across calls (maybe we can precompute mapping from signature to count of squares for each n up to 13). Since n max 13, we could precompute all squares for each n (0..13) and store mapping signature->1 (or count of squares?). Actually we just need count of squares matching s for each call; we could compute mapping of signature (digit count tuple) to number of squares having that signature for each n, then query. Precomputation cost: for each n from 1 to 13, iterate squares up to 10^n -1, which for n=13 is 3.2 million squares, for lower n fewer squares; total squares across all n is dominated by n=13 (3.2M). For each square, we can compute signatures for each n? That would duplicate work. Alternative: For each call, just iterate squares appropriate for n.
+
+Given small number of calls, per-call iteration fine.
+
+We need careful: include square 0 (0^2) which when padded with zeros may match strings with all zeros. Example: s '010' n=3, squares up to 999 (sqrt 999≈31). squares: 0,1,4,9,16,25,... etc. We'll check.
+
+Implement: compute s_counts = tuple of 10 counts. Iterate i from 0 to int(sqrt(10**n -1)) inclusive. Compute sq = i*i. Convert to string padded = str(sq).zfill(n). Compute counts; if counts equal s_counts, increment result (unique squares automatically because each square gives one integer; multiple permutations could lead same square, but we count each square once). This satisfies requirement "different permutations that result in the same number are counted only once".
+
+Edge cases: n up to 13, 10**13 is large (needs 10**13 int okay). sqrt bound: int(math.isqrt(10**n -1)). Use math.isqrt for integer sqrt.
+
+Complexities: For n=13, sqrt bound ~ 3_162_277. Loop 3.1 million; constructing padded string length 13 and counting digits (10 array) each iteration may be okay ~ few hundred ms.
+
+We'll implement count using list of 10 ints.
+
+We could also precompute digit signature of squares and store in dict to reuse across calls for same n. Might be good if many calls. But fine.
+
+Implement solution.py with function count_square_permutations and maybe add small caching per n of dict signature->count.
+
+Let's implement caching: a global dict cache = {} mapping (n, signature) -> result? Actually we can precompute mapping from signature to count for each n on first call for that n. For each n, compute dict sig_counts where key is tuple counts of digits (length 10) and value is count of squares with that signature (since squares are unique per integer). Then in function just compute s_counts and return sig_counts.get(s_counts,0). This would compute the mapping once per n per program run. This will be more efficient across multiple test cases with same n.
+
+Implement: global _cache = {}.
+
+In count_square_permutations, if n not in _cache, build mapping:
+
+max_val = 10**n -1
+max_root = isqrt(max_val)
+dict sig_map = defaultdict(int)
+Loop i in range(max_root+1):
+    sq = i*i
+    padded = str(sq).zfill(n)
+    compute signature = tuple of digit counts (10). Use tuple of counts.
+    sig_map[signature] += 1 (or set to 1, but squares unique). We'll store count (though each signature may have multiple squares? Could be different squares with same digit multiset but our query wants count of squares, not permutations, so we need count of squares per signature). So increment.
+
+Then cache[n] = sig_map.
+
+Then compute s_signature and return sig_map.get(s_signature,0).
+
+Memory: number of squares up to 3 million, each signature key stored maybe many duplicates; number of distinct signatures less than number of squares (3 million). That's heavy memory (key tuple length 10). Could be large: worst-case 3 million entries storing tuple(10) – memory maybe high (~3M * (overhead) > 300MB). Not good.
+
+Alternative: compute on the fly per call without storing all signatures. Since example tests have few calls, on-the-fly iteration per call is fine. We'll use per-call iteration.
+
+Implement per-call loop.
+
+Test with example tests.
+
+Let's code solution.py.
+
+[COMMAND] cat > solution.py << 'EOF'
+import math
+from collections import Counter
+
+def _digit_signature(s: str):
+    # return tuple of counts length 10
+    cnt = [0]*10
+    for ch in s:
+        cnt[ord(ch)-48] += 1
+    return tuple(cnt)
+
+def count_square_permutations(n: int, s: str) -> int:
+    target_sig = _d …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

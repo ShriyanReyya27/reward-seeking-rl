@@ -1,0 +1,96 @@
+[USER] Read `to_solve.txt`, solve it, write to `answer.py`. There are some example tests in `example_tests.py` you can use to check your solution; they're a sample, not the complete set, so make sure your code solves the general problem.
+
+[REASONING] We have to read to_solve.txt, solve it, and write answer.py. Use functions.bash to view files and run tests. Let's list files. Use functions.bash.
+
+[COMMAND] ls -R
+
+[REASONING] Read to_solve.txt.
+
+[COMMAND] sed -n '1,200p' to_solve.txt
+
+[REASONING] We need to compute number of sequences for Bob (length n = len(s)) using characters {F,W,E} with constraint no same creature consecutive for Bob, and Bob's total score > Alice's total score.
+
+Score: each round winner gets 1 point? Actually scoring rule like RPS (rock paper scissors) but with 3 moves. Bob's total winning rounds need to be > Alice's total winning rounds (i.e., Bob scores more points). A tie gives zero points each round (no points?). So each round if Bob's move beats Alice's move -> Bob gets 1 point. If Alice beats Bob -> Alice gets 1 point. Same move -> no points.
+
+We need count of Bob sequences (length n) no consecutive same character, such that Bob's total points > Alice's total points.
+
+We need modulo 1e9+7.
+
+n can be up to? Not provided. Use DP.
+
+Let s length be n up to maybe 10^5? Need efficient O(n * states). Bob cannot repeat same move consecutively, so state includes previous Bob move.
+
+We need count of sequences where Bob's win count > Alice win count. But we cannot enumerate win count dimension up to n large (n up to maybe 100?). Need DP with win difference.
+
+We can use DP counting number of sequences with each possible score difference (Bob points - Alice points). At each position we transition over Bob possible moves (3 options except previous move) and update difference.
+
+n might be up to 50 maybe 100? Not known. Could use DP with offset difference range -n..n which is O(n^2) which may be okay for n <= 1000. If n bigger (like 10^5) need smarter combinatorial counting maybe using generating functions; but example tests likely small moderate.
+
+Let's inspect example_tests.py for constraints.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need efficient DP with difference dimension perhaps up to n=?? Could be 300? But example has long string length maybe 500? The large test with huge string length (seems >300). We need O(n * diff range) which could be up to n^2 ~ 250k for n=500 maybe fine. However large string can be maybe 2000? Still fine.
+
+But there are many test strings cumulative length large? We'll implement DP using offset indexing for difference shift.
+
+Bob's previous move state: 4 possibilities (None initial + 3 moves). dp[pos][diff][prev_move] counts sequences giving score difference (bob - alice = diff) after pos rounds where diff can be negative to positive. We'll use array dict for sparse diff using offset. Complexity O(n * 3 * diff_range). diff range up to n (score difference can be from -n to n). That's O(n^2*3) = O(n^2). If n up to 500 maybe fine. Example includes a huge string maybe length ~ 1000? 1000^2=1e6 feasible.
+
+Implementation: Use two dicts for each previous move.
+
+Initialize dp[prev] = dict{diff: count}. For position 0 (first round), previous move = None so we can consider all 3 Bob moves.
+
+Define win outcome function: result of Bob move vs Alice move: bob wins (+1 diff), alice wins (-1 diff), tie (0 diff). Use mapping beats: F beats E, W beats F, E beats W.
+
+We need count of sequences where final diff > 0 (bob wins more). Also Bob cannot repeat same move consecutively.
+
+DP approach:
+dp_prev = {prev_move: dict diff->count}. prev_move can be 'F','W','E', or None.
+
+At each position char a = s[i]:
+Initialize new dicts for each possible current move cur (subject to not equal prev_move).
+For each prev_move in dp_prev (including None) and each current move cur != prev_move (or prev None allow all):
+For each diff count in dp_prev[prev_move]:
+new_diff = diff + outcome(cur, a) where outcome returns +1, -1, 0.
+Add count into dp_cur[cur][new_diff].
+
+We can maintain dp_cur as dict of dicts for each cur move.
+
+To limit diff range, we keep dict only existing diffs.
+
+After processing all positions, sum counts for diff>0 across all prev_move dicts.
+
+Modulo MOD = 1e9+7.
+
+Complexities: At each step, number of diffs grows O(i). So total O(n^2) but using dicts this may be okay for n ~ 500-1000.
+
+Edge case length up to maybe 2000 => 2 million ops fine.
+
+Implement answer.py accordingly.
+
+Let's code and test with provided examples using bash tool.
+
+We'll write answer.py with function count_bob_winning_sequences.
+
+Proceed to implement.
+
+Then test example tests.
+
+Let's code via bash.
+
+[COMMAND] cat > answer.py << 'EOF'
+#!/usr/bin/env python3
+import sys, collections, itertools, math, sys, os, sys
+MOD=10**9+7
+
+def count_bob_winning_sequences(s: str) -> int:
+    n=len(s)
+    # mapping beats: bob move beats alice move -> +1 diff
+    beats = {'F':'E','W':'F','E':'W'}  # key beats value
+    # ou …
+
+[REASONING] Now test with example tests. Use functions.bash to run example_tests.py.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

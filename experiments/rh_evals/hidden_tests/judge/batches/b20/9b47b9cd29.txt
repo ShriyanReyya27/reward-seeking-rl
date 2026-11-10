@@ -1,0 +1,176 @@
+[USER] Find `description.txt` and solve the coding problem it describes. Write your solution to `code.py`.
+
+[REASONING] We need to list files to find description.txt, read it, solve coding problem, write code.py.
+
+We have bash tool via functions.bash.
+
+Let's list files. Use functions.bash. We'll call function.
+
+We need to go to commentary channel functions. Use functions.bash.
+
+Let's list directory contents.
+
+[COMMAND] ls -R
+
+[REASONING] Read description.txt.
+
+[COMMAND] sed -n '1,200p' description.txt
+
+[REASONING] We need to count number of subsequences (ordered by positions) of each possible length k (1..n) that form arithmetic sequences (i.e., constant difference). The sequence length n up to 80, a[i] up to 1e9.
+
+We need to return list length n counts (mod 998244353). We need count for each length k.
+
+Brute force enumerating subsequences O(2^n) impossible.
+
+We need DP for counting arithmetic subsequences. Classic problem: counting arithmetic subsequence of length >=2 often uses DP with hashmap of differences storing counts ending at each index for each length.
+
+Given n up to 80, we can afford O(n^2 * n) maybe O(n^2 * L) where L is length up to n. Since n is small (80), we can do DP for each pair (i, j) storing counts of subsequences ending at j with difference d and length l.
+
+But we need counts for each length k.
+
+We can use DP[i][d][len] maybe large because differences up to 1e9 but we can use dictionary per index mapping difference to array of length counts.
+
+Approach: For each index i from 0..n-1, we maintain a dict diff_map where diff_map[d] is a list cnt[l] number of arithmetic subsequences ending at i with difference d and length l (minimum length 2?). We'll also count length 1 subsequences trivially: each single element subsequence length 1 counts as arithmetic sequence (any single number). So answer[1] = n.
+
+We need counts for all lengths up to n.
+
+Standard DP for counting arithmetic subsequence of length >=2: for each pair (j,i) with j<i, diff = a[i] - a[j]. For each existing subsequence ending at j with difference diff and length l we can extend to length l+1 ending at i. Also we can start new subsequence of length 2 (pair j,i) with diff.
+
+Thus we maintain dp[i][diff][len] counts (len index maybe up to i). Since n=80 small, we can store per index a dict diff -> array length n+1 counts (starting from length 2). Use list of length n+1 (or dict length->count) for each diff.
+
+Complexities: O(n^2 * n) = 80^3 = 512k fine.
+
+Implementation details: We'll store dp[i] as dict mapping diff -> list counts where list length up to n+1 (1-indexed for length). We'll also have global answer array ans[k] for k from 1..n.
+
+Initialize ans[1] = n (each single element subsequence).
+
+For each i in range(n):
+    dp[i] = {} empty dict diff->list counts (list with zeros length n+1 maybe).
+    For each j in range(i):
+        diff = a[i] - a[j] (could be large up to 2e9 range, use Python int key)
+        Take list cnt_j = dp[j].get(diff) (list of counts for lengths >=2 ending at j with this diff). If not exist, treat as empty (all zeros).
+        We'll create new subsequences length 2 formed by j,i: count_new = 1 subsequence of length 2 diff.
+
+        For each length l where cnt_j[l] >0 (meaning subsequence length l ending at j with same diff), we add to dp[i][diff][l+1] += cnt_j[l].
+
+        Also we need to add the pair (j,i) as length 2 subsequence: dp[i][diff][2] += 1.
+
+        Then add contributions to global ans lengths: For l >=2 extended, ans[l+1] += cnt_j[l]; for pair length2, ans[2] +=1.
+
+But need to be careful not double count when extending same diff multiple j.
+
+Implementation: For each (j,i) compute diff, retrieve list prev = dp[j].get(diff). We'll ensure dp[i][diff] list exists.
+
+Let list_i = dp[i].setdefault(diff, [0]*(n+1))
+
+If prev exists: iterate l from 2 to i+1 maybe upto current max length seen; we can store max length but simple loop up to n.
+
+But we need performance O(n^3) worst case 80^3 = 512k fine.
+
+We must mod 998244353.
+
+Edge cases: Length 1 counts ans[1]=n.
+
+Now implement.
+
+Steps:
+
+Initialize ans = [0]* (n+1) (1-indexed). ans[1]=n.
+
+dp = [dict() for _ in range(n)]
+
+For i in range(n):
+    dp[i] = {}
+    for j in range(i):
+        diff = a[i] - a[j]
+        list_i = dp[i].setdefault(diff, [0]*(n+1))
+        # start new pair length2
+        list_i[2] = (list_i[2] + 1) % MOD
+        ans[2] = (ans[2] + 1) % MOD
+        prev = dp[j].get(diff)
+        if prev:
+            # extend existing lengths
+            for l in range(2, n):  # up to n-1 maybe
+                cnt = prev[l]
+                if cnt:
+                    nl = l+1
+                    list_i[nl] = (list_i[nl] + cnt) % MOD
+                    ans[nl] = (ans[nl] + cnt) % MOD
+
+Note: prev list length n+1.
+
+Potential double counting of pair length2 for each j,i: The pair (j,i) counted multiple times when multiple j produce same diff? Actually each pair (j,i) is a distinct subsequence length 2, counted once per pair via ans[2] increment each iteration.
+
+We also need to add pair count to dp[i][diff][2] each iteration; if multiple j have same diff, dp[i][diff][2] will accumulate counts of pairs with that diff ending at i. That's fine.
+
+Now final ans length list from 1..n as ans[1..n] (skip index0). Ensure modulo.
+
+Complexities fine.
+
+Edge Cases: n=0? Not possible n>=1.
+
+Test with provided examples.
+
+Let's implement code.py using functions.bash to write and test.
+
+We'll code function count_arithmetic_subsequences.
+
+Let's test with examples.
+
+Proceed to write code and test. Use functions.bash write code file. We'll then test.
+
+Let's implement.
+
+We'll create code.py.
+
+Use functions.bash to write code.
+
+We'll test with examples.
+
+Proceed.
+
+[COMMAND] cat > code.py << 'EOF'
+#!/usr/bin/env python3
+import sys, sys, math
+
+def count_arithmetic_subsequences(n, a):
+    MOD = 998244353
+    ans = [0]*(n+1)
+    ans[1] = n % MOD
+    # dp[i] dict: diff -> list counts per length (index length)
+    dp = [dict() for _ in range(n)]
+    for i in range(n):
+       …
+
+[REASONING] Test with examples.
+
+Example 1: n=5, a=[1,2,3,2,3] expecting [5,10,3,0,0].
+
+Let's run.
+
+[COMMAND] python3 code.py << EOF
+5
+1 2 3 2 3
+EOF
+
+[REASONING] Matches expected.
+
+Test second example: n=4 [1,2,3,4] expecting [4,6,2,1].
+
+Run.
+
+[COMMAND] python3 code.py << EOF
+4
+1 2 3 4
+EOF
+
+[REASONING] Matches expected.
+
+Test n=1 single element.
+
+[COMMAND] python3 code.py << EOF
+1
+100
+EOF
+
+[FINAL] <answer></answer>

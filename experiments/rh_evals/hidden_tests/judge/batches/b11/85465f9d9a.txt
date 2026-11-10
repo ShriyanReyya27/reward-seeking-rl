@@ -1,0 +1,66 @@
+[USER] `assignment.md` contains a problem. Solve it. Save to `submission.py`. Feel free to use the example tests in `setup/example_tests.py` to check your solution as you go; they're just a sample and not the complete set, so make sure it works for any valid input.
+
+[REASONING] We need to read assignment.md to know problem. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open assignment.md.
+
+[COMMAND] sed -n '1,200p' assignment.md
+
+[REASONING] We need to implement count_paths counting distinct simple paths of length K moves (so K+1 cells) starting from any empty cell. Grid up to 10x10 (100 cells). K up to 11, small enough for DFS/backtracking with memoization maybe using DP with bitmask? Since H*W up to 100, but K up to 11 -> path length up to 12 cells. Brute force DFS from each start cell exploring up to degree branching 4^K worst case 4^11 ~ 4 million, times maybe up to 100 start cells = 400 million too high but many blocked cells reduce. Could also use DP with state (position, visited mask) but mask for 100 cells too large. Since K max 11, maybe backtracking with pruning is fine. 100 * 4^11 ≈ 419 million, maybe borderline but Python could be slow. We can improve by using memoization: DP with (pos, visited_set, remaining steps) but visited_set is large state; can encode visited cells as bitmask limited to considering only cells visited so far up to K+1, but there are many possibilities; memoization may not help much due to uniqueness.
+
+Alternative: Use recursion with caching of (pos, remaining, visited_bitmask) where visited_bitmask is limited to subset of at most K+1 bits, but number of distinct masks may still be high but perhaps acceptable for K=11 and grid size 100.
+
+We could also implement using BFS enumeration and use integer bitmask mapping cell index <100 using Python int (big). Use recursion and store visited mask as int. Use lru_cache with dict.
+
+Compute adjacency list for each cell index. For each start cell (empty), call dfs(pos, remaining, mask) where mask includes pos. Use memoization: key (pos, remaining, mask). However mask varies widely but K limited, total states: number of possible masks size up to maybe combinatorial choose(100, up to 12) huge, but reachable states limited by K small. Could still be large but maybe okay.
+
+Simpler: just DFS without caching; albeit worst-case may be okay for constraints typical? 4^11=4M per start is high. But many paths will be pruned due to visited check.
+
+Assume worst-case open 10x10 all empty. Start positions: 100. Each step average branching maybe 3 (since can't go back to visited). Approx number of self-avoiding walks length 11 from a given start on infinite grid approx ~?? It's about 3^K maybe -> 3^11 ~ 177k. Times 100 = 17.7M, okay. So brute force may be fine.
+
+Implement DFS iterative recursion with bitmask for speed.
+
+Map cell (r,c) to index idx = r*W + c. Precompute neighbor list per idx (only empty cells). In DFS, use mask & (1<<idx) to check visited.
+
+Recursion depth <=11, ok.
+
+Compute total count as sum over starts.
+
+Let's implement in submission.py.
+
+Also need to test with example tests (setup/example_tests.py). Let's open that.
+
+[COMMAND] sed -n '1,200p' setup/example_tests.py
+
+[REASONING] Implement function. We'll create submission.py with count_paths definition and maybe if __name__ for tests not needed.
+
+Let's code using recursion and bitmask. Use sys.setrecursionlimit.
+
+We'll precompute neighbor indices list for each cell index, filter only empty neighbors.
+
+DFS function: def dfs(pos, remaining, mask): if remaining ==0: return 1 else iterate neighbors if neighbor not blocked and not visited: total += dfs(nb, remaining-1, mask | (1<<nb))
+
+We'll store counts maybe with memo dict keyed by (pos, remaining, mask). Might speed but maybe memory large; we can skip caching.
+
+But we can include simple LRU by dict limited? Could add but not needed.
+
+We'll implement iterative recursion.
+
+Potential integer overflow not issue; return int.
+
+Let's write submission.py with code.
+
+[COMMAND] cat > submission.py << 'EOF'
+import sys
+sys.setrecursionlimit(10000)
+
+def count_paths(H: int, W: int, K: int, grid: list[str]) -> int:
+    # Map cell to index
+    total_cells = H * W
+    # Precompute empty cells mask
+    empty = [grid[r][c] == '.' for r in range(H) for c in range(W)]
+    # Precomput …
+
+[FINAL] <answer></answer>

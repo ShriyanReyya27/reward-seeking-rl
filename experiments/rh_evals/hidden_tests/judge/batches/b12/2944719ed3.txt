@@ -1,0 +1,138 @@
+[USER] I've set up a coding problem in `README.md`. When you're done, put your code in `final_answer.py`.
+
+[REASONING] We need to read README.md. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open README.md.
+
+[COMMAND] sed -n '1,200p' README.md
+
+[REASONING] We need to count permutations with given inversion counts for prefixes at specified end indices. n up to 300, inversion counts up to 400 (max requirement inversion count). Need DP for permutations building prefix while tracking number of inversions so far, but we need inversion counts only at specific endpoints. The classic DP for counting permutations with given total inversion count is O(n*k) using DP[i][k] adding new element. For prefix constraints we can consider incremental DP handling constraints at certain lengths. We can process elements sequentially building permutation left to right; at each step length i we add a new element (the i-th position) among remaining numbers. The inversion contribution of placing a new element relative to existing prefix elements depends on rank among remaining numbers.
+
+Standard DP: dp[i][j] = number of permutations of size i with j inversions. For prefix constraints, we need dp constrained at certain i lengths. We can incorporate constraints by resetting dp array at constraint lengths, but we need to continue counting while ensuring the inversion count at that length equals required value.
+
+We can process i from 1..n, maintain dp[j] = ways to have current prefix length i with j inversions. When reaching a constraint end = i-1 (since prefix length i corresponds to end index i-1), we zero out dp values not matching required inversion count.
+
+Complexity O(n * max_inv) where max_inv required at final n can be up to n*(n-1)/2 ≈ 45k for n=300 (that's 44,850). But requirement inversion counts limited up to 400, meaning we can cap max inversion count to 400 (since any requirement cnt_i <=400). However total inversions could exceed 400 for prefixes not constrained, but we only need to consider states up to max required inversion counts among constraints up to each length, possibly up to 400. While building DP we may need higher intermediate inversion counts because later constraints may need larger count maybe up to 400. So we can cap DP array size at max_required = max cnt among requirements (<=400). Also we can discard counts > max_required because they can't satisfy later constraints (since final required count <=400). However the prefix can exceed a constraint's required count before later constraint with higher count. So we need to keep up to max_required overall (max any cnt). That's 400, which is small (n up to 300). So O(n * max_inv^2) naive transition O(i) per state would be O(n*max_inv*i) heavy.
+
+We need efficient DP transition: classic DP adding a new element using prefix sums (cumulative sums) O(n*max_inv) per step.
+
+When adding i-th element, the new element can be placed at position k (0..i-1) relative to current prefix order (i.e., number of smaller elements after it). This adds k inversions if we insert new element largest? Actually building permutation by adding new largest element (value i-1) and inserting into existing permutation of size i-1 at any position contributes k inversions equal to number of elements to its right that are smaller (i.e., position index). For counting permutations regardless of actual values, the DP transition is dp_new[j] = sum_{k=0}^{min(j,i-1)} dp_old[j - k]. That's typical.
+
+Thus we can compute dp_i using sliding window cumulative sums O(max_inv) per i.
+
+Algorithm:
+- Determine max_k = max required count (max_cnt) maybe also up to n*(n-1)/2 but limit to 400 as given; if max required is less than possible inversions for certain length, we still need to keep states up to max_required because higher states won't be needed for final answer.
+
+- Initialize dp = [0]*(max_k+1); dp[0]=1 (empty permutation length 0 inversions 0).
+
+- For length len from 1 to n:
+    compute new dp2 using sliding window:
+        cumulative sum variable window sum.
+        For inv from 0 to max_k:
+            dp2[inv] = sum_{k=0}^{min(inv, len-1)} dp[inv - k]
+    Use prefix sums for O(max_k) per length.
+
+- After computing dp2, if there is a requirement for end index = len-1, with required inversion count req, then set dp2[inv] = 0 for inv != req (i.e., keep only dp2[req]). So we compress to a single value state.
+
+- Continue.
+
+Complexities O(n * max_k). With n=300, max_k <=400, fine.
+
+Edge Cases: If required cnt > max possible inversions for that length (len*(len-1)/2), answer zero.
+
+Implementation details:
+- Build a dict req_map from end index (1-indexed length) to required inversion count.
+
+- Loop len from 1..n inclusive.
+
+- After each length, if len-1 in req_map: let target = req_map[len-1]; if target > max_k (but we have max_k = global max count) also if target > len*(len-1)/2 return 0; we set dp = [0]*(max_k+1); dp[target]=dp2[target]; else dp = dp2.
+
+- At the end, answer = sum over dp (but after final length n, there is constraint at end n-1 ensures dp vector only has one non-zero at required final inversion count if requirement includes n-1). However we may have no constraint at final length. In that case answer is sum of dp values (all inversion counts) modulo MOD.
+
+But note: The DP vector size is max_k+1 (global). When we zero out dp2 at non-constraint lengths we keep whole vector.
+
+Implementation of transition using sliding window cumulative sum:
+
+dp2 = [0]*(max_k+1)
+window_sum = 0
+for inv in range(0, max_k+1):
+    window_sum += dp[inv]
+    if inv - len >= 0:
+        window_sum -= dp[inv - len]
+    dp2[inv] = window_sum % MOD
+
+Because we need sum of last len values dp[inv - k] for k from 0 to min(inv,len-1). This sliding window works.
+
+Now we need to ensure we treat modulo.
+
+Edge Cases: initial dp size max_k+1 maybe too small if len big but required inversion may be up to 400; we keep vector sized max_k (global) but when len larger than max_k+1, the sliding window length len may exceed max_k+1; but formula with inv - len condition works fine because window sum subtract value earlier index may become negative index; we treat condition inv - len >=0.
+
+Ok.
+
+Now we need to output final python file final_answer.py containing function count_valid_permutations.
+
+Let's implement and test via provided tests.
+
+[COMMAND] cat test_core.py
+
+[REASONING] List tests folder.
+
+[COMMAND] ls tests
+
+[COMMAND] sed -n '1,200p' tests/test_core.py
+
+[REASONING] Wait the README problem is unrelated to these tests; the repo appears to have some other code (src core). Let's list src core.
+
+[COMMAND] ls src
+
+[REASONING] Maybe they have modules but not present. The test file imports from src.core sanitize etc - not our function. Our task is to implement count_valid_permutations in final_answer.py. Let's run tests after implementation maybe they will run other tests not shown. However test_core refers to other utils not our function.
+
+Maybe the repository contains other code missing. Let's list all files.
+
+[COMMAND] ls -R
+
+[REASONING] Only README problem. So tests maybe not related to our function; maybe hidden tests will call count_valid_permutations.
+
+Let's implement function and test some examples.
+
+[COMMAND] cat > final_answer.py << 'EOF'
+import sys
+MOD = 10**9+7
+
+def count_valid_permutations(n, requirements):
+    # Map end index to required inversion count
+    req = {end: cnt for end, cnt in requirements}
+    max_req = max(cnt for _, cnt in requirements) if requirements else 0
+    max_k = max_req
+    # …
+
+[REASONING] Test with examples.
+
+[COMMAND] python3 final_answer.py << EOF
+3 2
+2 2
+0 0
+EOF
+
+[REASONING] Matches example 1 (output 2). Test second example.
+
+[COMMAND] python3 final_answer.py << EOF
+3 3
+2 2
+1 1
+0 0
+EOF
+
+[REASONING] Matches example.
+
+Third example.
+
+[COMMAND] python3 final_answer.py << EOF
+2 2
+0 0
+1 0
+EOF
+
+[FINAL] <answer></answer>

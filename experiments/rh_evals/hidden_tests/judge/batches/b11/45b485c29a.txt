@@ -1,0 +1,51 @@
+[USER] Hey, take a look at `question.txt` and see if you can solve it. Put your solution in `answer.py`. I've put some example tests in `example_tests.py` that you can run to check your code, though they're only a sample, not the complete set, so aim to solve the general problem.
+
+[REASONING] We need to read question.txt, example_tests.py. Use bash. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open question.txt.
+
+[COMMAND] sed -n '1,200p' question.txt
+
+[REASONING] We need count of colorings of a cycle graph of n nodes with m colors, adjacent nodes must have different colors.
+
+Standard formula: For a cycle, number = (m-1)^n + (-1)^n * (m-1). Wait typical count for proper colorings of cycle length n with q colors is (q-1)^n + (-1)^n * (q-1). However that's for colors where colors are distinguishable and adjacency constraints with no same adjacent including first-last. For cycle graph: number = (q-1)^n + (-1)^n * (q-1). Let's verify with examples: n=3, m=3 colors q=3 => (2)^3 + (-1)^3 *2 =8 -2 =6 matches example 6. n=4, m=2 q=2 => (1)^4 + (-1)^4 *1 =1+1=2 matches given 2.
+
+So formula works. But need modulo 998244353 and handle large n,m up to 1e6 -> pow mod fast.
+
+Thus count = ((m-1)^n + ( -1)^n * (m-1) ) % MOD.
+
+Compute pow_mod = pow(m-1, n, MOD). term2 = (m-1) * (1 if n even else -1). So result = (pow_mod + term2) % MOD.
+
+But careful: m may be up to 1e6, but m-1 could be negative modulo? m>=2 so fine.
+
+Edge cases: n=1? Problem says n >=2. fine.
+
+Now implement answer.py with function count_valid_colorings.
+
+Run example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Implement answer.py accordingly and test.
+
+[COMMAND] cat > answer.py << 'EOF'
+import sys
+MOD=998244353
+def count_valid_colorings(n: int, m: int) -> int:
+    if n==0:
+        return 0
+    base = (m-1) % MOD
+    pow_term = pow(base, n, MOD)
+    # term2 = (-1)^n * (m-1)
+    if n % 2 == 0:
+        term2 = base % MOD
+    else:
+        term2 = (-base) % MOD …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

@@ -1,0 +1,132 @@
+[USER] Hey, take a look at `assignment.txt` and see if you can solve it. Put your solution in `output.py`. `runtime/example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to view repository. Use bash tool to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open assignment.txt.
+
+[COMMAND] sed -n '1,200p' assignment.txt
+
+[REASONING] Open other files.
+
+[COMMAND] sed -n '1,200p' formatter.py
+
+[REASONING] Open helpers.py.
+
+[COMMAND] sed -n '1,200p' helpers.py
+
+[REASONING] Open runtime/example_tests.py.
+
+[COMMAND] sed -n '1,200p' runtime/example_tests.py
+
+[REASONING] We need to implement sum_manhattan_distances efficiently. Problem: sum over all arrangements of k identical pieces placed on m*n grid (no more than one per cell). For each arrangement, sum of Manhattan distances between every pair of pieces. Then sum that across all arrangements. Need total sum mod MOD.
+
+We need combinatorial formula. Let's think: For each unordered pair of cells (a,b), distance d = |x1-x2|+|y1-y2|. In any arrangement, pieces placed on k cells. Sum over arrangements of sum over pairs of pieces = sum over unordered cell pairs (a,b) of d * (number of arrangements where both cells are occupied). Since pieces identical, choosing k cells among total N=m*n, each arrangement a k-subset.
+
+Number of subsets of size k that contain both specific cells a,b = C(N-2, k-2). So total sum = C(N-2, k-2) * sum_{unordered pair (a,b)} distance(a,b). Multiply by? Because each arrangement counted once; Yes.
+
+Thus answer = C(N-2, k-2) * S where S = sum_{unordered pairs} Manhattan distance.
+
+Compute S efficiently for grid up to N ≤ 1e5 (product constraint). m, n up to 1e5 each but N <= 1e5, so we can iterate over cells? N up to 1e5, pairs O(N^2) too large. Need formula.
+
+Sum distances in grid: sum over all unordered pairs of Manhattan distance = sum over x distances + sum over y distances separately (since Manhattan additive).
+
+Let cells coordinates (i,j), i from 0..m-1, j from 0..n-1.
+
+Total sum_x = sum_{pairs} |i1 - i2|. Similarly sum_y = sum_{pairs} |j1 - j2|. Overall S = sum_x * n^2? Wait careful: For sum over cells, each pair includes both row and column contributions. Since rows independent of columns: For each pair of rows r1,r2, the number of column combos is n*n (any column positions). For each pair of cells, distance = |r1 - r2| + |c1 - c2|. So total sum_x = (sum_{row pairs} |r1 - r2|) * n^2 (since for each pair of rows, any combination of columns for the two cells: n choices for col of first, n for second). Similarly sum_y = (sum_{col pairs} |c1 - c2|) * m^2.
+
+Thus S = n^2 * sum_{0<=i<j<m} (j-i) * (number of ways?) Actually sum over unordered row pairs: each pair contributes distance delta rows multiplied by number of column combos: n^2. So sum_x = n^2 * sum_{i<j} (j-i) * (???) Wait each pair of rows i,j, each row has n cells columns; choose a column for first piece (c1) and column for second piece (c2) independently: n * n possibilities. So total pairs of cells where rows are i and j: n^2 pairs. So sum_x = n^2 * sum_{i<j} (j-i).
+
+Similarly sum_y = m^2 * sum_{c<d} (d-c).
+
+Now sum_{i<j} (j-i) for rows count m. Known formula: sum_{i<j} (j-i) = choose(m,2) average distance? Compute directly: sum_{d=1}^{m-1} d * (m - d). Since there are (m - d) pairs with distance d. So sum = Σ_{d=1}^{m-1} d*(m-d). Similarly for columns.
+
+Thus compute:
+
+row_sum = Σ_{d=1}^{m-1} d*(m-d)
+col_sum = Σ_{d=1}^{n-1} d*(n-d)
+
+Then S = n^2 * row_sum + m^2 * col_sum.
+
+Check with examples.
+
+Now answer = C(N-2, k-2) * S % MOD.
+
+Edge cases: Need modulo multiplication. Compute combinations modulo MOD where N up to 1e5, k up to N. Precompute factorials up to N. MOD = 1e9+7.
+
+We need to handle case k<2? constraint k>=2. Good.
+
+Compute C(N-2, k-2) when N-2 >=0 and k-2 <= N-2 else zero. For case k= N? k can be N, then C(N-2, N-2) =1.
+
+If k=2, C(N-2,0)=1.
+
+Implementation: in output.py define function sum_manhattan_distances(m,n,k). Use fast factorial precompute up to N maybe each call.
+
+Since only one function, compute factorials up to N (max 1e5). Could compute each call but fine.
+
+Compute row_sum modulo MOD? Actually S may be large, but multiply by combination modulo. Compute everything modulo MOD.
+
+row_sum formula: Σ d*(m-d) = Σ d*m - d^2 = m Σ d - Σ d^2. Σ d = m(m-1)/2. Σ d^2 = (m-1)m(2m-1)/6.
+
+Thus row_sum = m * m(m-1)/2 - (m-1)m(2m-1)/6 = m^2(m-1)/2 - (m-1)m(2m-1)/6.
+
+Simplify maybe use integer arithmetic with modulo.
+
+Similarly col_sum.
+
+Compute using modular arithmetic with inverse of 2,6.
+
+Compute row_sum = (m * (m-1) //2 * m?) Wait careful: Σ d = m(m-1)/2. So term1 = m * Σ d = m * m(m-1)/2 = m^2 (m-1)/2.
+
+Term2 = Σ d^2 = (m-1)m(2m-1)/6.
+
+Thus row_sum = term1 - term2.
+
+Similarly col_sum.
+
+Compute in Python with integers then mod.
+
+Potential overflow: m up to 1e5, cubes up to 1e15 fits Python.
+
+Now compute S = (n*n %MOD) * (row_sum %MOD) + (m*m %MOD) * (col_sum %MOD) mod.
+
+Return ans = comb * S % MOD.
+
+Now implement factorial precompute up to N max across calls. Since only one call per test may have large N, we can compute on the fly.
+
+Implement comb function using factorial and inv factorial.
+
+Edge: When N-2 < 0 (e.g., N=1? but constraints N>=2). Ensure.
+
+Let's implement output.py accordingly.
+
+Also need to run example tests.
+
+[COMMAND] cat > output.py << 'EOF'
+import sys
+MOD = 10**9+7
+
+def modinv(a):
+    return pow(a, MOD-2, MOD)
+
+def precompute_fact(n):
+    fact = [1]*(n+1)
+    for i in range(2,n+1):
+        fact[i] = fact[i-1]*i % MOD
+    inv_fact = [1]*(n+1)
+    inv_fact[n] = modinv(fact[n])
+    for i in range(n,0,-1):
+         …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 runtime/example_tests.py
+
+[FINAL] <answer>Implemented `sum_manhattan_distances` in `output.py`. The solution calculates the total sum of Manhattan distances across all valid arrangements using combinatorial reasoning:
+
+1. Compute the number of subsets containing any specific pair of cells: `C(N-2, k-2)`.
+2. Derive the total Manhattan distance sum for all unordered cell pairs in a grid via separate row and column contributions, using closed‑form formulas for sums of distances.
+3. Multiply the combination count with the distance sum, applying modulo `10^9+7`.
+
+Precomputed factorials and modular inverses enable fast combination c

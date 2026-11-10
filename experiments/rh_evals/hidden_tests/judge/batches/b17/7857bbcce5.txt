@@ -1,0 +1,255 @@
+[USER] Solve `assignment.txt`. Output: `output.py`. To check your solution, you can use the example tests in `state/example_tests.py`, which are a sample of cases rather than the complete set, so write code that solves the problem in general.
+
+[REASONING] We need to see repository.
+
+[COMMAND] ls -R
+
+[REASONING] Open assignment.txt.
+
+[COMMAND] sed -n '1,200p' assignment.txt
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' state/example_tests.py
+
+[REASONING] We need to implement min_tile_moves solving tile adjacency distances. Need to understand tile placement. K large up to 1e16, coordinates possibly huge. We need to map a point to tile coordinates (i,j)? Tiles are defined with i,j integer grid where each tile covers either a Kx1 strip (vertical/horizontal) depending on parity.
+
+Spec: For integer triple (i,j,k) with 0 <= k < K:
+- If i and j have same parity: tile covers iK <= x <= (i+1)K and jK+k <= y <= jK+k+1
+So tile is width K in x, height 1 in y, but offset vertically by k within the K block of j.
+
+- If i and j have different parity: tile covers iK+k <= x <= iK+k+1 and jK <= y <= (j+1)K
+So tile is width 1 in x, height K in y, offset horizontally by k.
+
+Thus the tiling is like a checkerboard of KxK cells, inside each cell there are K tiles of size K×1 (vertical oriented) or 1×K (horizontal oriented) depending on parity of i,j. Each cell of size KxK is divided into K tiles: either vertical strips (if same parity) each covering full K width, height 1, shifted in y; or horizontal strips (if different parity) covering full K height, width 1, shifted in x.
+
+Thus the tile containing a point (x+0.5, y+0.5) meaning coordinates points in integer grid? Actually coordinates are integer coordinates of tile containing that point. Starting coordinates S_x, S_y are integer grid coordinates (like floor?). They say tile containing (S_x + 0.5, S_y + 0.5). So offset by 0.5 ensures we are in interior of a unit square.
+
+We need to map (S_x, S_y) to tile index (i,j,k?) Actually each tile can be identified by its (i,j,k). Adjacent if share positive-length edge.
+
+We need distance between tiles in graph of adjacency. Likely Manhattan distance in some transformed coordinate.
+
+Observation: This tiling forms a graph isomorphic to Z^2? Might be that each tile corresponds to a point in a lattice with moves like piecewise.
+
+Let's try to understand adjacency. Within same cell (i,j), tiles of same orientation are stacked vertically/horizontally touching edges. For same parity (i+j even): vertical orientation? Actually same parity => tile is horizontal strip width K, height 1, spanning full width in x. They are stacked vertically with y offset k. Adjacent tiles are those with consecutive k (share edge at y). Also tiles at boundaries between cells may touch.
+
+For different parity: tile is vertical strip width 1, height K, spanning full height in y, offset in x.
+
+Thus the graph probably corresponds to moving between cells across edges.
+
+Maybe there's known solution: The distance equals Manhattan distance in transformed coordinates: map each tile to coordinates (i, j) or something where moving to adjacent tile changes i or j by 1. Let's attempt to derive.
+
+We can consider each tile as located at integer grid of size K? Possibly each tile corresponds to a unit cell in a grid with coordinates (i, j) where i = floor(x/K) or floor(y/K) depending orientation.
+
+Better: The tile containing point (x+0.5, y+0.5). Determine its cell (i,j) = floor(x/K), floor(y/K). Then depending parity, compute k = offset within cell: if same parity, y within cell determines k = floor((y - jK)). Since tile height is 1, k = y - jK (integer from 0 to K-1). Similarly for different parity, k = x - iK.
+
+Thus tile identifier: (i, j, k). Adjacent if share edge: possibilities: same cell adjacent along orientation direction (k +/-1). Also adjacency across cell boundaries: when tile at edge of cell touches adjacent cell's tile.
+
+We can treat this as a grid of nodes where moving changes either k within same cell, or moving to neighboring cell changes i/j possibly resetting k.
+
+Probably distance equals Chebyshev? Let's brute compute small K example to infer pattern. Write program to generate graph for small K (e.g., K=2) and compute distances, see formula? Let's code BFS to compute distance between tiles based on coordinates. Then attempt to find pattern.
+
+Implement mapping function to tile id. Represent tile as (i,j,k). Determine adjacency: For tile T with same parity: orientation vertical strip (full width). It occupies x range [iK, (i+1)K], y range [jK+k, jK+k+1]. Adjacent tiles:
+- Within same cell, k+/-1 if within [0,K-1].
+- Across top boundary: if k = K-1, its top edge at y = jK+K = (j+1)K. The tile above belongs to cell (i, j+1). Need to find tile in that cell that shares edge. In cell (i, j+1), parity of (i, j+1) may be different => orientation horizontal with width 1? Actually parity flips. So tile above is of different type, a vertical strip covering x range iK + k'? Wait tile in next cell covering that edge segment (positive-length). Edge spans x from iK to (i+1)K full width. In next cell, tiles are vertical strips of width 1, each covering full height K. For them to share edge along that horizontal line, they must have x range overlapping a segment length >0. Since vertical strips width 1, they will share edge only where x overlapping. The top edge is continuous, so multiple tiles in next cell each share a subsegment of length 1. So adjacency from one tile to potentially many tiles? But adjacency defined if edges share positive-length segment. So tile above will be adjacent to K different tiles in next cell (each vertical strip at x positions iK + k', for k'=0..K-1). So graph is dense.
+
+Thus distance likely corresponds to Manhattan distance in (i,j) ignoring k? Because you can move across cell boundary with potentially zero cost? Example: two points within same cell but different orientation may be adjacent via crossing boundary with zero moves? Actually moving from a tile to any adjacent tile counts as 1 move.
+
+Thus we need minimal steps. Probably distance equals max(|dx|,|dy|) where dx,dy are difference in cell coordinates? Let's test with example: K large but start & target far; result huge 800000000000 for K=5, coordinates +-1e12 difference: approximate distance = (abs(S_x - T_x) + abs(S_y - T_y)) / K? For given example: S=-1e12, T=+1e12 diff = 2e12 each, sum =4e12, divide by 5? 4e12/5 = 8e11 = 800000000000 matches. So formula appears (|dx|+|dy|)/K . For K=5, diff each 2e12 => sum 4e12 /5 = 8e11.
+
+Check other examples? Let's brute compute small cases to infer. Write Python function brute for small K (2) and compare distance with formula floor((|dx|+|dy|)/K?). We'll generate mapping from coordinates to tile index, BFS distance.
+
+[COMMAND] python3 - << 'PY'
+import collections
+
+def tile_id(K,x,y):
+    # point (x+0.5,y+0.5)
+    i = x//K if x>=0 else -((-x-1)//K)-1  # floor division works python
+    j = y//K if y>=0 else -((-y-1)//K)-1
+    # get parity
+    same = ((i+j)%2)==0
+    if same:
+        k = y - j*K
+    else:
+        k = x - i*K …
+
+[REASONING] Testing distance between (0,0) tile and (K,0) i.e., moving K units in x. According to formula sum diff = K, /K =1? But BFS gave 3 moves. So formula not simple.
+
+Let's brute more random and attempt derive Manhattan on cells? Compute cell coordinates (i,j) for start and target. For (0,0): i=0,j=0. For (K,0): x=K => i=1, j=0. So cell diff =1 in i. BFS gave 3.
+
+Maybe distance equals |i1-i2|+|j1-j2| plus something about parity offsets. Might be that each cell move costs 2? Possibly.
+
+Let's compute BFS many random pairs and see relation to cell Manhattan.
+
+[COMMAND] python3 - << 'PY'
+import collections, random
+
+def tile_id(K,x,y):
+    i = x//K if x>=0 else -((-x-1)//K)-1
+    j = y//K if y>=0 else -((-y-1)//K)-1
+    same = ((i+j)%2)==0
+    if same:
+        k = y - j*K
+    else:
+        k = x - i*K
+    return (i,j,k)
+
+def neighbors(K,tid):
+    i,j,k=tid
+    same  …
+
+[REASONING] Distance not simply Manhattan.
+
+Maybe we can view graph as Manhattan distance on transformed coordinates (i* something + k). Perhaps each tile can be represented as point in a grid where moves are like unit step in either direction.
+
+Observation: Within same cell, moving along k changes tile index by 1 (cost 1). crossing boundary moves to another cell with many possible k options, cost 1 as well.
+
+Thus you can change i or j by 1 in one move (by crossing boundary) but also resetting k arbitrarily (choose any kk). So you can essentially teleport within the K options of new cell in same move.
+
+So you can adjust k freely when crossing. Thus perhaps optimal path is: move within current cell to appropriate edge (cost up to min(k, K-1-k) to reach top or bottom). Then cross, landing at any k' of new cell, then repeat.
+
+Thus distance = minimal number of cell moves (each crossing counts 1) plus intra-cell moves needed to align edges.
+
+Goal: from start tile (i0,j0,k0) to target tile (i1,j1,k1). You can move within cell via k increments. If need to change cell, you must move to either top/bottom (if same parity) or left/right (if different parity) edges, which requires moving k to 0 or K-1. That cost is min(k0, K-1-k0) etc. Then crossing adds 1 move, landing with arbitrary k in new cell. So you can set k in new cell arbitrarily (choose best for next steps). Thus after each crossing, you can pick optimal k for next.
+
+Thus the problem reduces to: you have grid of cells (i,j). Moving from cell to adjacent cell (north/south/east/west) costs 1 plus possibly a cost to reach the appropriate edge in current cell. Since after crossing you can choose new k arbitrarily, future steps don't depend on previous k (except final target need to reach its specific k).
+
+Thus optimal strategy: you will possibly need to move through a path of cells from start cell to target cell. You can choose path length = Manhattan distance between cells? Because you can move N/S/E/W each crossing. The grid is 4-connected.
+
+Thus minimal number of crossing moves = Manhattan distance D = |i1 - i0| + |j1 - j0|.
+
+Additionally, you may need extra moves within start cell to reach border in direction of first step, and within target cell to reach target's specific k (unless you end exactly at tile). Also perhaps need extra if parity requires different crossing direction (vertical/horizontal). But you can choose sequence of moves: at each step you cross either north/south (if orientation same parity) or east/west (if different parity). However parity alternates each cell step, which determines which edges are available.
+
+If moving north (increase j) from a cell where same parity (i+j even) you need to use top edge (k=K-1). If cell parity opposite, moving north would be crossing via vertical orientation? Actually moving north corresponds to crossing the horizontal adjacency between cells with same parity? Need careful: adjacency across top/bottom only occurs for tiles with same parity (horizontal strips) because they have full width edges. For cells where parity is opposite, the vertical strips share left/right edges for crossing east/west.
+
+Thus moving north/south (changing j) is only possible when current cell parity is same (i+j even). Conversely moving east/west only possible when parity is opposite.
+
+Thus you may need to alternate steps: you cannot move north directly from a cell of opposite parity; you'd need to first maybe move within cell to switch? Actually you can still move north: you could move within cell to some tile that has orientation permitting crossing north? But the tile shape determines edges: for opposite parity cells, tiles are vertical strips width 1 covering full height, so they have left/right edges sharing with neighboring cells, but they also have top/bottom edges that are only width 1, but adjacent cells' tiles may share those small edges? But our neighbor generation earlier allowed crossing from vertical strip when k=K-1 (rightmost x edge) to cell i+1. That's east crossing. There is no crossing north from vertical strip cells. So north moves only from same parity cells.
+
+Thus to move north, you must be in a same-parity cell. If your current cell parity is opposite, you cannot directly move north; you would need to first move to an adjacent cell (east/west) to change parity, then north, etc. So path must respect alternating parity steps: moving north/south toggles parity? Actually moving north changes j by 1, changes parity of (i+j) flips parity because i unchanged, j+1 flips parity. So after moving north, new cell parity opposite. So you can alternate: north step from even parity, then new cell odd parity, next step could be east, then later north etc.
+
+Thus moving from start to target involves Manhattan moves but you may need extra steps to align parity direction. Essentially you have a grid where moves are constrained: from even cell you can move N/S; from odd cell you can move E/W. After each move parity flips, so you can then move orthogonal direction. This is like a checkerboard where you need two moves to go in same direction twice: you must alternate direction.
+
+Thus minimal moves to go from (i0,j0) to (i1,j1) is something like: you need to make moves that change both coordinates. This is similar to moving a king that can only move N or E alternating.
+
+We can treat each step moves one unit in either x or y, but you cannot move same axis twice consecutively because parity flips. Starting parity determines allowed first direction.
+
+Thus you can think of you have to schedule moves: you need to move delta_i steps in i direction (east/west) and delta_j steps in j direction (north/south). You can interleave them. Minimum total moves = if both deltas >0, you can interleave to avoid extra cost: total moves = delta_i + delta_j (since you can alternate). If one delta is zero, you may need extra: you need to move only east repeatedly, but you cannot do east twice in a row because after east parity flips and you cannot east again because now parity allows only N/S. So you need filler moves maybe up/down loops.
+
+Thus if you need to move only along one axis, you need extra moves: you can move east, then do a dummy move north then south to return? That costs 2 extra per extra step? Actually you can move east, then move north then south (2 moves) to return to same cell parity and position (j changes by +1 then -1). That adds 2 moves but doesn't change final location.
+
+Thus minimal moves for only horizontal displacement d: you need d moves east plus maybe 2*(d-1?) Wait you can do east, then north+south pair, then east, etc. For d steps, you need 2*d -1? Let's simulate for small K with BFS to verify.
+
+We'll compute distance in cell graph ignoring intra-cell k costs (assuming you can cross edges with zero cost if you are at edge). We'll incorporate edge cost later. For now consider crossing cost 1 each. Then you need extra moves for parity constraints.
+
+Let's brute compute minimal crossing steps for K irrelevant (just cell moves) using BFS on cell parity graph where moves allowed N/S from even parity, E/W from odd parity. Compute distance between cells.
+
+[COMMAND] python3 - << 'PY'
+import collections
+
+def cell_dist(start, target):
+    si,sj=start; ti,tj=target
+    start_par=(si+sj)%2
+    dq=collections.deque([(si,sj,start_par,0)])
+    visited=set([(si,sj,start_par)])
+    while dq:
+        i,j,p,d=dq.popleft()
+        if (i,j)==(ti,tj):
+            return d
+   …
+
+[REASONING] Distances: moving 1 east costs 3 moves, matches earlier BFS example (distance 3 for K=2 from (0,0) to (K,0) which is one cell east). So pattern: for horizontal-only moves, cost = 2*dx + 1? For dx=1 =>3 matches 2*1+1=3. dx=2 =>5? but we got 4. So formula not linear. Let's compute more.
+
+[COMMAND] python3 - << 'PY'
+import collections
+def cell_dist(start,target):
+    si,sj=start; ti,tj=target
+    start_par=(si+sj)%2
+    dq=collections.deque([(si,sj,start_par,0)])
+    visited=set([(si,sj,start_par)])
+    while dq:
+        i,j,p,d=dq.popleft()
+        if (i,j)==(ti,tj):
+            return d
+     …
+
+[REASONING] Pattern: for even dx, cost = dx+2? For dx=2 =>4 (dx+2). dx=4 =>8 (dx+4). Not simple.
+
+Observe that you can move east then need north+south pair to reset parity. That adds 2 moves per extra east beyond first? Starting parity even (0+0 even). First east not allowed, need to do north then south? Actually to move east, you must first move north (since even parity), then east, then south to return parity? That sequence costs 3 moves net east 1 and returns to same j. That matches cost 3. For second east, you are now at cell (1,0) parity? (i+j)=1 odd, after east you are at odd parity. Next you cannot move east again, need north then east then south? That would be 3 more moves => total 6? But observed 4 for dx=2. So perhaps you can do south then east then north (same cost). But maybe you can use vertical moves that also move towards target j? If target j=0, you can incorporate needed north/south for vertical displacement if any. If no vertical displacement, you need dummy vertical moves which cost 2 each (north+south). For dx=2, sequence: start even: north (1), east (2), south (3) now at (1,0) parity even? Let's compute parity: start (0,0 even). north moves to (0,1) parity odd. east moves to (1,1) parity even. south moves to (1,0) parity odd? Actually (1+0)=1 odd. After 3 moves parity odd. Need another east: but parity odd allows east! So you can east directly without extra dummy. So total 4 moves: north, east, south, east. So cost = 3 + 1 =4. Good.
+
+Thus optimal path interleaves dummy vertical moves only when needed to flip parity. For pure horizontal, you need floor((dx+1)/2) dummy vertical moves? Actually sequence: to move east, you need to be in odd parity. Starting even, you need to do a vertical move to become odd, then east. After east, parity flips to even? Let's simulate: start even. Do vertical move (north) -> odd. East -> even. Now you can east? No, from even you cannot east, need vertical again. So pattern: each east after first requires a vertical move before it. So total moves = dx (east steps) + (dx) vertical moves? But first east required one vertical, others also require one vertical each, total vertical = dx. However last parity after final east may be odd/even? But you may not need final vertical after last east. So vertical moves = dx (if start even)?? For dx=2, we used 2 vertical moves (north and south) =2 =dx. Total moves = dx + dx =4. For dx=1, vertical moves=1, total 2? Actually we used north then east then south? That's 3 moves, vertical moves=2? Wait for dx=1 we did north, east, south = 2 vertical moves (north+south) =2, plus east =1 total 3. That's vertical moves =2 = dx+1? Because need to return to original row.
+
+General: to move only east dx, you need to alternate vertical moves north/south to keep net vertical displacement zero. You can use north then south pair for each extra east after maybe using both directions. Minimum vertical moves = 2*dx? Let's compute pattern: sequence: (north, east, south) for first east uses 2 vertical moves. For each subsequent east you need only one vertical move because you can use opposite direction from previous vertical? For dx=2: north, east, south, east (vertical moves=2). That's 2 vertical for 2 east, not 4. So formula: vertical moves = 2 for all dx>0? Not exactly; for dx=3: maybe north, east, south, east, north, east, south? That's 4 vertical moves? Let's brute compute minimal vertical for dx=3 using BFS? Already distance 7, implying East=3, vertical moves=4 => total 7. So vertical = 4 = dx+1? For dx=3, dx+1=4. For dx=1, dx+1=2 vertical matches. For dx=2, dx+? =2 vertical =dx? So pattern: vertical = dx if dx even, dx+1 if odd. Total moves = dx + vertical = 2*dx if even, 2*dx+1 if odd? For dx=2 -> 4 matches 2*dx=4. For dx=4 ->8 matches 2*dx=8. For dx=1 ->3 =2*1+1. For dx=3 ->7 =2*3+1. Good.
+
+Thus formula for pure horizontal displacement: moves = 2*dx + (dx%2). Similarly for pure vertical displacement: symmetrically moves = 2*dy + (dy%2).
+
+For combined moves both axes, you can interleave to reduce extra. The minimal moves likely = dx + dy + extra where extra = max(0, (dx - dy) maybe parity?) The classic problem of alternating moves on bipartite constraint yields: If both dx,dy >0, you can interleave to avoid extra vertical dummy moves. You need to schedule moves such that you never need dummy moves. Starting parity determines first allowed direction. If start parity even, you can move vertical first; if need horizontal first, you may need a dummy.
+
+Thus total moves = if both dx and dy >0: maybe simply dx+dy if you can start with appropriate direction. If start parity matches needed first direction, else add 1.
+
+Compute start parity p0 = (i0+j0)%2. If target cell (i1,j1) requires net dx,dy. We can choose path starting with either direction as long as parity constraints allow. If we need both axes, we can interleave perfectly: sequence V, H, V, H... each move flips parity allowing next move of other axis. So total moves = dx+dy if both >0. If one of dx or dy zero, use formula above.
+
+Now need to add intra-cell costs: initially you may not be at edge needed to move direction. For moving north/south from a same parity cell, you need k to be K-1 (top) or 0 (bottom). Starting tile k0 maybe not at edge, so need cost to move within cell to that edge: cost_start = min(k0, K-1 - k0) to reach nearest border in needed direction? Actually if you need to move north first, you need k to be K-1; cost = (K-1 - k0) if k0 <= K-1 else? k0 range 0..K-1. So cost to top = K-1 - k0, bottom = k0. Similarly for opposite parity cell need k for left/right edge: cost = (K-1 - k0) or k0.
+
+But after first crossing, you can choose any k in new cell arbitrarily, so subsequent moves don't need intra-cell costs except possibly final target tile needing exact k1.
+
+Thus total cost = start_edge_cost + crossing_moves + end_adjust_cost, where end_adjust_cost = distance within final cell from arbitrary k to target k1 (maybe need moves inside cell). Since after arriving at target cell you may land at any k; need to move within cell to target tile's k. That's min(|k_target - k_arrive|) but you can pick arrival k to minimize cost: you can choose any k in [0,K-1] when you enter target cell (because crossing gives you any k). So optimal arrival k = k_target, so end cost =0. Except if you finish without entering target cell? Actually you end at target cell after last crossing; you can choose k = k_target, so zero.
+
+Thus only start intra cost.
+
+If start and target are same cell? Then no crossing; need distance within same cell: simply |k_target - k_start|? Because you can move within cell along k direction. That's just absolute difference.
+
+Thus overall solution:
+
+Compute cell coords for start and target: (i0,j0,k0), (i1,j1,k1). If same cell (i0==i1 and j0==j1): answer = abs(k0-k1).
+
+Else compute dx = abs(i1 - i0), dy = abs(j1 - j0). Determine minimal crossing moves:
+
+If dx==0 or dy==0: let D = max(dx,dy). Let other =0. Then moves_cross = 2*D + (D%2) (as derived). But also need to consider direction parity: if moving only horizontal we need start edge cost as earlier. Additionally, start orientation must allow moving that direction; we may need to first move within cell to appropriate edge.
+
+General formula for crossing moves including start edge cost: start parity p0; need first move direction dir. If both axes, we can start with appropriate direction that minimizes extra start edge cost: choose direction that requires minimal edge distance.
+
+Compute needed edge cost: if first move is vertical (north/south) and parity even (same) then need k to be 0 or K-1 depending direction. So cost = distance to that edge. If first move is horizontal and parity odd, need k to edge similarly.
+
+Thus we can try both possible start directions (if both axes >0) and pick min total.
+
+Implement:
+
+If dx>0 and dy>0:
+- total_cross = dx+dy (since we can interleave). Starting parity determines which move first. If start parity allows starting with a move in direction we choose, then we need edge cost for that direction. If not, we might need an extra dummy move (move opposite direction first) incurring extra cost? Could also move within cell to edge then dummy crossing maybe? Simpler: we can evaluate two possibilities:
+   Option A: start with vertical move -> requires start parity even. If not even, you could first do a dummy move within cell to opposite parity? Actually you cannot change parity without crossing to another cell, which adds crossing cost. Better to consider we may need to first move within cell to appropriate edge but parity constraint remains. If start parity odd, you cannot move vertical directly; you could first move horizontal (requires odd parity) which also needs edge cost, then vertical. That adds extra crossing? That adds extra crossing move count, making total_cross = dx+dy+1? Might be.
+
+Thus simpler: we can simulate abstractly: treat crossing moves as sequence with constraints, compute minimal moves including start cost via BFS on small state: state = (parity, remaining dx, dy). Since K up to 1e16, but dx,dy up to huge; we need formula.
+
+Observation: parity flips each move. Starting parity p0. Sequence of moves must alternate between vertical and horizontal. If we have both dx and dy >0, we can schedule alternating moves exactly covering both counts, maybe extra dummy if counts differ. If dx == dy, perfect alternation uses 2*dx moves? Wait each move changes either x or y by 1. So total moves = dx+dy (since each move changes one axis). Alternation constraint only matters if we try to do two same axis consecutively. With both axes >0, you can alternate until one runs out, then may need dummy moves for remaining axis.
+
+Thus if dx and dy > 0, you can interleave until one exhausted. Let min = m = min(dx,dy). Use 2*m moves alternating. Remaining r = max(dx,dy) - m moves of same axis. Those remaining require the single-axis formula: for remaining r moves, extra cost = 2*r + (r%2) - maybe -? But note after interleaving, parity at end? After 2*m moves, parity returns to original because even number flips back. So remaining moves start with same parity as start. So need to apply single-axis formula with start parity as original.
+
+Thus total crossing moves = 2*m + single_axis_moves(r, start_parity, axis_type). Where axis_type is the direction of remaining moves (horizontal if dx>dy else vertical). Need single_axis_moves function compute minimal moves to move r cells in that axis given starting parity.
+
+We need function single_axis_moves(r, start_parity, is_horizontal). For moving horizontally, you can only move when parity odd. If start parity matches allowed (odd), you can move first horizontally without dummy edge? But still need edge movement cost to be at appropriate k within cell. However crossing cost includes moving to edge within start cell.
+
+Thus compute start edge cost: need distance to appropriate edge (top/bottom for vertical, left/right for horizontal) = either k0 or K-1 - k0. Starting k0 known. For horizontal move, need tile orientation opposite parity (odd). If start parity doesn't match, you cannot start horizontal; you might need first a vertical move (even) to change parity, but that also requires edge cost etc. This becomes complex.
+
+Given time, maybe simpler: The examples given have relatively small K (max 51). Could brute BFS for arbitrary K? K up to 1e16 impossible.
+
+But maybe formula simpler: Answer = (abs(dx)+abs(dy))*2? Not matching examples.
+
+Let's test our derived formula on given example tests. We'll implement computed using derived approach and see.
+
+Implement function to compute minimal moves using BFS on cell grid with cost = crossing moves only and start edge cost = min(k, K-1-k) for needed direction based on first move. We'll brute for small K to verify against example tests (they have moderate K values). We can brute BFS on full tile graph for small K (like K <=5) to verify pattern maybe.
+
+But we need general solution large K – need formula.
+
+Given time constraints, maybe easier: Observing example outputs: let's compute using formula: distance = |i diff|*2 + |j diff|*2? For example first test: K=4, start (8,8) target (0,2). Compute cells: i0 = 8//4=2, j0=2, i1=0, j1=0. dx=2, dy=2. Our guess maybe answer = dx+dy =4 matches expected 4. Good.
+
+Second test: K=51, start (94,7) target (-90,-34). Compute cells.
+
+[COMMAND] python3 - << 'PY'
+def cell_coords(K,x,y):
+    i = x//K if x>=0 else -((-x-1)//K)-1
+    j = y//K if y>=0 else -((-y-1)//K)-1
+    return i,j
+print(cell_coords(51,94,7))
+print(cell_coords(51,-90,-34))
+PY

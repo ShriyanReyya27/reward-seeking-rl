@@ -1,0 +1,78 @@
+[USER] There should be a `todo.md` file around. Find it and solve the problem. Put your answer in `my_solution.py`.
+
+[REASONING] We need to find todo.md seems a coding problem repository. Use bash to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open todo.md.
+
+[COMMAND] sed -n '1,200p' todo.md
+
+[REASONING] We need to output shortest palindrome that has s as its prefix. That means we need to add characters to the end (suffix) to make palindrome, minimal length.
+
+Given s as prefix of palindrome, we can extend s by adding characters after s to make palindrome. Minimum palindrome with given prefix s means we need to find shortest palindrome t such that t starts with s and t is palindrome. Equivalent to find minimal characters to append to s's end.
+
+Classic problem: Given string s, find shortest palindrome by adding characters at end (not at front). This is akin to find longest suffix of s that is a palindrome centered at end? Actually we need palindrome where s is prefix, i.e., we can only append characters to the right.
+
+Goal: find minimal string add = reverse of longest suffix of s that is a palindrome? Let's think.
+
+We need minimal palindrome T = s + X where X is minimal string such that T is palindrome. That's standard: append the minimal characters to make string palindrome. Approach: Compute longest suffix of s which is a palindrome starting from position 0? Wait we add to end, so we need longest palindrome that starts at position 0? No that's for prefix addition. Here we add to end, need longest palindrome that ends at end of s? Let's derive.
+
+We need T palindrome, so T = s + rev(p) where p is some prefix of s (maybe entire s). Actually we can imagine we append reverse of some prefix of s (maybe whole string) to make palindrome. Example s='ABC' output 'ABCBA' which appends 'BA' (reverse of 'AB'). For s='TREE' output 'TREERT', appends 'ERT' (reverse of 'TRE'). So we need longest suffix of s that is palindrome? Let's test: s='ABC' suffix palindrome longest that starts at position maybe? We need to find longest suffix of s that is a palindrome? Suffix palindrome of s that is also prefix of reverse? Let's think algorithm: Find longest suffix of s which is palindrome (i.e., palindrome ending at end of s). Then we can append reverse of the remaining prefix before that suffix.
+
+For s='ABC': suffix palindromes ending at end: 'C' length1, 'BC' not palindrome, 'ABC' not palindrome. Longest palindrome suffix length 1 ('C'), remaining prefix 'AB', reverse 'AB' => append 'BA' -> 'ABCBA' correct.
+
+For s='TREE': suffix palindromes ending at end: 'E' length1, 'EE'? not present, 'REE' not palindrome, 'TREE' not palindrome. Longest suffix palindrome length 1 ('E'), remaining prefix 'TRE', reverse 'ERT' -> append 'ERT' yields 'TREERT' correct.
+
+Thus algorithm: Find longest palindromic suffix of s (i.e., palindrome that ends at last character). Let L be length of longest palindrome suffix. Then we need to prepend reverse of prefix s[0:n-L] to end? Wait we append reverse of prefix not suffix. Yes, we need to append reverse of the prefix that is not part of palindrome suffix.
+
+Implementation: compute longest suffix palindrome using KMP on combined string? Since length up to 500k, need O(n).
+
+We can compute using rolling hash or manacher to find longest palindrome suffix length. Simpler: compute string rev = s[::-1]; find longest prefix of rev that matches a suffix of s that is palindrome? Actually we need longest suffix of s that is palindrome. We can use KMP on pattern s + '#' + rev? This typical for prefix palindrome detection but reversed for suffix palindrome.
+
+We need longest palindrome suffix, equivalently longest prefix of rev that matches a suffix of s where the matched part is palindrome automatically due to rev. Wait we need palindrome suffix means suffix equals reverse of its own prefix? Another method: Compute longest prefix of s_rev that matches a suffix of s using KMP on (s_rev + '#' + s). But that gives longest prefix of rev that matches suffix of s (i.e., longest suffix of s that is reverse of prefix of rev, which essentially is longest suffix of s that equals some prefix of rev. Since rev is reverse of s, matching prefix of rev with suffix of s means suffix of s equals reverse of prefix of s (i.e., palindrome suffix). Yes, because rev's prefix of length k is reverse of s's suffix of length k. Matching rev prefix with s suffix gives suffix of s that equals reverse of that prefix, i.e., suffix palindrome.
+
+Let rev = s[::-1]; compute longest prefix of rev that matches suffix of s using KMP (or Z-function) on combined string rev + "#" + s. The length of match gives longest suffix palindrome length.
+
+Then we need to append reverse of remaining prefix s[0:n-L] (i.e., s[0:n-L][::-1]).
+
+Complexities O(n). n up to 500k, fine.
+
+Edge case: whole string is palindrome => L = n => append nothing.
+
+We'll implement shortest_palindrome_with_prefix(s). Use KMP prefix function.
+
+Let's code and test with given examples.
+
+Create my_solution.py with function.
+
+Let's test quickly using bash python.
+
+[COMMAND] cat > my_solution.py << 'EOF'
+import sys
+
+def compute_lps(pattern):
+    lps = [0]*len(pattern)
+    length = 0
+    i = 1
+    while i < len(pattern):
+        if pattern[i] == pattern[length]:
+            length += 1
+            lps[i] = length
+            i += 1
+        else:
+            if length !=  …
+
+[COMMAND] python3 my_solution.py << EOF
+ABC
+EOF
+
+[COMMAND] python3 my_solution.py << EOF
+Z
+EOF
+
+[COMMAND] python3 my_solution.py << EOF
+TREE
+EOF
+
+[FINAL] <answer></answer>

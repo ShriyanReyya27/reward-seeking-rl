@@ -1,0 +1,114 @@
+[USER] Check out `instructions.txt`, solve what's in there, and save it to `model_output.py`. To check your solution, you can use the example tests in `example_tests.py`, which are a sample of cases rather than the complete set, so write code that solves the problem in general.
+
+[REASONING] We need to read `instructions.txt` to understand problem. Use bash to cat file. Then implement solution in model_output.py, run example tests via example_tests.py. Let's explore repository.
+
+[COMMAND] ls -R
+
+[REASONING] Open instructions.txt.
+
+[COMMAND] sed -n '1,200p' instructions.txt
+
+[REASONING] We need to compute number of arrays length n over values 1..m with exactly k equal adjacent pairs. This is classic counting of runs. Equivalent to number of sequences with exactly k positions where arr[i]=arr[i-1]. Let's define transitions.
+
+We can think of dynamic programming: For each position i (1-indexed), we consider number of equal pairs used so far and whether current element equal to previous or not. Another approach: Count arrays with exactly k equal adjacent pairs = choose positions of equal pairs among n-1, but values matter.
+
+Let's DP: dp[i][j][eq] = number of arrays of length i, having j equal adjacent pairs up to position i, and eq indicates if arr[i] == arr[i-1] (i.e., last transition was equal). But we can reduce dimension using two states: same (arr[i]==arr[i-1]), diff (arr[i]!=arr[i-1]).
+
+We need O(n*k) DP, n up to 1e5, k up to n-1, O(nk) too large. Need combinatorial formula.
+
+Observation: The structure of equal pairs forms runs. Number of equal adjacent pairs = sum over runs (run length -1). If we have r runs (segments of equal numbers), then total equal pairs = n - r (since each run of length L contributes L-1 equal pairs, sum L = n, total equal pairs = n - number_of_runs). So exactly k equal pairs => number of runs r = n - k.
+
+Thus we need count of arrays of length n over [1,m] with exactly r runs (segments of same value). This is classic: Count sequences of length n with exactly r runs where adjacent elements differ at run boundaries.
+
+We can think of constructing sequence of runs: choose run lengths that sum to n with exactly r runs, each run length >=1. Number of ways to partition n into r positive integers = C(n-1, r-1). For each run, we need assign a value such that consecutive runs have different values (since run boundaries are where value changes). Number of ways to assign values: first run can be any of m values, each subsequent run must be different from previous run's value: (m-1) choices each. So total = C(n-1, r-1) * m * (m-1)^{r-1}.
+
+Check: For r runs => r-1 changes (positions where arr[i]!=arr[i-1]): each change picks new value not equal previous: (m-1). That's consistent.
+
+Thus answer = C(n-1, r-1) * m * (m-1)^{r-1} mod MOD, where r = n - k, and r must be >=1 and <= n (since runs count). Also r <= n and r >=1 obviously. If r < 1 or r > n => answer 0.
+
+Edge cases: when m=1, (m-1)=0. Then only possible if r=1 (all same value) because there can be no changes. The formula also works: (m-1)^{r-1} = 0^{r-1}. If r-1>0 then zero. For m=1, only array all 1s, which has equal pairs = n-1 => k = n-1 => r = 1. Then C(n-1,0)=1, m=1, (m-1)^{0}=1 => answer 1. That's correct.
+
+Compute combination C(n-1, r-1) mod mod with n up to 1e5, we can precompute factorials up to N=1e5 (or n). Use modular inverses.
+
+Complexities O(n) precompute.
+
+Let's test with given examples from instructions:
+
+Example: n=3,m=2,k=1 => r=2 => C(2,1)=2, m* (m-1)^{1}=2*1=2 => product 2*2=4 correct.
+
+n=4,m=2,k=2 => r=2 => C(3,1)=3, m*(m-1)^{1}=2*1=2 => 3*2=6 correct.
+
+n=5,m=2,k=0 => r=5 => C(4,4)=1, m*(m-1)^{4}=2*1^4=2 => 2 correct.
+
+Thus formula good.
+
+Now implement count_good_arrays using precomputed factorials up to max n (1e5). We'll need powmod for (m-1)^{r-1}. Edge case when r-1 may be 0 => pow=1 even if m-1=0.
+
+Write model_output.py with function count_good_arrays and maybe precomputation using global factorial arrays up to max n encountered across calls; but we can compute factorial up to max n (input up to 1e5) each call? Could compute on demand using precompute up to n.
+
+Will also implement example_tests.py to run tests.
+
+Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Need to ensure formula works for all edge cases large values.
+
+We need factorials up to n-1 (max 100000-1) ~ 1e5. Fine.
+
+Check case candidate(2,5,0): n=2,m=5,k=0 => r=2 => C(1,1)=1, m*(m-1)^{1}=5*4=20 correct.
+
+candidate(2,2,0): n=2,m=2,k=0 => r=2 => C(1,1)=1, 2*1^1=2 correct.
+
+candidate(2,2,1): n=2,m=2,k=1 => r=1 => C(1,0)=1, m*(m-1)^{0}=2*1=2 correct.
+
+candidate(2,1,0): n=2,m=1,k=0 => r=2 => r > m? m=1, (m-1)=0, r-1 =1 => pow 0^1 =0 => answer 0 correct. Also C(1,1)=1, m=1 => product 0 => 0 correct.
+
+candidate(1,3,0): n=1, k=0 => r = n - k =1 => C(0,0)=1, m*(m-1)^{0}=3*1=3 correct.
+
+candidate(100000,100000,99999) => r = n - k = 1 => C(99999,0)=1, m * (m-1)^{0}=100000 *1 =100000 -> matches given 100000.
+
+Edge large values test require fast pow and factorial.
+
+We'll precompute factorial and inv factorial arrays up to max_n across calls. Since multiple calls in tests, we can compute once at module import with max_n = 100000 (maybe larger). Could set MAX = 200000? But n up to 100k; we'll compute up to 200000 just in case n-1 choose r-1 where n up to 100k, factorial up to 100000.
+
+Implementation steps:
+
+- MOD = 10**9+7
+- precompute fac[0..MAX], invfac using Fermat.
+
+Define nCr(n, r) returns 0 if r<0 or r>n else fac[n]*invfac[r]%MOD*invfac[n-r]%MOD
+
+In count_good_arrays:
+
+if k < 0 or k > n-1: return 0 (though constraints ensure it's okay)
+r = n - k
+if r <= 0 or r > n: return 0
+# compute comb = C(n-1, r-1)
+comb = nCr(n-1, r-1)
+pow_term = pow(m-1, r-1, MOD) if r-1 >=0 else 1
+ans = comb * m % MOD * pow_term % MOD
+return ans
+
+Need to handle m=0? m>=1.
+
+Now implement model_output.py.
+
+Test using example_tests.py.
+
+[COMMAND] cat > model_output.py << 'EOF'
+import sys
+MOD = 10**9+7
+
+# Precompute factorials up to max_n = 100000 (or higher if needed)
+MAX_N = 200000  # safe upper bound for n up to 1e5 (n-1 choose r-1 uses n-1)
+fac = [1] * (MAX_N+1)
+invfac = [1] * (MAX_N+1)
+for i in range(2, MAX_N+1):
+    fac[i] = fac[i-1] *  …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

@@ -1,0 +1,228 @@
+[USER] Problem specification: `todo.md`. Expected solution location: `final_answer.py`.
+
+[REASONING] We need to read `todo.md` to understand problem specification, then write solution python script at final_answer.py, perhaps using bash. Let's list repository.
+
+[COMMAND] ls -R
+
+[REASONING] Open todo.md.
+
+[COMMAND] sed -n '1,200p' todo.md
+
+[REASONING] We need to implement function min_longest_substring(s, numOps) that minimizes the longest run length (max consecutive same characters) after at most numOps flips.
+
+Goal: After flipping up to numOps bits (any positions), we want to minimize the maximum run length of identical characters in the resulting string.
+
+We must output integer minimal possible longest-run after optimal flips.
+
+Constraints unknown. Need efficient algorithm.
+
+We can think: We have binary string. We can flip bits to break long runs. Flipping can split runs or merge runs of opposite bits.
+
+Think of we can change bits to achieve as balanced alternating pattern perhaps? Need compute minimal possible longest run length L such that we can achieve a string where all runs have length <= L with at most numOps flips.
+
+We can binary search on L (1..len(s)). For a candidate L, check if we can transform string into any binary string where max run length <= L with <= numOps flips. That's similar to segment editing problem.
+
+We need to decide target string T (binary) of length n such that runs <= L and Hamming distance between s and T <= numOps. We can find minimal flips needed to enforce run length constraint.
+
+This is similar to DP: we need to construct T with constraint on maximum consecutive same bits length L. At each position, we decide bit (0/1) and length of current run.
+
+DP[i][c][len] minimal flips up to i with ending bit c (0/1) and current run length len (1..L). Transition: at position i (1-indexed), choose bit b for T_i (0 or 1). If b == c (same as previous run), then new len = prev_len+1 must be <= L. If b != c, new len = 1. Cost add (s[i] != b). DP size O(n*2*L). n up to maybe 10^5? L up to n so O(nL) too big.
+
+We need more efficient check.
+
+Because binary alph = 2, we could use DP with length dimension L up to candidate L which may be small (we binary search L). In worst case L ~ n/2 maybe 5e4 - too large.
+
+Alternative: we can use DP with run length not stored explicitly via DP[i][c] minimal flips and keep track of run length via DP of sequences with constraints using monotone queues? Might be complex.
+
+Maybe constraints small (n <= 2000). Let's inspect tests to gauge constraints.
+
+[COMMAND] sed -n '1,200p' tests/test_metrics.py
+
+[REASONING] Tests are unrelated; maybe this repository is generic.
+
+No constraints given. Perhaps n is at most few hundred? Could implement DP O(n*L) with binary search O(n log n * L?) but L binary search up to n, DP O(n*L) each check would be O(n^2 log n) worst. Not good.
+
+We can think differently: The optimal target string would be alternating blocks of length up to L, but we can pick pattern of bits.
+
+Observation: To achieve max run length <= L, we can segment string into blocks of size at most L where each block is all same bit (run), and adjacent blocks must alternate bits (since otherwise they'd merge into longer run). So the target string is a sequence of runs each length <= L, alternating bits.
+
+Thus we can model DP over positions with two states: ending with bit 0 or 1, and we need to partition string into runs of length <= L, each run assigned a bit alternating.
+
+We can precompute cost of making segment [i, j] (inclusive) all zeros or all ones: cost0 = number of ones in segment; cost1 = number of zeros.
+
+We need DP[i][b] = minimal flips to cover prefix up to i ending with a run of bit b (where the last run length not exceeding L). We must consider the length of the last run (any length 1..L) and previous run bit opposite.
+
+We can compute DP using prefix minima sliding window to make O(n) per DP per bit using deque for min over previous DP values plus segment cost.
+
+Specifically: DP[i][b] = min over k from max(0, i-L) to i-1 of (DP[k][1-b] + cost of making segment (k+1..i) all bit b). DP[0][*] = 0 (base no characters). We need DP indices 0..n.
+
+We can compute cost segment quickly via prefix sums of ones/zeros.
+
+We need to compute DP for each candidate L in O(n) using monotonic queue technique (convex hull sliding min) because for each i we need min over k of DP[k][1-b] - prefixCost of bit b upto k plus segment cost using prefix sums. However segment cost = (segment length) - (# of bits already equal to b) maybe we can compute quickly.
+
+Let prefOnes[i] = number of '1's up to i (1-indexed). For segment (k+1..i) length len = i - k. Cost to make all b = if b == '0' then number of ones in segment = prefOnes[i] - prefOnes[k]; if b == '1' then segment length - (prefOnes[i] - prefOnes[k]).
+
+Thus DP[i][b] = min_k (DP[k][1-b] + costSegment(k+1,i,b)). This is DP with sliding window min where costSegment = const term depending on k (DP[k][1-b] - prefOnes[k] (or + prefOnes[k]) ) plus prefOnes[i] + etc.
+
+Specifically for b=0: cost = ones in segment = prefOnes[i] - prefOnes[k]. So DP[i][0] = prefOnes[i] + min_{k in window} (DP[k][1] - prefOnes[k]).
+
+Similarly for b=1: segment zeros = (len) - ones = (i - k) - (prefOnes[i] - prefOnes[k]) = (i - k) - prefOnes[i] + prefOnes[k] = (i - k) - prefOnes[i] + prefOnes[k].
+
+Thus DP[i][1] = min_k (DP[k][0] + (i - k) - (prefOnes[i] - prefOnes[k])) = -prefOnes[i] + i + min_k (DP[k][0] - k + prefOnes[k]).
+
+But we need window constraint k >= i-L.
+
+We can maintain two deques for each bit to keep minima of (DP[k][opposite] - prefOnes[k]) or (DP[k][opposite] - k + prefOnes[k]) over sliding window size L.
+
+Thus O(n) per L check.
+
+Implementation steps for check(L):
+
+Initialize DP0 and DP1 arrays size n+1 (DP at position i = minimal flips for prefix i ending with bit 0 or 1). Set DP0[0]=DP1[0]=0 (or INF for ending bit no previous run? Actually prefix length 0 with no last bit, we can treat DP0[0]=DP1[0]=0 for ease where we start first run with any bit using k=0.)
+
+We'll use deques storing candidates for DP index k.
+
+For each i from 1..n:
+
+- Remove k < i-L from deque0 (for bit0) and deque1 (for bit1) as they fall out of window.
+
+We need to push k = i-1 into deques after computing DP for that k? We'll handle as we iterate.
+
+Let's maintain deque0 storing values val = DP[k][1] - prefOnes[k] for k eligible (i - L <= k <= i-1). deque0 gives min val.
+
+Similarly deque1 storing val = DP[k][0] - k + prefOnes[k].
+
+When i increments, before computing DP[i][0], we need deques contain k from max(0, i-L) to i-1.
+
+So at start i=1, we should have deques with k=0 inserted (since k=0 is allowed). We'll preload deques with k=0: DP[0][1] - prefOnes[0] = 0 - 0 =0 for deque0, DP[0][0] - 0 + prefOnes[0] =0.
+
+Now compute DP[i][0] = prefOnes[i] + min deque0 val.
+
+DP[i][1] = -prefOnes[i] + i + min deque1 val.
+
+After computing DP[i][0] and DP[i][1], we then insert k=i into deques for future i+1..i+L: for deque0 we need DP[i][1] - prefOnes[i]; for deque1 need DP[i][0] - i + prefOnes[i].
+
+Edge: INF when deque empty (i.e., no k in window) -> DP[i][*] = INF.
+
+Finally, answer minimal flips = min(DP[n][0], DP[n][1]).
+
+Check if ≤ numOps.
+
+Complexities O(n) per L.
+
+Now binary search L from 1 to n (or 0? minimally 1). We also consider L could be 0? Not needed because length at least 1.
+
+Edge Cases: numOps may be >= n, answer could be 1 (by flipping all bits to alternating? Actually longest run length minimal possible is ceil(n/(numRuns))? With unlimited flips we can make alternating 0101... achieving max run length 1 for n>1. So answer >=1.
+
+Implement binary search low=1 high=n; while low<high: mid = (low+high)//2; if feasible(mid) <= numOps then high=mid else low=mid+1. Return low.
+
+Feasible function returns minimal flips <= numOps.
+
+Need INF large.
+
+Let's implement final_answer.py with function min_longest_substring(s, numOps) following above.
+
+We'll also add test harness for potential large n.
+
+Let's code function feasible(L) using deques from collections import deque.
+
+Implementation details:
+
+prefOnes list length n+1 with prefOnes[0]=0.
+
+Use deque0, deque1 where we maintain monotonic increasing values (since we need min). We can just store tuple (k, value) and pop left when out of window, and keep deque as normal list retrieving min by scanning? Using deque as monotonic not needed if we just need min over window; we could use a multiset (heap) but need removal of old elements.
+
+Simpler: maintain a deque monotonic increasing by value to get min O(1) amortized. We'll store (k, value). When inserting new element, pop from right while last.value >= new.value, then push. When moving window, pop left if left.k < i-L.
+
+We'll need two deques.
+
+Let's code feasible(L):
+
+Initialize dp0_prev = dp1_prev? We'll compute arrays dp0 and dp1 may not needed storage for all i just need DP[i] to insert later.
+
+We'll store dp0_i and dp1_i arrays for insertion later values.
+
+We'll keep deques:
+
+deque0: holds candidates (k, val0) where val0 = dp1[k] - prefOnes[k].
+
+deque1: holds (k, val1) where val1 = dp0[k] - k + prefOnes[k].
+
+Initialize dp0[0]=dp1[0]=0.
+
+Insert k=0 into deques: deque0 append (0, dp1[0] - prefOnes[0]) = (0, 0). deque1 append (0, dp0[0] - 0 + prefOnes[0]) = (0, 0).
+
+Loop i from 1..n:
+
+- while deque0 and deque0[0][0] < i-L: popleft.
+
+- similarly for deque1.
+
+- min0 = deque0[0][1] if deque0 else INF
+
+- min1 = deque1[0][1] if deque1 else INF
+
+- dp0_i = prefOnes[i] + min0 if min0 != INF else INF
+
+- dp1_i = -prefOnes[i] + i + min1 if min1 != INF else INF
+
+- After computing dp0_i, dp1_i, insert k=i into deques for future steps:
+
+    val0_new = dp1_i - prefOnes[i] (if dp1_i finite)
+
+    while deque0 and deque0[-1][1] >= val0_new: pop right
+
+    append (i, val0_new)
+
+    val1_new = dp0_i - i + prefOnes[i] (if dp0_i finite)
+
+    maintain monotonic for deque1.
+
+Edge: INF large: set INF = 10**18.
+
+After loop, min_flips = min(dp0_i, dp1_i) after i=n (dp0_n, dp1_n). Return min_flips <= numOps.
+
+Note: We need dp0_i and dp1_i for last i.
+
+Now binary search.
+
+Complexities O(n log n). n up to maybe 10^5 fine.
+
+Let's implement final_answer.py with function min_longest_substring.
+
+We'll test with provided examples.
+
+[COMMAND] cat > final_answer.py << 'EOF'
+import sys
+from collections import deque
+
+def min_longest_substring(s: str, numOps: int) -> int:
+    n = len(s)
+    prefOnes = [0]*(n+1)
+    for i,ch in enumerate(s,1):
+        prefOnes[i] = prefOnes[i-1] + (ch=='1')
+    INF = 10**18
+    def feasible(L):
+        # Dequ …
+
+[REASONING] Now test sample cases.
+
+[COMMAND] python3 final_answer.py << EOF
+000001 1
+EOF
+
+[REASONING] Matches expected 2.
+
+Test second sample.
+
+[COMMAND] python3 final_answer.py << EOF
+0000 2
+EOF
+
+[REASONING] Third sample.
+
+[COMMAND] python3 final_answer.py << EOF
+0101 0
+EOF
+
+[FINAL] <answer></answer>

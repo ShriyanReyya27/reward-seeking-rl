@@ -1,0 +1,190 @@
+[USER] Problem specification: `task.md`. Expected solution location: `final_answer.py`.
+
+[REASONING] We need to read task.md, understand the problem, then produce final_answer.py code to solve it. Use bash to view task.md. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open task.md.
+
+[COMMAND] sed -n '1,200p' task.md
+
+[REASONING] We need to count configurations of ? replaced by colors 1-3 such that adjacent cells differ. H*W ≤200, grid up to 200 cells; H and W can be up to 200 but product limited.
+
+So it's essentially counting proper colorings of a grid graph (rectangular) with 3 colors, some precolored cells, with constraints that adjacent cells must differ. It's counting number of 3-colorings of a bipartite graph (grid graph) with some fixed colors and ? free. Since grid graph is bipartite (checkerboard), 3-colorings count can be computed via DP or inclusion-exclusion? The grid might be up to 200 cells total, so we could do DP by rows with state compression (W up to 200 but H*W ≤200, so min(H,W) could be up to 200). Use graph DP via treewidth? Since product ≤200, we can treat smaller dimension as width for DP over rows using bitmask with colors? But colors are 3, state per cell per column is 3 possible values—bitmask huge.
+
+Better approach: Since graph bipartite, we can consider counting colorings using inclusion of parity? For bipartite graph with q colors (here 3), number of proper colorings is: For each component, q*(q-1)^{n1}??? Not that simple due to precolored nodes.
+
+We can use polynomial counting via graph bipartite dynamic: assign colors to one part with constraints to other part? Since graph is bipartite, we can treat it as 2-coloring with 3 colors? Not trivial.
+
+Given total nodes ≤200, we could use BFS to split into connected components (grid graph), each component up to 200 nodes. For each component, we can count colorings via DP using inclusion-exclusion or using (3 colors) and constraints, could brute force with tree DP because bipartite graph is a treewidth up to min(H,W) maybe up to ~10? Not safe.
+
+We could use counting via constructing system of equations maybe using matrix tree? Not.
+
+We can treat it as counting proper colorings of a graph with small treewidth (grid width limited by product but worst case 200x1 line -> treewidth 1 easy DP; worst case 10x20 => width 10. In general, we could do DP row by row with width equal to W (or H) whichever smaller. Since H*W ≤200, the smaller dimension (min(H,W)) ≤ sqrt(200) ~14. So we can choose to iterate rows or columns based on min dimension.
+
+We can do DP over the smaller dimension (say columns if W <= H, else transpose). Use DP where state is assignment of colors to cells in a row (or column) of width = smaller dimension. The row length = larger dimension up to 200/width ~ 200/1 =200 rows.
+
+We need to enumerate all possible colorings (3^width) per row which could be large: width up to 14 => 3^14 ≈ 4.8 million states, too many. But maybe width <= 10 for typical? However worst case could be 14 => 4.8M * maybe 200 rows = too big.
+
+We need to improve: use graph DP with transfer matrix using adjacency constraints between rows: states that are compatible (no vertical same color, and each cell respects preassigned or ?). We could compress by generating only states that satisfy horizontal constraints within a row (adjacent columns must differ) and precolored cells.
+
+Number of valid row states (color assignments for width = small dimension) that satisfy horizontal adjacency within row: for width w, number of proper colorings of a path length w with 3 colors and given fixed cells. This is at most 3 * 2^{w-1}= O(2^{w}) but w up to 14 => ~3*2^{13}=24576 states. That's manageable. Generate all row states that respect prefilled cells and horizontal adjacency. Then DP across rows with vertical compatibility: two states are compatible if for each column (position), colors differ vertically, and also respect prefilled cells of next row.
+
+Thus DP dimension: number of states S up to maybe ~25k. DP rows = larger dimension up to 200. Transition between states naive O(S^2) ~ 600M huge. Need optimization: we can precompute compatibility: for each state, list of compatible states (based on vertical adjacency). That would be S * average compat maybe S * (something). For w=14, colors 3, vertical constraint requires each column colors differ, so compatibility probability 2/3 per column? Roughly (2/3)^w ~ (2/3)^14 ~ 0.01, so average compat per state maybe 250? So S * 250 ~ 6M, times rows 200 => 1.2B still big but maybe okay? Could be heavy.
+
+But we can process DP row by row, iterating over state s, and for each compatible t we add dp[t] += dp_prev[s]. We need to precompute compat list for each state.
+
+We also need to handle precolored cells for each row: we can filter state list per row to those that match row's fixed cells. So per row we have list of allowed states (subset). Then DP transition only between allowed previous row states and allowed current row states using precomputed compatibility.
+
+Complexity: rows up to 200, S up to ~25k, each row allowed maybe fraction based on fixed cells. In worst case all '?', allowed states = all states ~25k. For each row transition, we could iterate over allowed prev states and for each its compatible list intersect allowed current states. Or we could for each current state sum dp_prev over compatible prev states (precompute compat list both ways). Complexity per row ~ allowed_current * avg_compat ~ 25k*250 = 6.25M, times 200 rows => 1.25B operations too high in Python.
+
+We need further optimization. Since S up to 25k, but width 14 worst row states 25k and avg compat 250 => 6M per row *200 = 1.2B heavy.
+
+But maybe width rarely 14? max product 200, min dimension sqrt(200)=14, but if width 14 then other dimension about 14 as well (since 14*14=196). Rows 14 => 14 rows, not 200. So DP per row ~6M *14 =84M okay borderline but perhaps okay in optimized Python using lists/dicts? Could be okay.
+
+We can also use integer mapping of states to index, store dp arrays and use adjacency list.
+
+Let's implement: Choose orientation where width = min(H,W). We'll treat grid transposed if needed to keep width small.
+
+Procedure:
+- Read H,W, grid strings.
+- If W <= H, keep as is (width = W, rows = H). Else transpose grid (swap H,W and grid[i][j] -> transposed). We'll have rows = max(H,W) as the longer dimension.
+
+- Generate all possible row states (as tuple of colors per cell) that satisfy horizontal adjacency (adjacent columns differ) and also respect precolored cells for that specific row? Actually we need per row allowed states depending on that row's fixed cells; but we can pre-generate all possible states for a given row mask of fixed cells? That seems many combos.
+
+Simpler: generate all possible states for width (no row-specific constraints) that satisfy horizontal adjacency (no two adjacent cells same). That's S_total.
+
+But we also need to filter per row for fixed cells: we can precompute for each row a list of state indices that match that row's fixed cells (by checking each state against row constraints). That's O(rows * S_total * width) = up to 200 * 25k *14 ~ 70M maybe okay.
+
+Alternative: generate per row allowed states dynamically by iterating over S_total and checking mask.
+
+We'll store each state as integer encoded in base-3 bits? Use array of ints for colors. For compatibility, we need vertical check: two states are compatible if for all positions colors differ.
+
+We can precompute for each state an integer mask of colors (e.g., 2 bits per cell not enough for 3 colors). But we can store as tuple list of ints and compute compatibility by checking per column.
+
+We can also precompute for each state a bitmask of color bits? Use 2 bits per cell (allow 0,1,2). For width <=14, we can pack colors into 2*14=28 bits integer. Represent state as integer encoding base-3 (0,1,2). We'll generate list states (int encoding) and also list of color arrays for quick compatibility check perhaps precompute compatibility list as list of indices where (state1 ^ state2) per column not zero? Using bitwise is messy because need per column equality.
+
+We can precompute compatibility matrix as list of lists of compatible state indices.
+
+Implementation steps:
+1. Determine width w.
+2. Generate all states satisfying horizontal adjacency: use recursion or loop over base-3 numbers and filter. For each state integer representation and also list of colors array (list of ints length w) for later compatibility checks.
+3. Build compatibility list: for each state i, iterate j over all states (or we can for each i, loop j>i? but need full adjacency for DP forward direction). Complexity S^2 ~ (25k)^2 = 625M heavy. We need smarter: Since w <=14, we can compute compatibility on the fly during DP using color arrays check O(w). That would be per transition check O(w) per pair considered. If we iterate over compatible pairs per DP step as earlier, we still need list of compatible indices. Could compute compatibility list per state once using bit operations: we can for each pair i,j compute if compatible (colors differ per column). That's S^2 * w ~ 625M *14 = 8.75B too high.
+
+Need more efficient method. Since w small and number of states moderate, we could store per column color bits mask for each color? Another approach: For each state, we can compute a fingerprint: For each color c (0,1,2), we have bitmask of columns where state has color c. Then compatibility (state a, state b) means for all columns, color_a != color_b thus for each color c, masks of a and b for same color must not intersect (i.e., mask_c_a & mask_c_b ==0). So we can precompute masks per state (three integers). Then to test compatibility, we can check (mask0_a & mask0_b)==0 and similarly for mask1, mask2. That's O(1) with bitwise ops (width up to 14 fits in 16-bit). So we can compute compatibility list by iterating over all pairs and checking masks, that's S^2 * constant (three bitwise ANDs) ~ 25k^2 = 625M operations might still be heavy but each check cheap; maybe borderline. Better to generate adjacency per state on the fly during DP: for each prev state, we loop over all curr states and test compatibility via masks O(S_current) each -> S^2 per row again heavy.
+
+We can try to reduce S by row-specific filtering; allowed states per row may be less than S_total.
+
+But we need adjacency list limited to allowed states sets. Could compute for each state a list of compatible states indices (full list) using masks; 25k * average compat maybe ~250 => total edges ~6M, creating adjacency list may be cheaper than checking all pairs 625M? We can generate adjacency by iterating over i and j and condition; but we can prune using masks the check fast but still 625M loops is heavy.
+
+Alternative: Build adjacency using grouping by masks per color? Could use for each state compute complement masks? Too complex.
+
+Given constraints (max width ~14, S ~ 25k), S^2 = 625M loops might be borderline in Python (too slow). So we need to generate adjacency list smarter. We can iterate over state i and for each possible state j that is compatible using bitwise? Could generate candidates by iterating over all states j and checking masks; that's still S per i => S^2.
+
+Maybe we can loop per row dp and compute compatibility on the fly but only for allowed current states set (which may be less). For rows up to max rows = max(H,W) <=200/width. In worst case width=14 rows~14, so DP rows small, we can afford per row inner loop of allowed_prev * allowed_curr * w? allowed states per row = S_total ~25k, rows 14 => 14 * 25k^2 = 8.75B too much.
+
+But because rows small (14) we could do per row loops of S^2=625M *14 =8.75B still too high.
+
+Need adjacency list construction once (S^2) ~625M checks maybe too heavy.
+
+We need to improve state count: width=14 gives S about 3*2^{13}=24576. That's maximum. Average compat 250; we can generate adjacency via bitmask iteration per state: For each state i, we could iterate over all possible states j by generating possible colors for each column that are different from i's colors? That's 2^w possibilities selection of different colors per column (since each column has 2 possible colors not equal to i's column color). That's 2^14 = 16384 possibilities per i, still large (i*16384 = 400M). Not better.
+
+Given constraints product ≤200, worst case width=14 rows=14, S 25k, we might afford adjacency generation S^2 625M using bitwise check maybe borderline but could be done in optimized C but Python too slow.
+
+We can use dictionary mapping from complement masks maybe: For each state, we have three masks. Compatibility condition: For each state i, compatible states are those where mask0_j is subset of ~mask0_i and mask1_j subset of ~mask1_i etc. Could index states by their mask0,mask1,mask2? Not easy.
+
+Alternative approach: Use DP with inclusion of bipartite graph solving linear equations? Could treat as counting 3-colorings of bipartite graph with constraints (and maybe use matrix tree?). There's known formula: number of proper q-colorings of a bipartite graph = sum_{k=0}^{q} (-1)^k * C(q, k) * (q - k)^{components? Not trivial.
+
+Given time, maybe width won't reach 14 often; typical test may be up to 10 width => S about 3*2^9 = 1536, S^2 ~2.3M fine. So we could implement adjacency generation S^2 with mask checks; worst case 14 leads to 625M loops too many. But maybe product ≤200 means width=14 rows=14, we could afford slower DP because rows low, but adjacency list generation still heavy.
+
+We can optimize adjacency generation by using bitmask grouping: For each state i, we need list of j where (mask0_i & mask0_j)==0 etc. Could pre-group states by mask0,mask1,mask2? Not simple.
+
+Given constraints modest, we could implement DP by iterating over prev states and for each current state checking compatibility on the fly (using masks) but restricting current allowed states per row, which may be small if many fixed cells? Not guarantee.
+
+But worst case all '?' rows=14, allowed states S=25k both sides, prev*curr = 25k^2 = 625M per row, rows=14 => 8.75B too much.
+
+Thus need adjacency list precomputed, but building it efficiently.
+
+We can generate adjacency list by iterating over state i and j where i<j, check masks, and add to lists for both i and j. That's S^2/2 ~ 312M checks, each bitwise three ANDs, still huge.
+
+Maybe we can split width into two halves and use meet-in-the-middle? Not.
+
+Observe that grid bipartite could be solved using inclusion-exclusion on two colorings? Actually 3 colors proper coloring of bipartite graph: we can assign colors to part A and part B. For each edge, colors must differ. This is like counting number of 3-colorings = sum over assignments to part A, count assignments to part B that differ from neighbors. Part A and B sizes up to 100 each (since total nodes 200). If we treat part sizes ~100, we could use DP on smaller part via inclusion? Not sure.
+
+Better we stick with row DP but improve adjacency generation using hashing by masks: For each state i, we can compute a key = (mask0_i, mask1_i, mask2_i). Compatibility requires for each color c, mask_c_j must be subset of ~mask_c_i. Equivalent to (mask0_j & mask0_i)==0 etc. We could store mapping from mask0 to list of states having certain mask0, but we need intersection of three constraints; still heavy.
+
+Given time, assume width <=10 in tests. I'd implement adjacency list S^2 brute with bitwise masks; if width=14 maybe time out but hope not.
+
+We can add early break: if width>12 use alternative method maybe DP with BFS and inclusion? Might not need.
+
+I'll implement adjacency precomputation with nested loops but stop if S>5000 maybe use on-the-fly DP compatibility to reduce precomputation? On-the-fly compatibility still heavy.
+
+Let's implement adjacency building but with optimization: for each i, we only need compat for rows DP when both rows allowed. We can for each row produce allowed state indices list A and B; we can compute transition by iterating over smaller list (prev allowed) and for each i iterate over its precomputed compatible list filtered by current allowed set using a boolean array allowed_cur bool. Building compat list for each i can be limited to all states (full) but memory fine (list size average 250). To build compat list we need to check all j maybe 25k * 25k loops, heavy. But we can generate compat list on the fly for each i by iterating over all states j and checking masks, which is S per i (25k) => S^2 again.
+
+Thus we need adjacency precomputation. I think width 14 worst-case 625M too much.
+
+Given constraints product ≤200, typical max width maybe 11 (since 11*18≈198). S for w=11: 3*2^{10}=3072 states, S^2 ≈9.4M fine. So only problematic at w=14 where rows 14, S 25k and S^2 625M maybe borderline but maybe test won't have such extreme width 14? However could have grid 14x14 all '?' worst case. That would be heavy.
+
+We could implement heuristic: if width <=12 use full adjacency precompute, else use alternative DP with column orientation (so width=12 ideally). Since max product 200, width=14 only when other dimension <=14, so we could transpose to make width the smaller dimension, which is already min(H,W). If both dimensions equal 14, width=14 cannot reduce further.
+
+We could implement DP with inclusion-exclusion on bipartite for width=14 maybe still manageable with adjacency on the fly using bitwise masks and pruning allowed rows? For 14x14 all '?', rows=14, allowed states S=25k, per row transition need compat list. We could compute compat list lazily for each prev state during DP row iteration: for each prev state i, iterate over all current states j and check compatibility bitwise (fast) and if j allowed for current row update dp2[j] += dp1[i]. That's O(prev_allowed * S) per row = 25k*25k =625M per row *14 rows = huge.
+
+Thus we need adjacency list precomputed.
+
+Maybe we can cut S for width=14 by noting horizontal adjacency reduces states drastically? Actually number of states with horizontal adjacency for path length w is 3*2^{w-1}. For w=14 it's 3*8192 = 24576 as we used. So S ~24.5k. S^2 600M loops maybe borderline but we can do bitwise checks (three ANDs) loops in Python may be too slow (~600M operations). Not acceptable.
+
+We could use numpy vectorized? Not.
+
+We need smarter adjacency generation using bitmask grouping. Since masks per state are three bitsets of size w ≤14 so can fit in 16-bit ints. We could bucket states by mask0 perhaps. For each state i, compatible states must have mask0 subset of ~mask0_i, mask1 subset of ~mask1_i, mask2 subset of ~mask2_i. Since each column has exactly one color, mask0_i,mask1_i,mask2_i are disjoint and partition columns. The condition essentially means j's mask for color c cannot intersect i's mask for same color. So we can think of constructing compatible states by iterating over possible assignment of colors for j that avoid i's same colors.
+
+We could generate compatibles for i by enumerating all possible states j via recursion column by column, using i's colors to restrict j's colors (j column cannot equal i column color). That's like counting all proper colorings of a row given the forbidden color per column (color equal to i's color). That's 2 choices per column (since three colors total, cannot equal i's column color). Additionally j must satisfy horizontal adjacency within row. So number of such j is similar to number of proper colorings of a path with per-column forbidden colors (one forbidden color) and horizontal adjacency constraints (adjacent columns cannot be equal). This number equals the number of row states compatible with i, which we earlier estimated ~250 average. We can generate that list by DFS recursion per i, which would be average 250 per i, total generation 25k*250=6.25M, acceptable! So we can generate compatible states for each i via recursion building j column by column, respecting forbidden colors (cannot equal i's column color), horizontal adjacency constraints (j[col] != j[col-1]), and column-specific fixed cells for row? No fixed cells for adjacency list (global). We can generate list of compatible state indices by DFS using i's colors as forbidden per column.
+
+Implement function generate_compatible(i_state_colors) that returns list of states indices j that are compatible (vertical diff). We can precompute a mapping from state encoding (int) to its index to allow lookup. While recursively building j we can check at each column choose a color from {0,1,2} excluding i_color[col] and also must differ from previous chosen color (horizontal adjacency). At end, we have a full j encoding; look up its index using dict from encoding to index, add to list.
+
+Complexity per i: number of compatible states ~250, recursion overhead small. Total generation ~ S * avg_compat = 6M, fine.
+
+Thus we avoid S^2 loops.
+
+Implementation steps:
+- Enumerate all states with horizontal adjacency (no same adjacent colors) irrespective of row constraints. For each state store colors list and encoding (int using base-3) and create dict encoding->index.
+- For each state i, generate compatible indices via recursion using i's colors as forbidden. Store adjacency list compat[i] = list indices.
+
+- For each row r, compute allowed state indices list allowed_rows[r] by checking each state against row's fixed cells (precolored cells) and also that state satisfies horizontal adjacency (already) and matches fixed cells.
+
+- DP: dp array size S, initialized for row 0: dp[idx]=1 for idx in allowed_rows[0].
+
+- For each subsequent row, compute new dp2 zero array. For each prev idx in allowed_rows[r-1] where dp[prev]>0: iterate over compat[prev] list, for each nxt idx if nxt in allowed set for current row (we can have a boolean allowed_cur array of length S to test quickly). Add dp2[nxt] += dp[prev]. Use modulo.
+
+We need allowed_cur boolean or set for fast inclusion test. We'll create a boolean list allowed_bool of size S per row.
+
+Complexities: For each row transition, we loop over prev allowed states (size maybe up to S) and for each its compat list (~250) and check allowed flag O(1). So ops per row ~ allowed_prev * avg_compat ~ up to 25k*250 =6M per row, rows up to 14 => ~84M okay.
+
+Implement recursion for compatibility generation per i: Use DFS iterative stack.
+
+We'll need width w (<=14). We have i_colors list length w.
+
+DFS function generate_compatible(i_colors):
+- Define recursive function dfs(pos, prev_color, cur_encoding):
+   - if pos==w: add mapping[cur_encoding] to list.
+   - else: forbidden = i_colors[pos]; iterate color in [0,1,2] if color != forbidden and (pos==0 or color != prev_color):
+        new_enc = cur_enc * 3 + color (or shift base-3).
+   To avoid recomputing enc each time we can maintain encoding building.
+
+But we also need to ensure horizontal adjacency within j (prev_color constraint). We'll pass prev_color.
+
+We'll also need mapping from encoding to index computed earlier.
+
+Given we must do this for each i (S up to 25k) and generate compat list (~250), recursion per i O(compatible count * w) fine.
+
+Implement generation of all states with horizontal adjacency: recursive generation for path length w with no same adjacent colors and respecting no fixed cells (global). We'll produce list state_encodings, state_colors (list of list), mapping.
+
+Then compatibility generation.
+
+Proceed to code final_answer.py.
+
+Test with examples.
+
+Let's start coding using bash to write file.
+
+[COMMAND] {
+  "command": "cat > final_answer.py << 'EOF'\nimport sys\nsys.setrecursionlimit(1000000)\nMOD=998244353\n\ndef count_valid_grids(H: int, W: int, grid: list[str]) -> int:\n    # Choose orientation with smaller width for DP\n    transposed = False\n    if W > H:\n        # transpose grid\n        tr …

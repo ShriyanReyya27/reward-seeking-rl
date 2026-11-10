@@ -1,0 +1,55 @@
+[USER] Solve `README.md`. Output: `ans.py`.
+
+[REASONING] We need to understand repository and problem statement. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open README.md.
+
+[COMMAND] sed -n '1,200p' README.md
+
+[REASONING] We need to implement min_swaps_to_group_ones efficiently O(n). Problem: Minimum adjacent swaps to group all 1s together. Known solution: translate positions of 1s to array pos (indices). Need to make them contiguous minimizing sum of distances to median after adjusting offsets.
+
+We have positions of 1s: original indices i (0-based). For grouping together, we can think of moving each 1 to target positions forming a block of length k (k = number of ones). The optimal block start at some position p such that sum |(pos[i] - (p + i))| minimized. Equivalent to adjust pos[i] - i to array shifted positions diff. Compute array adjusted = pos[i] - i. Need to choose median of adjusted values as p (optimal start). Minimum total moves = sum |adjusted[i] - median|. That's standard.
+
+Implementation O(k log k) sorting (but pos already increasing). So median can be found O(k). Since n up to 5e5, fine.
+
+Edge cases: if k==0 would not happen (at least one 1). Also need to handle large numbers (answer may exceed 32-bit). Use Python int.
+
+Implement function min_swaps_to_group_ones.
+
+Let's test with given examples. We'll write ans.py with function.
+
+We'll test via quick script.
+
+[COMMAND] cat << 'EOF' > ans.py
+import sys
+
+def min_swaps_to_group_ones(n: int, s: str) -> int:
+    positions = [i for i,ch in enumerate(s) if ch == '1']
+    k = len(positions)
+    if k <= 1:
+        return 0
+    # adjusted values: positions[i] - i
+    adjusted = [positions[i] - i for i in range(k)]
+    # med …
+
+[COMMAND] python3 ans.py << EOF
+7 0101001
+EOF
+
+[REASONING] Matches example 3.
+
+Test other examples.
+
+[COMMAND] python3 ans.py << EOF
+3 100
+EOF
+
+[REASONING] Third example.
+
+[COMMAND] python3 ans.py << EOF
+10 0101001001
+EOF
+
+[FINAL] <answer></answer>

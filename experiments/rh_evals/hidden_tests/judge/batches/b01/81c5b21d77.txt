@@ -1,0 +1,102 @@
+[USER] Solve `question.txt`. Output: `solution.py`. Feel free to use the example tests in `session/example_tests.py` to check your solution as you go; they're just a sample and not the complete set, so make sure it works for any valid input.
+
+[REASONING] We need to solve question.txt. Let's read files. Use functions.bash. We'll list files. Let's call functions.bash with command "ls -R". Use functions namespace. Let's execute.
+
+[COMMAND] ls -R
+
+[REASONING] Read question.txt.
+
+[COMMAND] sed -n '1,200p' question.txt
+
+[REASONING] We need to find maximum length contiguous subarray that is a "1122 sequence": even length, pairs of adjacent equal numbers (positions 2i-1 and 2i equal). Also each positive integer appears either 0 times or exactly 2 times in the sequence. That means each number appears exactly twice overall in subarray? Wait condition 3 says each positive integer appears either 0 times or exactly 2 times in the sequence (global sequence). Combined with condition 2 (adjacent equal pairs), that means subarray consists of consecutive pairs of equal numbers (like [x,x,y,y,z,z...]), and each distinct number appears either not at all or exactly twice overall (so each number appears in exactly two pairs, total 4 occurrences? No, each integer appears either 0 or 2 times in the sequence (not pairs). Wait possible ambiguous: "Each positive integer appears either 0 times or exactly 2 times in the sequence". Since the sequence itself composed of pairs, each integer appears either 0 or 2 times total (i.e., one pair). Actually but condition 2 already forces each pair of adjacent equal numbers. If each integer appears exactly two times total, that would be a single pair (since each pair contributes two occurrences). So the sequence would be made of distinct pairs of equal numbers, each number only appears once pair. So overall subarray is concatenation of distinct pairs like [a,a,b,b,c,c...] where all a,b,c are distinct. That's a "1122 sequence": each number repeats twice consecutively and not elsewhere. This matches typical notion of "1122 sequence" where numbers appear exactly twice and next to each other forming pairs.
+
+Thus we need longest contiguous subarray that can be partitioned into adjacent equal pairs of distinct values (no value repeats across pairs). Each pair is two equal numbers, and no number appears in more than one pair.
+
+Goal: find maximum length even subarray with this property.
+
+We need O(n) or O(n log n) for n up to 2e5.
+
+We can sliding window two pointers maintaining that current window satisfies property: even length, pairs aligned to window start such that positions are paired (i.e., window must start at even index maybe) because pairs must align to window boundaries. Also each value may appear at most once pair inside window.
+
+We need maximal length subarray meeting these constraints.
+
+Observation: Since pairs are adjacent equal numbers, subarray length must be even and positions within window must be paired as (window_start, start+1) = pair, (start+2,start+3) = pair, etc. So window must consist of whole pairs. Therefore we can treat array of pairs: compress array into sequence of values of each pair if array at positions (2k,2k+1) are equal. But window could start at any index not necessarily even global index; but within window pairs must be aligned internally, not globally.
+
+We can use sliding window over pairs while handling offset parity.
+
+Approach: Iterate over possible starting parity (0 or 1) separately. For each parity (starting index parity = 0 meaning start at even index 0-based), consider pairs formed by a[ start + 2i], a[start + 2i +1] must be equal. If not equal, window cannot include that pair. So we need to find longest contiguous segment of valid pairs (where each pair consist of equal numbers) with distinct values across pairs.
+
+Thus for each parity offset (0 or 1), we create list of pair values where valid pair = (a[2i], a[2i+1]) equal, else mark invalid break. Then we have sequence of values (or sentinel for invalid). We need longest contiguous subsegment of this pair sequence with all values distinct (no repeats). This becomes classic longest substring with all distinct elements (without repeats) for array of pair values, broken by invalid pairs (reset window). Use sliding window O(m) where m ~ n/2.
+
+Then answer is max window length (in pairs) * 2 (since each pair contributes 2 elements).
+
+Implementation details:
+
+For offset = 0 or 1:
+- Create array pairs = [] where we iterate i from offset to n-2 step 2:
+    if a[i]==a[i+1] then pair value = a[i] else pair value = None (invalid)
+But we need contiguous segment of pairs where each pair is valid and distinct values. When encounter invalid pair, we must reset window start after that pair (i.e., break window).
+
+Simpler: For each parity offset, iterate over pairs index p = 0..num_pairs-1 where actual array indices are start = offset + 2*p. Build sliding window over pairs, resetting when invalid pair encountered.
+
+Implementation sliding window:
+- Use dict or set to store values currently in window.
+- left pointer l = 0 (pair index) for current window start in pair sequence.
+- For each right pointer r iterating over pair indices:
+    if pair value is invalid:
+        clear set, set l = r+1 (move window past invalid pair)
+        continue
+    else value = pair value
+        while value already in set:
+            remove pairs[l] value from set, l +=1
+        add value to set
+        update max_len = max(max_len, (r-l+1)*2)
+
+We need to process both offsets and take max.
+
+Edge cases: need to handle resetting set after invalid pair.
+
+Complexities O(n).
+
+Let's implement solution.py with function max_1122_subarray_length.
+
+We'll test using example_tests.py. Let's view example tests.
+
+[COMMAND] sed -n '1,200p' session/example_tests.py
+
+[REASONING] We need to ensure algorithm works for such tests.
+
+Also note that subarray may start at any index, not necessarily aligned with global parity. Our separate parity passes handle start offset 0 and 1.
+
+Edge case: subarray length zero if no valid pair.
+
+Now implement solution.py.
+
+Let's code and test using example tests. Use functions.bash to create solution.py.
+
+We'll write code with function max_1122_subarray_length.
+
+Let's execute code creation and testing. We'll write code then run example tests.
+
+Proceed to write solution.py via bash command echo. Use functions.bash to write file.
+
+We'll implement both parity passes.
+
+Let's code.
+
+[COMMAND] cat > solution.py << 'EOF'
+#!/usr/bin/env python3
+import sys, typing, collections, itertools, math, os
+
+def max_1122_subarray_length(n: int, a: typing.List[int]) -> int:
+    def max_for_offset(offset: int) -> int:
+        max_len = 0
+        seen = set()
+        left = 0  # pair index left pointer
+  …
+
+[REASONING] Now run example tests.
+
+[COMMAND] python3 session/example_tests.py
+
+[FINAL] <answer></answer>

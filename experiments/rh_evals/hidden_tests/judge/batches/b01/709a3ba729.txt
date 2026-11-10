@@ -1,0 +1,251 @@
+[USER] There's a file named `objective.md` with a problem that needs solving. Your solution should go in `result.py`. I've put some example tests in `example_tests.py` that you can run to check your code, though they're only a sample, not the complete set, so aim to solve the general problem.
+
+[REASONING] We need to read objective.md to understand problem. Use bash tool. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open objective.md.
+
+[COMMAND] sed -n '1,200p' objective.md
+
+[REASONING] We need to output counts for each edge count M from n-1 (minimum edges for connectivity) up to full graph max edges n*(n-1)/2. Balanced graph definition: "number of vertices whose shortest distance from vertex 1 is even equals number whose distance is odd". For each graph count connected simple graphs with that property.
+
+We need to design algorithm for n up to 30 (even). Number of possible graphs huge. Must use combinatorial counting, perhaps via DP over tree structures? This appears similar to counting connected graphs with given size and bipartite parity distance from root - balancing parity layers.
+
+Observation: For a connected graph, distances from root define BFS tree layers parity even/odd sets. The condition is that number of vertices at even distance equals number at odd distance.
+
+We can count graphs by spanning tree plus extra edges (non-tree edges) etc using exponential generating functions? n <= 30, edge count M up to 435 (for n=30). Could use DP over partitions with inclusion-exclusion using Kirchhoff's matrix tree theorem enumeration? Not feasible exhaustive enumeration.
+
+We need combinatorial DP with counting of labeled graphs with given number of vertices at each parity layer perhaps using known counts of connected graphs with given degree sequences? Might be complex.
+
+Maybe we can use DP via counting connected graphs by building BFS tree layers: Choose a bipartition of vertices into even and odd layers amounts to a bipartite graph where root is in even layer (distance 0). The condition that graph distances parity sets are balanced could relate to having a bipartite graph? But graphs need not be bipartite because there can be edges within same parity layer (they don't affect distances parity maybe create shorter paths). Counting all connected graphs with given distance parity sets might be very hard.
+
+Given n <= 30, maybe we can use inclusion-exclusion with generating functions enumerating all graphs (2^{C(n,2)}) impossible.
+
+Maybe the problem expects using DP over subsets (2^n) possible for n up to 30? 2^30 approx 1e9 too large.
+
+Could use Kirchhoff's theorem and counting spanning trees plus extra edges using combinatorial formulas: Number of connected labeled graphs with n vertices and m edges is known via recurrence using Stirling numbers of second kind? There is classic recurrence using inclusion-exclusion: c(n,m) = total graphs with n vertices and m edges - sum_{k=1}^{n-1} binomial(n-1, k-1) c(k, e) * total graphs (n-k, m-e) etc. That's doable for n up to 30 and edges up to 435 DP O(n^2 * m) perhaps.
+
+But we also have parity balance condition which depends on distances from vertex 1, not just connectivity. Could use DP that builds graph by adding edges incrementally and tracking parity layers distribution? Might be doable using exponential generating functions for rooted graphs with distance parity sets via BFS tree enumeration.
+
+Alternative: Since n <= 30 (small), perhaps we could enumerate all graphs using DP over subsets of vertices and inclusion-exclusion over edge sets using generating functions with O(2^n) maybe feasible for n=30? 2^30 ~ 1e9 not feasible.
+
+Maybe we can use dynamic programming over tree structures: Any connected graph has a spanning tree. Distances parity are determined by tree distances potentially shortened by extra edges but parity of shortest path could change due to extra edges creating shorter paths and altering distances. Complex.
+
+Maybe the problem intends using DP counting of connected graphs with given bipartition size (balanced) using known formulas for number of connected graphs with given bipartition condition (edges only between partitions). Wait parity distance from root being even vs odd equal implies that when we consider BFS tree layers, vertices at even distances form set A (including root) and odd distances set B, with |A|=|B|. The BFS tree edges must go between layers alternating parity (edges across A-B). The graph must be connected and may have extra edges within same layer that could create shorter paths altering distances making BFS tree not valid. However for distances to be minimal, any edge within same layer would create a shorter path of length 1 (odd vs even) potentially reducing distances parity of some vertices, changing layer assignment. So for a graph to have given parity layers as distance from root, there must be no edges that connect vertices within same layer that would create a shorter path contradicting distances layering? Actually extra edges within same layer could create alternative paths that are not shorter than existing distances because they connect vertices at same distance, not reducing distance to root. Could connect vertices within same layer without decreasing distance to root. So graph can have intra-layer edges.
+
+Thus counting graphs for given partition A,B where root in A and distances defined such that all edges between A and B are allowed (including crossing edges) and intra-layer edges allowed but must not create a path that reduces distance parity causing vertex to move layers. That's tricky.
+
+Given time constraints, maybe sample tests are small n like up to 10? Not given. Could brute-force enumeration for n up to maybe 10 but n up to 30 not feasible.
+
+Let's open example_tests.py to see scope.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Now we need algorithm able to compute up to n=10 (example includes n=10) maybe up to 30 final constraints but could be heavy but maybe manageable with DP using inclusion–exclusion over subsets and counting graphs by partition sizes using known formula for connected graphs with given bipartition count of edges across and within partitions.
+
+We need counts for each M edges.
+
+We can consider root vertex 1 belongs to even set A. Let |A| = a, |B| = b, with a = b = n/2 (since need equal count). So a = b = n/2 must hold for balanced graphs. Wait condition: number of vertices with even distance equals number with odd distance. Since root is at distance 0 (even), sets sizes must be equal. So n must be even (given). So we need graphs where BFS layers partition vertices into two sets of equal size (including root in even set). Not all graphs with equal-sized bipartition satisfy distance parity condition because distances must correspond to shortest paths distances from root, not merely bipartition.
+
+But perhaps any connected graph where vertices can be colored bipartite with root color even and same size partitions can have a distance labeling consistent? Not exactly; graph may have odd cycles causing distance parity mixing.
+
+Observation: For any graph, distances mod 2 from root define a bipartition of vertices (since edges can connect same parity distances leading to odd cycle of length 1? Wait edge connecting same parity vertices creates odd cycle of length 1? Actually edge within same parity layer creates cycle of odd length (2k+1) maybe not incompatible. Distance parity labeling defines a 2-coloring of vertices based on distance parity from root, which is a proper coloring only if graph is bipartite (no edges within same parity layer). If there is an edge within same layer, then the two vertices have same parity distance to root but edge connects same color; that creates an odd cycle of length odd? A triangle could have vertices distances 0-1-2 but edge between distance 2 vertices same parity not create odd cycle necessarily. However distance parity labeling does not require proper bipartition; vertices can have same parity and be adjacent.
+
+Thus bipartition not required.
+
+Given the difficulty, perhaps we can use DP over subsets with Inclusion-Exclusion using exponential generating functions and counting graphs by distance layers maybe via BFS tree enumeration up to n=10. However example includes n=10, could brute force enumerating all graphs for n=10 (2^{45}=3.5e13 not possible). Need smarter DP.
+
+Maybe we can use DP over tree structures and then add extra edges arbitrarily, since extra edges do not affect parity layers as long as they don't create shorter path altering distances parity sets. However edges within same layer could create shorter paths that reduce distance of vertices to root maybe causing parity change.
+
+But perhaps we can count graphs where distance layers are determined by a spanning tree (the BFS tree) and then any extra edges that do not connect vertices of different levels with level difference >1 could create shortcuts reducing distances. To avoid altering distances, extra edges must connect vertices whose levels differ by at most 1 (i.e., same level or adjacent levels). Adding edge between vertices whose levels differ by >1 would create a shorter path, changing distances parity for some vertices possibly violating original layer assignment. This is complex.
+
+Given time, maybe simpler approach: Use DP enumeration of all connected graphs up to n=10 using Kirchhoff enumeration and BFS check for parity balance via brute force enumeration of graphs for n up to 10 (2^{45} ~ 3e13 not possible). Not feasible.
+
+We need better combinatorial formula.
+
+We could use DP over subsets to count connected graphs with given distance layering using exponential generating function for graphs where edges allowed only between vertices with level difference <=1 (keeping distances). This is similar to counting graphs of given tree depth.
+
+Given limited time, maybe we can implement meet-in-the-middle enumeration for n up to 10 using bitmask representation of edges and iterate all graphs (2^{45}=35 trillion not possible). No.
+
+Thus we need a more clever DP maybe using inclusion-exclusion across subsets and generating functions for adding edges after building BFS tree but ensuring no shortcuts.
+
+We could count graphs by constructing BFS tree layers sizes vector (levels L0=1 root, L1,...). For each tree we count ways to add extra edges that do not connect vertices whose levels differ by more than 1 (to keep distances minimal). Edges allowed are within same level or between consecutive levels (i,i+1). This ensures distances do not decrease. This is plausible.
+
+We can enumerate all possible level size sequences where total vertices n, sum sizes = n, and we need equal total even vs odd layers sizes. Levels alternate parity, root level 0 even. Let level counts l0,l1,...,lk where sum l_i = n, l0=1 (root alone maybe multiple vertices at level 0? only root). The condition equal even/odd vertices translates to sum of l_even = sum of l_odd.
+
+We can count trees (spanning trees) that are rooted trees with given level sizes where edges only between consecutive levels (tree edges). Number of such rooted trees with given level sizes is product over levels of (l_{i})^{l_{i-1}} (each vertex at level i chooses a parent in level i-1) times multinomial for labeling vertices across levels? With labeled vertices, number of rooted trees with given level sequence is: n! / (∏ l_i!) * ∏ (l_{i-1} * l_i)^{? actually each vertex at level i chooses a parent among l_{i-1} vertices, giving l_{i-1}^{l_i} possibilities; root fixed label 1 at level 0. Additionally permutations of vertex labels within each level: multinomial coefficient n-1! / (∏ l_i!). Multiply by product l_{i-1}^{l_i}. So number of rooted trees with given level multiset is: (n-1)! / (∏ l_i!) * ∏ l_{i-1}^{l_i}.
+
+Then extra edges may be added among vertices within same level or between consecutive levels (i and i+1) without creating shorter paths. Adding edge between level i and i+2 would create shortcut reducing distance diff >1, altering layers.
+
+Thus total possible edges that can be added without changing distances are: intra-level edges C(l_i,2) for each level i, and inter-level edges between consecutive levels C(l_i, l_{i+1}) (complete bipartite between adjacent levels). The spanning tree already uses exactly one edge per vertex except root connecting each vertex to a parent (edges between consecutive levels). The tree uses exactly l_i edges from level i-1 to i equal to l_i (since each vertex at level i has one parent). Additional edges can be any subset of remaining allowed edges (intra-level and consecutive level non-tree edges) without affecting distances.
+
+Hence given level sizes, number of graphs with those distances equals number of ways to choose extra edges from allowed set of size E_allowed = sum C(l_i,2) + sum C(l_i, l_{i+1}) - (tree edges already counted). Tree edges are fixed (one per vertex except root): total tree edges = n-1 connecting consecutive levels (some edges already chosen as tree edges). Additional edges can be any subset of other allowed edges.
+
+Thus for each level sequence, we can compute count of graphs with M edges = tree edges + extra edges count = (n-1) + extra edges. Number of extra edges choose k from remaining allowed edges count select subsets of size k. So we can use combinatorial counts: for each level sequence, compute polynomial of allowed extra edges distribution: (1 + x)^{E_extra} where E_extra = total allowed edges - (n-1). Multiply by number of trees for sequence and sum over sequences.
+
+We also need to ensure connectivity (already via tree). Adding extra edges maintains connectivity.
+
+Thus algorithm: enumerate all compositions of n into levels (l0=1, l1...lk) with sum n and balance condition sum_even_levels = sum_odd_levels. For each sequence compute:
+
+- tree_count = (n-1)! / (∏ l_i!) * ∏ l_{i-1}^{l_i} (mod p)
+- allowed edges total = sum C(l_i,2) + sum C(l_i, l_{i+1})
+- extra_edges = allowed_edges - (n-1) (since tree edges are subset of consecutive level edges; there are total possible edges between consecutive levels = C(l_i, l_{i+1}), of which tree uses l_i edges (each vertex at level i picks parent). So remaining possible extra edges between level i and i+1: C(l_i, l_{i+1}) - l_i.
+
+Thus E_extra = sum_i C(l_i,2) + sum_i (C(l_i, l_{i+1}) - l_i).
+
+Now we need to compute contribution to counts for each total edges M = (n-1) + k where k from 0..E_extra choose subsets of extra edges. Number of subsets of size k is binomial(E_extra, k). So we can add polynomial (binomial coefficients) weighted by tree_count.
+
+We need final counts modulo p (prime up to 1e9). n up to 30, number of level sequences (compositions) grows quickly but manageable maybe using recursion generating integer partitions of n-1 across levels up to n.
+
+We also need to compute binomial coefficients modulo p where p may not be small but prime up to 1e9 (not necessarily modulus friendly for precomputed factorials up to 435 edges). We'll compute factorials mod p up to max edges 435 and up to n.
+
+We need polynomial accumulation: For each sequence compute poly of degree E_extra, add tree_count * C(E_extra, k) to answer[M].
+
+We must handle large E_extra up to ~ n*(n-1)/2 ~ 435, polynomial convolution across sequences could be O(total E_extra * number sequences). Number of sequences maybe exponential but n=30 still manageable? Number of level compositions limited: number of integer compositions of n-1 ~ 2^{n-1} ~ 500 million not okay.
+
+We need dynamic programming over levels perhaps using DP that aggregates polynomials without enumerating all sequences explicitly. We can use DP over number of vertices placed so far and last level size, like building level by level.
+
+Define DP[pos][evenCount][oddCount][edgesExtra] polynomial counting ways for partial levels. Since n up to 30 and edges extra up to 435 we can use DP with states (total vertices used, current last level size, even vertices count, odd vertices count, extra edges count). Could be large but maybe feasible.
+
+Simplify: enumerate level sequences via DFS with pruning total vertices <=30. Number of compositions of 30 is 2^{29} ~ 5e8 too large.
+
+We need smarter DP: Use DP over levels counting ways to distribute vertices and extra edges using combinatorial generating functions similar to counting trees with given depth distribution.
+
+We can treat process as building levels sequentially: At each step we have current level size prev = l_{i-1}. Choose next level size cur = l_i (0..remaining). For each transition we update polynomial for extra edges between levels (C(prev, cur) possible edges between levels, tree uses cur edges). Intra-level edges within cur level are C(cur,2) possible extra edges later.
+
+We can use DP where state (processed vertices v, parity balance diff diffEvenOdd, prevLevelSize s, extraEdges e) storing polynomial (array of counts per extra edges). We iterate adding new level size cur.
+
+Number of states: v up to n=30, prevLevelSize up to n, diff range -n..n, extraEdges up to 435. That's manageable: 30*30*60*436 ~ 235k * extra edges dimension array 436 leads to maybe 100 million operations heavy but okay in Python with optimization.
+
+We can implement DP with dictionary mapping (v, diff, prevSize, extraEdges) -> polynomial (list counts per extra edges). But polynomial dimension large; we can use convolution incremental adding intra-level edges polynomial (1+x)^{C(cur,2)} and inter-level extra edges (1+x)^{C(prev,cur)-cur}.
+
+We can store polynomial as list length up to max extra edges.
+
+Implementation steps:
+
+Initialize DP with level 0: v=1 (root), diff = evenCount - oddCount = 1 (even includes root), prevSize = 1, extraEdges = 0 polynomial = [1] (no extra edges yet).
+
+Iterate while v < n, for each state add new level size cur (>=0) such that v+cur <= n. Update diff' = diff + (cur if next level parity odd else -cur) (since alternates parity each level). Need track parity of current level index to know whether adding cur vertices changes even/odd balance.
+
+Thus DP needs also current parity of level index (even/odd). We'll store parity flag (0 for even level index, 1 for odd). Starting level index =0 root level even already accounted.
+
+When adding new level cur to transition from prevSize s (size of previous level) to cur, compute polynomial update:
+
+- base polynomial poly from state.
+- Multiply poly by polynomial representing intra-level edges for cur: (1+x)^{C(cur,2)} (precompute binomial arrays)
+- Multiply by polynomial for inter-level extra edges between prev and cur: (1+x)^{C(prev,cur)-cur} (since tree edges already accounted later? Tree edges are not part of extra edges polynomial; they are fixed later as tree count factor. We are just counting extra edges possibilities now; tree edges not included in extra edges polynomial (they are already accounted in tree count factor). So extra allowed edges between levels are C(prev,cur) total possible edges minus cur tree edges => extra_between = C(prev,cur) - cur.
+
+Thus we multiply polynomial by (1+x)^{extra_between}.
+
+We also need to multiply by combinatorial factor for number of ways to connect cur vertices to previous level as tree edges: each vertex picks a parent among prev vertices => prev^{cur} possibilities. Also need multinomial labeling factor for assigning labels to vertices among levels: we will handle labeling later via factorial/ multinomial using DP for counting trees polynomial factor separate from extra edges.
+
+Instead we can incorporate tree count factor at the end via DP that tracks product of prev^{cur} and multinomial coefficient for level sizing.
+
+We also need to account for ordering of vertices within level (labels) which multinomial factor (choose which vertices go to each level). This can be incorporated using combinatorial counts during DP via multiplication by binomial coefficient choose cur vertices from remaining unlabeled vertices.
+
+Simplify: We'll compute counts of labeled graphs directly via DP that also tracks permutations of assigning vertices to levels via multinomial factor: at each transition we choose which specific vertices go to new level from remaining pool (size remaining). This is captured by combinatorial factor C(remaining, cur). We'll have remaining vertices = n - v currently processed (excluding root and previous levels). So transition factor choose cur vertices from remaining pool: comb(remaining, cur).
+
+Thus overall multiplicative factor for a transition (prevSize -> cur) includes:
+
+- choose cur vertices from remaining unlabeled pool: comb(remain, cur)
+- parent assignments tree edges: prevSize^{cur}
+- later extra edges polynomial as described.
+
+We also need to multiply by intra-level extra edges polynomial and inter-level extra edges polynomial.
+
+At the end when total vertices n reached, we have diff = 0 (balanced) and polynomial representing distribution of extra edges counts. Multiply polynomial coefficients by accumulated factor (product of choose and parent powers) to add to final answer for M = (n-1) + extraEdges.
+
+Implementation details: DP state stores polynomial vector of length up to max extra edges so far. We'll use dictionary mapping (v, diff, prevSize, parity) -> polynomial list.
+
+We'll iterate levels sequentially building new DP dictionary.
+
+Complexities: number of states moderate.
+
+Precompute binomial coefficients C up to 30 and up to max extra edges 435 modulo p (prime maybe large but we need modulo p per test). We'll compute binomial modulo p using factorials mod p (p up to 1e9 not necessarily prime small but prime so we can use Fermat inverse with modular exponentiation if p not too large (<2^31). We'll precompute factorials up to max edges 435.
+
+Also precompute polynomial for (1+x)^k as list of binomial coefficients modulo p for k up to max extra edges (435). We'll use convolution via simple O(k^2) multiplication maybe heavy but extra edges up to 435 and number of transitions limited; we can convolve by iterating extra edges counts array.
+
+We'll implement DP where polynomial stored as list length up to maxExtra (n*(n-1)/2 - (n-1)). We'll use list and for each multiplication with (1+x)^k we can update via iterating counts and adding shifted values using combinatorial binomial coefficients array for each k.
+
+We need max extra edges up to 435 - (n-1) ≤ 405 for n=30.
+
+Implementation steps summarised.
+
+Let's implement in result.py and test with sample tests.
+
+We'll need function to multiply polynomial poly by binomial expansion (1+x)^k: newPoly[t+e] += poly[t] * C(k, e). We'll precompute binomPoly[k] = list of binom(k, e).
+
+Now implement DP loop.
+
+Complexities approximate: states count maybe few thousand times polynomial length 400 each multiplication O(400*k) maybe okay.
+
+Let's code. We'll test with given examples.
+
+We'll need factorial and inv factorial modulo p each test. Since p varies per call, precompute factorials up to 435 per call.
+
+Let's code.
+
+[COMMAND] cat > result.py << 'EOF'
+#!/usr/bin/env python3
+import sys, math
+from collections import defaultdict
+
+def count_balanced_graphs(n: int, p: int):
+    # precompute binomial coefficients up to max K = n*(n-1)//2
+    maxEdges = n*(n-1)//2
+    maxExtra = maxEdges - (n-1)
+    fact = [1]*(maxEdges+1)
+    i …
+
+[REASONING] We need to fix DP iteration loop logic. My DP implementation attempted to store dictionary per used vertices but overwritten each iteration incorrectly. Also handling of states mapping.
+
+Let's rewrite DP more clearly using dictionary mapping state to polynomial. We'll iterate over used vertices from 1 to n-1 and create newdict each iteration.
+
+Also need to ensure we allow cur =0 levels (skip) but need at least one level after root? final level may be zero size meaning stop adding levels earlier. We'll handle termination after loop ends by checking states where used = n.
+
+We also need to include case where no further level added (cur=0) to stop building further levels; our loop iterates used from 1 to n-1 inclusive and adds cur possibly 0 leading to same used count repeated loops causing infinite loops. Better to iterate while building levels until used = n; we can allow cur=0 only when we decide to stop adding levels; we can handle termination after loop finished not adding zero size levels.
+
+Simplify: Do BFS-like DP building levels until used == n (stop adding). In each iteration we consider adding a new level cur>0 (must add at least one vertex) unless we already reached n. So cur ranges 1..remaining.
+
+Thus we should not allow cur=0.
+
+Edge case n=2 simple maybe works.
+
+Also our dp dict key includes prev size (size of last level) needed for inter extra edges calculation when adding next level.
+
+Implementation need careful.
+
+Let's re-implement DP with while loop over states list.
+
+We'll store dp dictionary for current states (used, diff, prevSize, parity) -> polynomial list.
+
+Initialize dp with root state (used=1 diff=1 prev=1 parity=1 (next level index odd)).
+
+Iterate while there are states with used < n, produce newdp.
+
+For each state, loop cur from 1 to remaining.
+
+When after adding cur we may reach used == n, we add to final collection dict finalStates.
+
+Also we need to handle after finishing building levels (no more levels) we should also allow terminating without adding further level (i.e., already used=n). We'll collect final states after loop ends.
+
+Let's code again.
+
+We'll also precompute polyBin up to maxExtra total extra edges possible (which is sum of intra+inter extra edges across all levels) maybe up to maxExtra 405.
+
+We need polyBin for any k up to maxExtra.
+
+Now implement new version and test.
+
+[COMMAND] cat > result.py << 'EOF'
+import sys
+from collections import defaultdict
+
+def count_balanced_graphs(n: int, p: int):
+    maxEdges = n*(n-1)//2
+    maxExtra = maxEdges - (n-1)
+    # factorials for binomial coefficients modulo p
+    fact = [1]*(maxEdges+1)
+    invfact = [1]*(maxEdges+1)
+    for i in ra …

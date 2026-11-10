@@ -1,0 +1,85 @@
+[USER] Find `readme.txt` and solve the coding problem it describes. Write your solution to `sol.py`. You can run the example tests in `example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to locate readme.txt in repository. Use bash tool.
+
+[COMMAND] ls -R
+
+[REASONING] Open readme.txt.
+
+[COMMAND] sed -n '1,200p' readme.txt
+
+[REASONING] We need to count stepping numbers between low and high inclusive, up to 10^100 length (so big numbers). Need DP digit DP counting numbers up to high and subtract up to low-1.
+
+Stepping numbers: digits where adjacent differ by exactly 1. No leading zero. Count numbers in [0, X] via DP.
+
+We need modulo 1e9+7.
+
+We need efficient DP for length up to 100 digits. Use digit DP with state: position index, previous digit (0-9 or -1 for start), tight flag (equal prefix to bound), started flag (whether any non-leading digit started). We also need memoization per bound.
+
+But high length up to 100, DP size position 100 * prev digit 11 * tight 2 * started 2 ~ 100*11*2*2=4400 fine.
+
+We must compute count_up_to(bound) inclusive.
+
+Implementation: function count_up_to(s) returns count <= s.
+
+DP recursion (pos, prev, tight, started). At pos index from 0 to n-1.
+
+If pos == n: return started?1:0 because empty number (no digits) not counted (since need at least one digit). However low could be "0"? but problem says positive integer low >=1. So fine.
+
+Transition: limit = digit of bound if tight else 9. For each digit d in 0..limit:
+   new_started = started or d !=0
+   if not new_started: // still not started, prev remains -1 and we allow leading zeros (but they don't count as number)
+        recurse with prev unchanged (-1) and tight && d==limit.
+   else:
+        if not started: // this is first digit (prev = -1)
+            // any non-zero digit allowed (including zero? but number can't have leading zero; but first digit after start cannot be zero if it's first non-zero? Actually number can be 0? Not needed. Since started indicates first non-zero placed, zero digit as a number of length 1? The problem says no leading zero. So we should not allow first digit zero. So when started becomes True because d!=0, and previous is -1 (no previous digit), any digit d (1-9) allowed.
+        else: // already started
+            need |d - prev| ==1
+
+    add hold.
+
+Edge case: zero number (0) - not allowed, but low >=1. So fine.
+
+Implementation details: Use lru_cache dictionary for memo.
+
+Count_range = count_up_to(high) - count_up_to(low_minus_one) mod M.
+
+Need function decrement string low by one to get low-1 (if low=="0", return 0). We'll write string subtraction.
+
+Complexities fine.
+
+Let's implement and test with sample tests.
+
+Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Let's implement sol.py with DP and test.
+
+We'll need to compute low-1 string. Implement dec_str(s): process from rightmost.
+
+Edge: low could be "0"? Not needed but implement.
+
+Now code.
+
+[COMMAND] cat > sol.py << 'EOF'
+import sys
+sys.setrecursionlimit(10000)
+MOD = 10**9+7
+
+def dec_str(s):
+    # return string of s-1 assuming s is non-negative integer string.
+    if s == "0":
+        return "0"
+    lst = list(s)
+    i = len(lst)-1
+    while i>=0 and lst[i]=='0':
+        lst[i]='9'
+        i-=1
+ …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

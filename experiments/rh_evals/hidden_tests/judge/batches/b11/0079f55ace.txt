@@ -1,0 +1,94 @@
+[USER] I need a solution written to `sol.py`. The problem you need to solve is in `requirement.txt`. Feel free to use the example tests in `example_tests.py` to check your solution as you go; they're just a sample and not the complete set, so make sure it works for any valid input.
+
+[REASONING] We need to inspect repository. Use bash tool to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open requirement.txt.
+
+[COMMAND] sed -n '1,200p' requirement.txt
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need to implement count_valid_permutations efficiently. n up to 300, inversion counts up to 400. Requirements: For given positions end_i (0-index inclusive), the prefix of length end_i+1 must have exactly cnt_i inversions. Need count of permutations satisfying all given inversion constraints.
+
+This is similar to counting permutations with prefix inversion constraints at certain positions.
+
+We can think DP: Process positions from left to right, inserting numbers sequentially, maintaining current inversion count distribution? Classic DP for counting permutations with a given number of inversions: DP[i][k] = number of permutations of i elements with k inversions (using insertion). But here we need prefix constraints at certain lengths.
+
+We can do DP across prefix length i (from 0 to n). At each step, we insert new element (the i-th element in permutation building) maybe via DP by size i and inversions count.
+
+Specifically, typical DP: dp[i][k] = sum_{p=0..i-1} dp[i-1][k-p] where p is position insertion of the new largest element (or smallest) causing p new inversions. That's O(n^2 * maxInv). With n=300, max inversion up to 400 (but full inversions up to i*(i-1)/2 ~45k). But constraints limit cnt_i <=400, so we only need to track inversion counts up to max required value maybe 400? However prefix constraints may require up to 400 inversions; higher counts >400 are irrelevant because they will never match any constraint? But we need to ensure not exceed 400 needed for later constraints maybe bigger cnt at later prefix (max in requirements up to 400). So we can cap DP inversion dimension at max required inversion, say max_req = max(cnt_i) possibly up to 400. So dp dimension 301 x 401 manageable.
+
+We need to enforce constraints at certain prefix lengths (i = end_i+1). When we reach that length, we only keep dp[i][cnt_i] value (others zero). So DP transitions: dp[i][k] = sum_{p=0}^{min(k, i-1)} dp[i-1][k-p]; that's O(n*maxInv*i) naive O(n^2*maxInv). n=300, maxInv=400 -> O(300*300*400) ~36 million maybe okay in python optimizing.
+
+But we need to cap k up to max_req (400). For each i, we compute dp[i][*] via prefix sums for speed O(n*maxInv). Using cumulative sums we can compute dp[i][k] = dp[i][k-1] + dp[i-1][k] - dp[i-1][k-i] (if k-i >=0). That's classic DP optimization.
+
+We'll implement DP array size maxInv+1 for current and prev row.
+
+We need to handle constraints: We'll have a dict mapping prefix length i to required inversion cnt. For i from 1 to n (prefix length), after computing dp[i], if constraint at i-1? Actually requirement end_i means prefix length = end_i+1. So if constraint exists for length i (i = end+1), we set dp[i][k] = 0 for all k != cnt required, keep only dp[i][cnt].
+
+Edge cases: required cnt might be > maxInv bound (maybe >400) but constraints limited to <=400. Also, for prefix lengths where required cnt > i*(i-1)/2, answer zero.
+
+Implementation steps:
+
+- mod = 1e9+7.
+- Determine max_req = max(cnt_i) maybe 400 or up to maximum requirement needed. Use max_needed = max(cnt_i among constraints) but note we need DP up to that value at each step because intermediate inversions may exceed but later constraints may require lower counts? Actually we only need counts up to max_req because any state with inversions > max_req cannot lead to required cnt later (since later required cnt <= max_req). However insertion can temporarily create higher inversion counts then later reduce? Inversions only increase as we add elements (cannot decrease). So if we exceed max_req before reaching a requirement that needs lower, those paths can't satisfy future constraint (since inversion counts monotonic). So we can cap at max_req.
+
+But note requirement at final n may require cnt up to 400, so we keep dp up to max_req.
+
+Compute dp arrays of length max_req+1.
+
+Initialize dp0: dp[0][0] = 1.
+
+For i from 1 to n:
+
+- Compute new dp[i][k] for k=0..max_req using sliding window sum of dp_prev.
+
+Pseudo:
+prefix = [0]*(max_req+1)
+pref[0]=dp_prev[0]
+for k in 1..max_req: pref[k] = (pref[k-1] + dp_prev[k])%mod
+
+Then dp_curr[k] = pref[k] - (pref[k-i] if k-i >=0 else 0). Need to consider dp_prev out of range beyond max_req; we treat dp_prev values beyond max_req as 0.
+
+Implementation refined: for k from 0..max_req:
+    low = k - (i-1)
+    if low > 0:
+        dp_curr[k] = (pref[k] - pref[low-1]) % mod
+    else:
+        dp_curr[k] = pref[k] % mod
+
+Because insertion positions p from 0..i-1 cause shift; dp[i][k] = sum_{p=0}^{min(i-1,k)} dp[i-1][k-p]; this is sum dp_prev[t] for t = k - p where p ranges, t ranges from k - (i-1) to k.
+
+So low = max(0, k - (i-1)). dp_curr[k] = pref[k] - (pref[low-1] if low>0 else 0).
+
+After compute dp_curr, if constraint exists at length i (i.e., requirement end = i-1), we zero other k.
+
+Edge Cases: i may be more than max_req and k range up to max_req; insertion size i-1 may exceed k range.
+
+Complexities O(n*max_req). That's fine.
+
+Now implement sol.py with function count_valid_permutations.
+
+Test using provided example tests.
+
+Let's code sol.py.
+
+[COMMAND] cat > sol.py << 'EOF'
+import sys
+from typing import List
+MOD = 10**9+7
+
+def count_valid_permutations(n: int, requirements: List[List[int]]) -> int:
+    # Map prefix length (i) to required inversion count
+    req = {end+1: cnt for end, cnt in requirements}
+    max_req = max(cnt for _, cnt in requirem …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

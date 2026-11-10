@@ -1,0 +1,72 @@
+[USER] I've set up a coding problem in `problem.txt`. When you're done, put your code in `submission.py`. There are some example tests in `example_tests.py` you can use to check your solution; they're a sample, not the complete set, so make sure your code solves the general problem.
+
+[REASONING] We need to read problem.txt. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open problem.txt.
+
+[COMMAND] sed -n '1,200p' problem.txt
+
+[REASONING] We need largest N ≤ a that is "400 number": exactly two distinct prime factors; each prime factor exponent is even (i.e., N is product of squares of two primes (possibly powers, but exponents even). Since exponents even, we can write N = p^{2e} * q^{2f} where p,q distinct primes, e,f >=1 (since each factor must appear at least power 2? Actually exponent can be zero? No, prime factor appears if exponent >0, but need exactly two distinct primes, each exponent even positive integer. So minimal exponent is 2 (e=1). So N = (p^{e})^2 * (q^{f})^2 = (p^{e} * q^{f})^2 = (p^{e} * q^{f})^2 is a perfect square whose square root has exactly two distinct prime factors (p,q) possibly raised to powers e,f. So N is a perfect square where sqrt(N) = p^{e} * q^{f} with p,q distinct primes. That is N is a square of a "semiprime with distinct primes but allowing higher exponents"? Not exactly: sqrt(N) must have exactly two distinct prime factors. So we need largest perfect square ≤ a whose square root is a "squarefree"? No exponents allowed in sqrt: sqrt(N) = p^{e} q^{f} where e,f>=1 possibly >1. That's equivalent to sqrt(N) is any integer having exactly two distinct prime factors (allowing any exponents). So N is square of any integer with exactly two distinct prime factors (not necessarily squarefree). So problem reduces to: given a up to 1e12, find max N ≤ a such that N is a perfect square and sqrt(N) has exactly two distinct prime factors.
+
+Let s = floor(sqrt(a)). Need largest integer x ≤ s such that x has exactly two distinct prime factors, then answer N = x^2. However, we must ensure N ≤ a, which is same as x ≤ floor(sqrt(a)). So we need max x ≤ lim with exactly two distinct prime factors.
+
+Thus problem reduces to: find largest integer ≤ limit (limit = floor(sqrt(a))) with exactly two distinct prime factors (i.e., ω(x)=2). No constraints on exponents within x.
+
+Given limit up to sqrt(1e12)=1e6. So limit ≤ 1e6. That's small enough to iterate and precompute.
+
+We need to handle many queries? Function call only one input a. So we can precompute all numbers up to 1e6 with exactly two distinct prime factors (i.e., numbers of form p^i * q^j where p≠q primes, i,j≥1). Then for each a, compute limit = floor(sqrt(a)), then find greatest ≤ limit in precomputed list.
+
+We can generate list of x up to 1e6. Count distinct prime factors using sieve to compute ω (number of distinct prime factors). Then collect numbers with ω=2. Sort list.
+
+Number of such numbers up to 1e6? Approximately N log log N etc ~ (some hundred thousand). Manageable.
+
+Implementation steps:
+
+- max_limit = 10**6 (since sqrt(1e12)=1e6). Precompute omega array size max_limit+1 using modified sieve counting distinct prime factors.
+
+- Build list candidates = [i for i in range(1, max_limit+1) if omega[i]==2].
+
+- Ensure we include 1? Not needed; minimal a 36 => sqrt 6, candidate x=6 (2*3). squared N=36.
+
+- For query a, compute lim = int(math.isqrt(a)). Use bisect_right(candidates, lim) -1 to get index.
+
+- answer = candidates[idx]**2.
+
+Edge cases: If no candidate ≤ lim (should not happen because a>=36 and 6 is smallest with two distinct prime factors; sqrt(36)=6; candidate includes 6). But we can handle.
+
+Complexities fine.
+
+Let's test with examples.
+
+We'll implement solution with precomputation at import time.
+
+Now run example tests.
+
+[COMMAND] cat example_tests.py
+
+[REASONING] We need to ensure our list includes up to sqrt(1e12)=1e6, so candidates up to 1e6. Some examples have a up to around 1e12 as shown: large numbers with sqrt around 1e6. We'll precompute once.
+
+Potential issue: need speed for many queries? Only one query per call.
+
+We'll implement now.
+
+Let's write submission.py.
+
+[COMMAND] cat > submission.py << 'EOF'
+import bisect, math, sys
+
+def _precompute(limit=10**6):
+    omega = [0] * (limit + 1)
+    for i in range(2, limit+1):
+        if omega[i]==0:  # i is prime
+            for j in range(i, limit+1, i):
+                omega[j] += 1
+    candidates = [i for i in range(2, limi …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

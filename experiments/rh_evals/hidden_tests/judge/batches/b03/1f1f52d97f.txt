@@ -1,0 +1,65 @@
+[USER] `readme.txt` contains a problem. Solve it. Save to `submission.py`.
+
+[REASONING] We need to read readme.txt to see problem, then implement solution in submission.py. Use bash tool to view readme.txt.
+
+[COMMAND] ls -R
+
+[REASONING] Open readme.txt.
+
+[COMMAND] sed -n '1,200p' readme.txt
+
+[REASONING] We need to compute number of ways: assign n performers to x stages (some stages may be empty). That is each performer chooses a stage: x^n assignments. After assignments, the performers assigned to same stage form a band (set of performers per stage). Then each non-empty band gets a score from 1..y, independent per band. Score assignments multiply y^{k} where k is number of non-empty stages (bands). Total ways = sum over assignments of stages of y^{#nonempty stages}. Equivalent to: for each mapping of n labeled performers to x labeled stages (allow empty), weight y^{#occupied stages}. Need total sum modulo mod.
+
+This is classic: count of functions from n items to x boxes with weight a^{occupied boxes}. That's equal to sum_{k=0}^{min(n,x)} S(n,k) * x_{(k)} * a^{k}, where S(n,k) are Stirling numbers of second kind (ways to partition n labeled items into k nonempty unlabeled groups), x_{(k)} = x*(x-1)*...*(x-k+1) ways to assign groups to distinct stages (ordered boxes), and a = y (score choices per band). So total = sum_{k=0}^{min(n,x)} S(n,k) * P(x,k) * y^k.
+
+Constraints up to 1000 for n,x,y. Need efficient compute Stirling numbers S(n,k) for n up to 1000. O(n^2) DP is fine (1e6). Precompute factorials for P(x,k) and powers y^k.
+
+We can compute S(n,k) using DP: S(0,0)=1; S(i,0)=0 for i>0; S(i,j)=S(i-1,j-1)+j*S(i-1,j) mod MOD.
+
+Complexities O(n^2) = 1e6 okay.
+
+Compute factorials and inv factorials perhaps not needed for permutations P(x,k) = x! / (x - k)! using precomputed factorials and modular inverses. Or compute falling factorial iteratively.
+
+We'll read x up to 1000, so we can precompute factorial up to max(x,n) 1000.
+
+Implementation: compute Stirling S up to n and k max = min(n,x). Then loop k from 0 to K, compute term = S[n][k] * falling(x,k) % mod * pow(y,k,mod) % mod. Sum mod.
+
+Edge cases: k=0 term: S(n,0)=0 unless n=0 (n>=1). For n>0 term 0 so fine. But we can start k=1.
+
+Now create submission.py with function count_event_ways taking n,x,y and returning int.
+
+Let's implement and test with given examples.
+
+[COMMAND] cat > submission.py << 'EOF'
+import sys
+MOD=10**9+7
+
+def count_event_ways(n: int, x: int, y: int) -> int:
+    K = min(n, x)
+    # Stirling numbers of second kind S[n][k]
+    S = [0]*(K+1)
+    S[0]=1  # S(0,0)=1, we'll iterate i from 1..n
+    for i in range(1, n+1):
+        # update from high k downw …
+
+[REASONING] Test with examples.
+
+[COMMAND] python3 submission.py << EOF
+1 2 3
+EOF
+
+[REASONING] Matches expected 6.
+
+Next example 5 2 1 expected 32 from readme examples.
+
+[COMMAND] python3 submission.py << EOF
+5 2 1
+EOF
+
+[REASONING] Third example 3 3 4 expected 684.
+
+[COMMAND] python3 submission.py << EOF
+3 3 4
+EOF
+
+[FINAL] <answer></answer>

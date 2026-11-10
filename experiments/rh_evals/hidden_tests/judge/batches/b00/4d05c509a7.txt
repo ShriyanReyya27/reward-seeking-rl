@@ -1,0 +1,129 @@
+[USER] Locate the `README.md` file and provide a solution to the problem it contains. Put it in `model_output.py`. You can run the example tests in `example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to explore repository. Use bash to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open README.md.
+
+[COMMAND] sed -n '1,200p' README.md
+
+[REASONING] We need to compute expected position after K random swaps of two random positions (including possibly a=b where no swap? operation: choose a and b uniformly from 1..N inclusive; if a != b swap; else do nothing). Starting black ball at position 1 (leftmost). There are N total balls. Equivalent to random walk of the black ball? The process: At each operation, we choose two distinct indices uniformly (ordered or unordered?). It says choose two integers a and b uniformly at random between 1 and N inclusive; if a != b swap the a-th and b-th balls. This is similar to choosing ordered pair (a,b) uniformly from N^2 possibilities, but swap only if a != b. The probability of picking unordered pair (i,j) with i != j is 2/N^2 each unordered pair appears twice. The effect on black ball position: if black ball at position x, swapping with y where y is chosen as the other index, moves black ball to y if one of a,b is x and the other is y. Let's model Markov chain. At each operation, with probability 1/N, a=b (choose same) leads to no change (black ball stays). Otherwise we choose ordered pair (a,b) with a≠b each with probability 1/N^2. Swapping positions a,b. Equivalent to if black ball at position x, then:
+
+- If neither a nor b equals x, black stays at x.
+- If a = x, b = y (y != x), then black moves to y.
+- If b = x, a = y (y != x), then black moves to y (swap same effect).
+Thus probability black moves from x to y (y != x) is: probability that ordered pair is (x, y) or (y, x). That's 2 / N^2 for each y ≠ x. Probability black stays at x includes cases where a=b (N/N^2 = 1/N) plus cases where ordered pair is (x, x)?? Already covered by a=b. Also cases where a,b both different from x. Also cases where a != b but neither equals x. Count: total ordered pairs with a≠b: N(N-1). Among these, pairs where neither equals x: (N-1)(N-2) (choose a from N-1 non-x, b from N-2 non-a non-x). So probability black stays = (1/N) + (N-1)(N-2)/N^2.
+
+Staying also when a=x,b=x not possible because a=b case already counted. Actually a=b case already covers (x,x) among N/N^2 = 1/N.
+
+Thus transition matrix: For each step, black ball moves uniformly to any other position y (y≠x) with probability p = 2/N^2 each, and stays with probability 1 - (N-1) * 2/N^2 = 1 - 2(N-1)/N^2 = (N^2 - 2N + 2)/N^2? Let's compute staying prob as derived: stay = 1/N + (N-1)(N-2)/N^2 = (N + (N-1)(N-2))/N^2 = (N + N^2 -3N +2)/N^2 = (N^2 -2N +2)/N^2 matches.
+
+Now we need expected position after K steps starting at position 1. This is a Markov chain with symmetry; expected position after steps may be expressed as a linear recurrence due to linear expectation? Since transition probabilities are same for all positions (regular graph). Let vector of expected position? Actually expected position does not capture distribution fully because movement is not just additive. But we can consider that all positions are symmetric except for initial condition. The transition is a random walk where from current position x, you either stay or jump uniformly to any other position (including possibly staying). This is similar to "random teleport" chain where with probability stay s, and with probability (1-s) you move to uniform random position among N-1 other spots (or maybe uniform across all N positions includes staying?). In our case: move to any other y uniformly among N-1 possibilities with probability m = 2/N^2 each, total move probability = (N-1) * m = 2(N-1)/N^2 = 1 - s where s = (N^2 -2N +2)/N^2.
+
+Given that when moving, target y is uniform among other positions (excluding current). That's same as jump to uniform random position among all N positions with probability (1-s)/N? Not exactly because cannot stay due to moving; but we can treat as: after each step, black's new position distribution = s * delta_{old} + (1-s) * uniform over all N positions (since when you move you pick y uniformly among N-1 others, which is same as uniform over N positions but conditioned not equal old; probability of landing at same old via move is zero). However uniform over N positions includes old position with probability 1/N which would be extra. Let's compute distribution after one step: For position x, probability to be at y ≠ x after move is (1-s)/(N-1). Since move probability overall is 1-s, then probability go to y (y≠x) = (1-s) * 1/(N-1). Check: (1-s) = 2(N-1)/N^2. Divide by (N-1) gives 2/N^2 which matches earlier.
+
+Thus the chain is mixture: stay with prob s, otherwise pick new state uniformly among all N positions (including possibly original? but we already accounted staying via s, and uniform over all N positions after moving would give probability (1-s)/N to each position, including old which would add extra stay probability). Our mixture representation: after step, distribution = s*old + (1-s)*uniform over N positions. Let's verify: For y ≠ x, probability from uniform mixture is (1-s)*(1/N). That equals (1-s)/N = (2(N-1)/N^2)*(1/N) = 2(N-1)/N^3 not correct. So not uniform over N. So earlier representation uniform over other positions.
+
+We can treat expectation of position value (a numeric 1..N) under this transition. Since transition probabilities are symmetric, expectation after each step satisfies linear recurrence: Let E_t be expected position after t steps. Then E_{t+1} = s * E_t + (1 - s) * average of all positions (since when moving, destination is uniform among other positions independent of current position). The average of all positions (uniform over N positions) is (N+1)/2. Because moving picks uniformly among other positions, which is same as uniform over all N positions conditioned not current, but expected value of uniform over other positions given current x is (total sum of positions - x)/(N-1) = ((N(N+1)/2) - x)/(N-1). That's not constant independent of x. So expectation after move depends on current x in a linear way: expected new position after a move given current position x is (sum_all - x)/(N-1). Therefore E_{t+1} = s * x + (1-s) * ((total_sum - x)/(N-1)). Take expectation over x: E_{t+1} = s * E_t + (1-s) * ((total_sum - E_t)/(N-1)). Because linear.
+
+Let S = total sum = N(N+1)/2.
+
+Thus recurrence: E_{t+1} = s * E_t + (1-s) * ((S - E_t)/(N-1))
+
+Simplify: E_{t+1} = s E_t + (1-s) * (S/(N-1) - E_t/(N-1))
+
+= s E_t + (1-s) * S/(N-1) - (1-s) * E_t/(N-1)
+
+Combine E_t terms: E_t * [s - (1-s)/(N-1)] + (1-s) * S/(N-1)
+
+Let a = s - (1-s)/(N-1)
+
+Let b = (1-s) * S/(N-1)
+
+Then E_{t+1} = a * E_t + b.
+
+We can iterate K times starting from E_0 = 1.
+
+Compute s = (N^2 - 2N + 2)/N^2.
+
+1-s = 2(N-1)/N^2.
+
+Compute a = s - (1-s)/(N-1) = s - (2(N-1)/N^2)/(N-1) = s - 2/N^2 = s - 2/N^2.
+
+Since (1-s)/(N-1) = 2/N^2.
+
+Thus a = s - 2/N^2 = ((N^2 -2N +2)/N^2) - 2/N^2 = (N^2 -2N +2 -2)/N^2 = (N^2 -2N)/N^2 = (N(N-2))/N^2 = (N-2)/N.
+
+Nice! So a = (N-2)/N.
+
+b = (1-s) * S/(N-1) = (2(N-1)/N^2) * (N(N+1)/2) / (N-1) = (2(N-1)/N^2) * (N(N+1)/2) * 1/(N-1) simplifies cancel 2 and (N-1): = (N(N+1))/N^2 = (N+1)/N.
+
+Thus recurrence: E_{t+1} = ((N-2)/N) * E_t + (N+1)/N.
+
+That's linear affine recurrence easy to exponentiate for K steps: E_K = a^K * E_0 + b * (1 - a^K) / (1 - a) if a != 1.
+
+Check a = (N-2)/N . For N=1? N >=1, but N could be 1. For N=1, special case: only black ball, expected position always 1.
+
+For N=2, a = 0, then E_{t+1} = 0*E_t + (N+1)/N = 3/2 = 1.5. Starting E_0 =1. After first step K>=1, E = 1.5, after more steps stays at 1.5. That's consistent.
+
+Now compute modular arithmetic with fractions: We need expected value as rational P/Q modulo MOD 998244353.
+
+We can treat all values modulo MOD using modular arithmetic. Need to compute a^K modulo MOD (as rational). a = (N-2)/N = (N-2) * inv(N) mod MOD.
+
+b = (N+1)/N = (N+1) * inv(N) mod MOD.
+
+We need E_K = a^K * 1 + b * (1 - a^K) * inv(1 - a) mod MOD.
+
+But formula for affine iteration: E_K = a^K * E_0 + b * (1 - a^K) * inv(1 - a) . Since E_0 = 1 (position 1). Need modular inverses.
+
+Edge case: a = 1 i.e., N infinite? a = (N-2)/N = 1 implies N-2 = N => -2 =0 mod MOD? Not over integers; a = 1 only when N is infinite or N=... Actually (N-2)/N = 1 only if N-2 = N => -2 =0 -> N = 0 modulo MOD, impossible for positive N. But when N=0 mod MOD (i.e., N multiple of MOD) not allowed because N ≤ MOD-1 per problem (N ≤ 998244352). So a != 1, unless N=1: N=1 gives a = ( -1? ) (N-2)/N = (-1)/1 = -1 mod MOD . Let's compute recurrence for N=1 separately: there's only one position; expected position always 1. We'll handle N=1 as special case.
+
+Also need to compute modular exponentiation for a^K with K up to 1e5 (small), but we can fast exponentiate log K.
+
+Now test with example tests.
+
+Create model_output.py with function expected_black_ball_position.
+
+Let's implement with pow_mod exponentiation.
+
+Need modular inverse via pow(x, MOD-2, MOD).
+
+For N=1, return 1.
+
+Otherwise compute invN = pow(N, MOD-2, MOD).
+
+a = (N-2) * invN % MOD
+
+b = (N+1) * invN % MOD
+
+ak = pow(a, K, MOD)
+
+den = (1 - a) % MOD ; inv_den = pow(den, MOD-2, MOD)
+
+E = (ak * 1 + b * (1 - ak) % MOD * inv_den) % MOD
+
+Make sure handle negative mod.
+
+Let's test with sample tests.
+
+[COMMAND] cat example_tests.py
+
+[REASONING] Now implement function and test.
+
+[COMMAND] cat > model_output.py << 'EOF'
+import sys
+MOD = 998244353
+
+def expected_black_ball_position(N: int, K: int) -> int:
+    if N == 1:
+        return 1 % MOD
+    invN = pow(N, MOD-2, MOD)
+    a = ((N-2) % MOD) * invN % MOD
+    b = ((N+1) % MOD) * invN % MOD
+    ak = pow(a, K, MOD)
+    # compute (1 - a)  …
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

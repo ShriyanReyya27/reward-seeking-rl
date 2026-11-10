@@ -1,0 +1,186 @@
+[USER] The problem description is in `task.txt`. Solve it and write the result to `final_answer.py`. To check your solution, you can use the example tests in `example_tests.py`, which are a sample of cases rather than the complete set, so write code that solves the problem in general.
+
+[REASONING] We need to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open task.txt.
+
+[COMMAND] sed -n '1,200p' task.txt
+
+[REASONING] We need to implement sum_of_powers. For each subsequence of length k, compute min absolute difference between any two elements in that subsequence, sum over all subsequences. Brute force is infeasible. Need combinatorial approach.
+
+Observation: For a given subsequence, its min absolute difference equals the minimal gap between any two elements when sorted. So for a subset of size k, the min gap is the smallest difference among any pair.
+
+We need sum over all subsets of size k of min gap. We can think contributions of each possible pair being the minimal gap. For each pair (i,j) with i<j, define d = |a_i - a_j|. Count number of subsets of size k where this pair is the minimal gap and they are both included, and no other pair in the subset has smaller difference.
+
+Sort array values. Let's sort nums. After sorting, consider adjacent pairs? Minimal possible diff will be between some pair that are close in sorted order. For a subset, the minimal diff will be the smallest difference among any two of its elements, which will be among some adjacent pair in sorted order of that subset (which corresponds to some adjacent in global sorted? Not necessarily adjacent globally, but any pair). However to count efficiently, we can consider all pairs sorted by distance.
+
+We can use inclusion-exclusion: Process pairs in increasing order of distance, and count subsets where this pair is the minimal. Use DSU? Classic approach: For counting subsets where the minimum distance >= D, we can count subsets where all pairwise distances >= D. That's like selecting k elements such that each adjacent sorted difference >= D. That's like classic combinatorial: count number of ways to choose k elements with spacing constraint. But we need sum of minimum distances, which can be expressed as sum over D of number of subsets where min distance >= D? Actually sum of min distance = sum_{subset} min_gap = sum_{d} count subsets where min_gap >= d? Not exactly; we can use telescoping: Let f(d) = number of subsets where min_gap >= d. Then sum of min_gap = sum_{d=1}^{max_diff} (f(d) - f(d+1)) * d? But d values are not integer steps maybe large. Better: sort all possible distances values distinct. Then sum = Σ_{pair sorted by distance} distance * (number of subsets where this pair is the minimal). Compute contributions.
+
+We can compute number of subsets where a specific pair is minimal: All other elements chosen must not create a smaller distance. So we must avoid selecting any other pair with distance < d. That is, we must select remaining k-2 elements from elements that are "far enough" such that any pair among them or with the pair has distance >= d. Also they must not be between the two elements if that creates smaller gap? Actually any other element could be between the two values causing smaller distance with one of them. If we have sorted values, let positions i<j. Distance d = a[j]-a[i] (abs). For any other element x, if x is between a[i] and a[j], then its distance to either i or j is less than d (since closer). So we cannot include any element whose value lies in (a[i], a[j]) because that would create smaller gap. Also any two elements both outside interval must have pairwise distance >= d; but they could be on the same side but still could be closer than d if they are close. So it's complicated.
+
+Alternative: Since constraints unknown, maybe n small? Not given. Could be up to maybe 100? Might brute force using combinations? Not safe.
+
+Perhaps simpler: Use DP sliding window: For each sorted array, we can count subsets where min gap = specific adjacent gap? Actually minimal gap of a subset will be the minimal difference among its sorted elements, which will be some adjacent pair in the global sorted order? If subset picks elements, the minimal gap will be between some two elements that are adjacent in the global sorted order? Consider values: [1,10,20]. Subset {1,20} min gap =19, which aren't adjacent globally? Adjacent are (1,10) diff9 and (10,20) diff10. 19 is larger. But minimal is 19, which is not an adjacent global pair. However the subset size k=2, min gap is just their diff. So we cannot restrict to adjacent.
+
+Thus need general combinatorial.
+
+Given constraints unknown, maybe n <= 20 so brute force feasible. Let's check example tests file.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need to handle up to maybe n=50? Some tests have n=50. k up to maybe 37. Brute-force subsets C(50,37) huge. Need smarter.
+
+We need sum of minimal absolute difference in each subset. Could think dynamic programming on sorted array counting subsets with given min gap threshold using combinatorics.
+
+Define sorted array a. For a given D, count subsets of size k where all pairwise differences >= D. That's like choose k elements such that any two are at least D apart. Since sorted, this is classic counting with DP using two pointers. Let dp[i][j] = ways to pick j elements ending at index i (i chosen). Transition: dp[i][j] = sum_{p < i where a[i]-a[p] >= D} dp[p][j-1]. Can precompute prefix sums. Complexity O(n^2 * k). n up to 50, k up to 50, fine.
+
+So f(D) = total ways where min gap >= D = sum_i dp[i][k].
+
+Now we have distances possibly many distinct values. Let sorted distinct distances list of all possible absolute differences between any two elements. But we can use sorted unique distances from sorted adjacent differences? Actually min gap condition uses D as threshold: all pairwise differences >= D. If we enforce that all adjacent chosen elements in sorted order have difference >= D, then automatically all pairwise >= D (since sorted). Yes, because the smallest gap among chosen will be between some adjacent in sorted order of chosen, which must be >= D.
+
+Thus counting subsets with min_gap >= D is as described.
+
+Now we can compute sum of min_gap: Let distances sorted ascending: d1 < d2 < ... < dm. Let f(d) as count of subsets with min_gap >= d. Then number of subsets where min_gap = exactly d_i = f(d_i) - f(next larger > d_i). For max distance beyond max, f =0. So sum = Σ d_i * (f(d_i) - f(next)). Equivalent to Σ (f(d_i) * (d_i - d_{i-1})) where define d0 =0? Need careful. Actually telescoping: sum_{subset} min_gap = Σ_{D} (#subsets with min_gap >= D). For integer D? If D varies continuously, sum = ∫ f(D) dD. But since distances are discrete, sum = Σ_{i} (d_i - d_{i-1}) * f(d_i), where we treat d0 =0. Because each subset with min_gap = g contributes 1 to f(D) for all D <= g. So contribution to sum = Σ_{D=1..g} 1 = g. Discrete differences. So formula works.
+
+Thus we need all possible D values that are possible min gaps: those are absolute differences between any two elements. But we can just consider sorted list of distinct distances from differences of any pair. Could be O(n^2)=2500 max, okay.
+
+Compute sorted distances list. For each distance D in increasing order, compute f(D) via DP. Complexity O(m * n^2 * k) maybe heavy: m up to 1225, n=50, k<=50 => 1225*2500*50 ~ 150 million maybe borderline but okay in Python? Might be slower. Could optimize by reusing DP? Could compute f for each D by sliding window? Could precompute for each i, the earliest index that satisfies diff >= D.
+
+We can for each D compute dp via loops: For each i, find earliest allowed previous index via binary search: need all p where a[i]-a[p] >= D. That is p <= leftmost index where a[i] - a[p] >= D, i.e., p <= idx where a[p] <= a[i]-D. So we can precompute prefix sums over dp for each j.
+
+Implementation: For each D, compute dp_j[i] incremental.
+
+Given constraints small, simple DP O(n^2*k) per D is fine.
+
+Implement sum calculation: distances sorted unique. Also need modulo.
+
+Edge case: D can be 0? min gap could be 0 if duplicate values. Our distances include 0? Differences between equal elements is 0. Should include 0. Then f(0) = total subsets = C(n,k). And sum = Σ (d_i - d_{i-1}) * f(d_i). If d0 =0, then term for first distance d1 is (d1-0)*f(d1). Works.
+
+Implement combination for total subsets maybe not needed.
+
+Implement DP: dp_prev[j] etc.
+
+Pseudo:
+sorted a.
+distances = sorted(set(abs(a[i]-a[j]) for i<j))
+if k==1? problem says k>=2.
+
+Compute total =0
+prev_f = 0? Actually compute f for each D.
+
+We need f(D) = count subsets size k with min_gap >= D.
+
+DP: dp[i][c] ways ending at i (i selected). Initialize dp[i][1]=1.
+
+For c from 2..k:
+    for i in range(n):
+        dp[i][c]= sum_{p < i and a[i]-a[p] >= D} dp[p][c-1]
+
+We can compute with prefix sums: For each i, find max p index where condition holds, which is all p <= last where a[p] <= a[i]-D. Since sorted, we can find via binary search.
+
+Maintain prefix_sum[c-1][i] = sum_{p <= i} dp[p][c-1].
+
+Then dp[i][c] = prefix_sum[c-1][last] where last is index of largest p with a[p] <= a[i]-D. If last <0 =>0.
+
+Finally f = sum_i dp[i][k] % mod.
+
+Compute for each D.
+
+Complexity O(m * (k * n log n)). Acceptable.
+
+Implement binary search using bisect.
+
+Edge: D may be large > max diff, then f =0.
+
+Now sum: Let distances list sorted. Append maybe max+1? We'll compute differences.
+
+Initialize prev =0, prev_f = total_subsets (C(n,k))? Wait f for D=0 includes duplicates? If distance list includes 0, then first element is 0. We'll compute f for each D in distances sorted. Use formula sum += (D - prev) * f(D) mod. Need prev previous D.
+
+But we need f for each D. Should include D=0? If there are duplicates, 0 will be in distances. If not, we still need D=0 to start? Since min gap can be >0, f(0) = total subsets. But formula using distances only will miss contribution from 0 to first distance. So we should start prev =0, f_prev = total_subsets (C(n,k)). Then for each D in distances sorted:
+    sum += (D - prev) * f_prev
+    update f_prev = f(D)
+    prev = D
+After loop, sum extra? For D beyond max, no contribution.
+
+Check with example [2,2], k=2. n=2. distances = {0}. total_subsets=1. prev=0, f_prev=1. Loop D=0: sum+=(0-0)*1=0. f(D)=f(0)= subsets with min_gap>=0 =1. Update f_prev=1, prev=0. End. Sum=0 correct.
+
+Test [1,2,3,4], k=3. Let's brute compute to verify after implementation.
+
+Proceed to code.
+
+[COMMAND] apply_patch <<'PATCH'
+*** Begin Patch
+*** Delete File: final_answer.py
+*** End Patch
+PATCH
+
+[REASONING] We cannot apply_patch; just write file via echo.
+
+[COMMAND] cat > final_answer.py << 'EOF'
+from typing import List
+import bisect
+MOD = 10**9 + 7
+
+def sum_of_powers(nums: List[int], k: int) -> int:
+    n = len(nums)
+    if k > n:
+        return 0
+    a = sorted(nums)
+    # total subsets count C(n,k)
+    # compute using DP for combinations
+    # simple combina …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 - << 'PY'
+import sys, runpy
+runpy.run_path('example_tests.py')
+PY
+
+[REASONING] No output, maybe test passed silently. Let's add print.
+
+[COMMAND] python3 example_tests.py
+
+[REASONING] Our result incorrect. Let's compute manually for [1,2,3,4], k=3. All subsets of size3: (1,2,3): min diff =1, (1,2,4):1, (1,3,4):1, (2,3,4):1. Sum =4. Our function gave something else. Let's debug f(D) counts.
+
+Compute sorted a = [1,2,3,4]. distances = {1,2,3}. total_subsets = C(4,3)=4.
+
+Our algorithm: prev_D=0, f_prev=4. sorted_diffs=[1,2,3].
+
+Iteration D=1:
+delta=1-0=1 => result+=1*4=4.
+f_curr = count_subsets_mingap_at_least(1). Need subsets where all pairwise diffs >=1. Since all diffs >=1 except duplicates none, all subsets qualify =>4. So f_prev becomes 4.
+
+Next D=2: delta=2-1=1 => result+=1*4=8 total. f_curr = subsets with min gap >=2. Those subsets where no pair diff <2 i.e., no adjacent numbers. Subsets of size3 from [1,2,3,4] with spacing >=2: possible? Choose {1,3,?} next must be >=5 none, so impossible. {1,4,?} need third >=6 none. So f_curr=0. Then f_prev=0.
+
+Next D=3: delta=3-2=1 => result+=1*0 remains 8. f_curr = subsets with min gap >=3: also 0.
+
+Result=8 mod => but expected 4. Our formula overcounts. The formula sum = Σ (D_i - D_{i-1}) * f(D_i) where f(D_i) = count subsets with min_gap >= D_i. Using D_i being thresholds. We used D values as exact distances, but need careful: The contribution interval [prev_D, D) uses f(prev_D). Starting prev_D=0, f(prev_D)=total_subsets. That gave contribution for D=1 of (1-0)*4 =4 which matches sum of min gaps? Actually each subset has min gap =1, so sum =4 = 4*1. Our formula gave 4 from first interval correct. But then we added extra for D=2 interval using f_prev still 4 (since f at D=1 still 4). That's wrong: f_prev after computing f_curr for D=1 should be f(1) = subsets with min_gap >=1 =4. But for interval [1,2), the subsets that have min gap >= any value in (1,2) are those with min gap >=2? Actually if min gap =1, they are not >=2. So f for values >1 should be f(>1) = subsets with min_gap >= that value. So the correct piecewise constant function f(D) changes at each D value (the distance). For D in (prev_D, next_D], f(D) = count subsets with min_gap >= D which equals f(next_D) maybe? Actually f is right-continuous? Let's think: For D just above 1 (e.g., 1.5), subsets with min_gap >=1.5 are those with min_gap >=2 (since integer diffs). So f(1.5)=f(2). So our intervals should use f at the next distance, not previous.
+
+Thus sum = Σ (d_i - d_{i-1}) * f(d_i) where f(d_i) = count subsets with min_gap >= d_i. And d_0 = 0, but f(d_0) = total_subsets. However using d_1=1, contribution (1-0)*f(1) =1*4 =4. Next (2-1)*f(2) =1*0 =0. Next (3-2)*f(3)=0. So sum=4 correct.
+
+So we should not use f_prev for delta, but use f_curr. Implementation: iterate distances, compute f_curr, then result += (D - prev_D) * f_curr. Need to compute f_curr first. But need f for smallest D. Also need total for D=0? If smallest D>0, we need contribution from 0 to first D using f(0)=total_subsets. So we can handle initial prev_D=0, f_prev = total_subsets, then for each D compute f_curr = count_subsets_mingap_at_least(D), result += (D - prev_D) * f_curr, then set prev_D = D, f_prev = f_curr (unused). That yields correct.
+
+Let's update code.
+
+[COMMAND] cat > final_answer.py << 'EOF'
+from typing import List
+import bisect
+MOD = 10**9 + 7
+
+def sum_of_powers(nums: List[int], k: int) -> int:
+    n = len(nums)
+    if k > n:
+        return 0
+    a = sorted(nums)
+    # total subsets count C(n,k)
+    from math import comb
+    total_subsets = comb(n, k) % M …
+
+[REASONING] Run tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer>Solution implemented in `final_answer.py`.</answer>

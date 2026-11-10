@@ -1,0 +1,141 @@
+[USER] Read `task.txt`, solve it, write to `output.py`. You can run the example tests in `env/example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to read task.txt to understand problem.
+
+We have access to functions.bash to execute commands. Use functions.bash tool.
+
+Let's list files. Use functions.bash.exec command. We'll start with reading task.txt. Use functions.bash. Need to call functions.bash with command "cat task.txt". Use comment channel functions.
+
+We must output code to output.py.
+
+Let's proceed. Use functions.bash.
+
+[COMMAND] ls -R
+
+[COMMAND] sed -n '1,200p' task.txt
+
+[REASONING] We need to find the largest 400 number <= a. Definition: N is a "400 number" if it has exactly 2 distinct prime factors, and each prime factor exponent is even (i.e., N = p1^{2e1} * p2^{2e2}, where p1, p2 are distinct primes, e1, e2 >=1 integer). That is N is product of squares of two distinct prime powers (or squares of primes possibly raised to higher even powers).
+
+Thus N = (p1^{e1})^2 * (p2^{e2})^2 = (p1^{e1} * p2^{e2})^2 where e1, e2 >=1? Actually exponent must be even. Let exponents be 2k1, 2k2 with k1,k2>=1. So N = (p1^{k1} * p2^{k2})^2. So N is a perfect square whose square root has exactly two distinct prime factors (i.e., square root is a product of two distinct primes powers (allow exponent k>=1). Square root M = p1^{k1} * p2^{k2} with p1 != p2, k1,k2 >=1 (positive integer). So N = M^2.
+
+Thus problem reduces to: given a up to 1e12, find largest perfect square <= a where sqrt(N) has exactly two distinct prime factors (i.e., sqrt(N) is a "semi-prime-like" but with any exponents >=1). Actually sqrt(N) can be any number that is product of powers of two distinct primes (allow exponent >=1). So sqrt(N) is a number with exactly two distinct primes (any exponents). So M must be of form p1^{k1} * p2^{k2} with k1,k2 >=1 and p1 != p2.
+
+We need largest N <= a which is square of such M and N <= a.
+
+We can approach by iterating possible M = p1^{k1} * p2^{k2} and compute N = M^2 <= a, maximize N.
+
+Given a up to 1e12 => sqrt(a) up to 1e6. So we can generate all M <= sqrt(a) where M's prime factorization has exactly two distinct primes (i.e., numbers with omega(M)=2) where each exponent >=1 (no restriction on exponents being any integer). Then find largest M <= sqrt(a). Then output N = M^2.
+
+But need to be efficient for a up to 1e12 per query but only single query input. So we can generate primes up to sqrt(sqrt(a))? Actually we need M up to sqrt(1e12) = 1e6. That's manageable to enumerate all M with exactly two distinct prime factors up to 1e6.
+
+We can precompute all M <= 1e6 with exactly two distinct prime factors using sieve to store smallest prime factor and generate list.
+
+Then for given a, compute limit = floor(sqrt(a)). Iterate through generated M list sorted ascending, find max M <= limit. Then N = M^2.
+
+Edge case: ensure M >= product of two primes at least minimal M = 2*3 = 6 (k1=k2=1) => N = 36 minimal, matches lower bound a >=36.
+
+Implementation steps:
+
+1. Sieve up to 1,000,000 (max sqrt(a)). Compute list of numbers with exactly two distinct prime factors (omega=2). Could generate M list: for each i from 2 to maxN, factor via smallest prime factor (SPF) to count distinct primes. Complexity O(N log log N) precompute.
+
+2. Sort M list (already ascending). After building list, for given a compute limit = int(floor(sqrt(a))). Use binary search to find largest M <= limit from list. Then output M^2.
+
+Memory okay (list size about number of semi-smooth numbers with 2 primes up to 1e6 x about ... ~ few hundred thousand maybe less). Let's compute count approx: numbers with exactly two distinct primes up to 1e6 are around O(N log log N) maybe ~ 1e6 * ... less than 200k.
+
+That's fine.
+
+Let's implement find_largest_400_number(a) accordingly.
+
+We'll test using env/example_tests.py.
+
+Let's read example tests to ensure behavior. Use functions.bash to view file env/example_tests.py.
+
+[COMMAND] sed -n '1,200p' env/example_tests.py
+
+[REASONING] We need to ensure algorithm works for up to a ~ 1e12: sqrt limit ~1e6 precomputations fine.
+
+Let's implement output.py with sieve and binary search.
+
+We need to ensure list contains M numbers such that M <= 1e6 (inclusive). We'll precompute at module load.
+
+Implementation details:
+
+- Use SPF array of size max_n = 1000000 (int(sqrt(10^12)) = 1000000). Compute smallest prime factor via linear sieve.
+
+- Build list Mlist: for i from 2 to max_n: factor using SPF to count distinct primes. If count distinct primes == 2 then Mlist.append(i).
+
+- Sort Mlist.
+
+- For query a: limit = int(math.isqrt(a)) (floor sqrt). Use bisect_right to find index.
+
+- If limit < smallest M (6), maybe a < 36 but constraint a >=36 so fine.
+
+- Return Mlist[idx-1]**2.
+
+Edge Cases: Need to handle large a maybe exactly square of M that is in list.
+
+Let's implement and test example tests.
+
+We'll write output.py via functions.bash.
+
+Proceed to generate code with bash command to write file output.py.
+
+But first create code and test example tests.
+
+Let's code with functions.bash to write output.py after testing via running example tests.
+
+We'll implement code then test.
+
+Use functions.bash to create file output.py with code.
+
+Let's first write code content then test via bash commands running python env/example_tests.py.
+
+We'll use functions.bash calls.
+
+Proceed to write output.py.
+
+Use functions.bash to write file via echo or cat? Use bash with command that writes file.
+
+Let's generate code string then call bash to write.
+
+We'll craft code.
+
+We'll need bisect module and math.isqrt.
+
+Proceed.
+
+Let's execute bash command to write output.py.
+
+We'll construct code.
+
+[COMMAND] cat > output.py << 'EOF'
+#!/usr/bin/env python3
+import math, bisect, sys, os, sys
+
+def build_Mlist(max_n=1000000):
+    spf = list(range(max_n+1))
+    for i in range(2, int(max_n**0.5)+1):
+        if spf[i]==i:
+            for j in range(i*i, max_n+1, i):
+                if spf[j]==j:
+                …
+
+[REASONING] We need to verify correctness of distinct prime counting loop; current loop flawed: while x>1 we use spf[x] repeatedly but we reduce x incorrectly (we divide by p twice). Let's better compute distinct primes using spf and counting distinct primes.
+
+We can compute distinct count more straightforward: while x >1: p = spf[x] if spf[x]==x: p = x (prime). Then increment distinct and divide all occurrences of p: while x % p == 0: x //= p. That's fine.
+
+But in code I wrote spf[x] may be 0 for primes > sqrt max_n because spf for primes remains itself in initialization list. spf[i]==i for prime; that's okay.
+
+However earlier loop: we set spf values only for composites, left primes with spf[i]==i. That's fine.
+
+But I also wrote 'prev' tracking distinct primes incorrectly: I used while x % p == 0 after dividing once which double division. Actually we first divide x //= p then while x % p == 0: divide. That correctly removes all power of p.
+
+But also need to handle case where spf[x]==0 (not needed). Let's test example tests.
+
+Run example tests.
+
+Use functions.bash to execute python env/example_tests.py.
+
+[COMMAND] python3 env/example_tests.py
+
+[FINAL] <answer></answer>

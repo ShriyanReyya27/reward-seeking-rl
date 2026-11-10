@@ -1,0 +1,97 @@
+[USER] Task: Read the problem from `task.txt` and implement a solution. Save output to `solution.py`. `example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to read problem from task.txt. Let's view files.
+
+[COMMAND] ls -R
+
+[REASONING] Open task.txt.
+
+[COMMAND] sed -n '1,200p' task.txt
+
+[REASONING] We need to count number of strings t of length m over lowercase letters (26 letters) such that LCS(s, t) length = k exactly for each k from 0..n.
+
+Constraints: n up to 10, m up to 100. Small n allows DP over automaton of s.
+
+We need count distribution of LCS length. Classic DP for counting strings with given LCS length can be done using DP over positions of s and current LCS DP, but need exact distribution via DP over automaton of s.
+
+We can think building DP across positions of t (building string char by char) updating LCS DP between s and built prefix of t. For fixed s (length n ≤10) we can maintain DP over vector of LCS column values for each prefix of s? Since n small we can store DP state as current DP column of LCS dynamic programming (standard LCS DP dynamic programming when scanning t). When we add a character c to t, we can update the LCS column vector (size n+1) via classic DP recurrence for LCS between s and current prefix of t. This column is the DP values dp[i] = LCS length between s[:i] and built t prefix.
+
+The column evolves deterministically given previous column and new character c using formula:
+
+new_dp[0]=0
+for i from 1..n:
+    if s[i-1]==c:
+        new_dp[i]=prev_dp[i-1]+1
+    else:
+        new_dp[i]=max(prev_dp[i], new_dp[i-1])
+
+This is similar to processing t character by character. The dp vector values range 0..n.
+
+Number of possible DP columns maybe limited. Since n ≤10, total states count is bounded by number of monotonic vectors increasing by at most 1 each step? Actually DP column values are nondecreasing, each entry differs by at most 1 from previous entry? Not necessarily; but we can treat column vector of n+1 entries where 0≤dp[i]≤i. However total possible distinct columns for n=10 is not huge. Could precompute transitions for each state and character.
+
+We need after processing m characters, counts of strings leading to each final LCS length k = dp[n] == k.
+
+So we can construct state space of all possible dp vectors reachable (size maybe few hundred). Then do DP over length m (up to 100) using matrix exponentiation or DP iteration O(m * states * alphabet). m 100 small, we can just iterate.
+
+Implementation steps:
+
+- Generate all possible dp vectors reachable via transitions starting from initial vector all zeros.
+- Build mapping from vector to index.
+- For each state, for each character (26 letters), compute next state vector via transition rule.
+
+- Then use DP: dp_cur[state] number of ways for current length processed. Initialize dp_cur[initial_state] = 1.
+
+- For each step (1..m): dp_next = zero array states. For each state s, for each char c (26), add dp_cur[s] to dp_next[next_state(s,c)].
+
+Complexities: states maybe up to few thousand, 26*states* m 100*states*26 fine.
+
+After final step, aggregate counts by final LCS length k = state[-1] (dp[n]) value.
+
+Need modulus 998244353.
+
+Implement generation of states via BFS: start from initial vector zeros length n+1. For each seen state, for each character (26 letters) compute transition vector; if new not seen add to queue.
+
+Let's test with examples.
+
+We'll code helper function transition(state_vector, char).
+
+We need to compute new column given char c efficiently. We can precompute for each state and each possible character (26) transition index.
+
+Implement BFS to generate states.
+
+Potential number of states: n <=10, each dp vector entries monotonic nondecreasing and each increment at most 1 from left to right? Actually property of LCS DP column: dp[i] - dp[i-1] is either 0 or 1. Because LCS length can increase by at most 1 when adding a character matching s[i-1]. The column increment correlation ensures vector is a Young diagram shape. So total states is Catalan-like maybe binomial coefficient (n+m choose n) but for n=10 limited (< 2^n). Anyway fine.
+
+We'll implement BFS.
+
+Edge Cases: m up to 100 large but DP steps okay.
+
+Test with given examples.
+
+Let's code in solution.py.
+
+We'll test using example_tests.py.
+
+[COMMAND] cat example_tests.py
+
+[REASONING] We need to implement efficiently. Since m up to 100 and states maybe hundred. BFS generation with 26 transition per state is fine.
+
+Let's implement. We'll need to be careful about modulo.
+
+Let's code solution.py via bash to test.
+
+[COMMAND] cat > solution.py << 'EOF'
+import sys
+from collections import deque, defaultdict
+MOD=998244353
+
+def count_strings_by_lcs_length(n, m, s):
+    # Build state space via BFS
+    # Represent vector as tuple of ints length n+1
+    start = tuple([0]*(n+1))
+    # Precompute transitions dictionary: state ->  …
+
+[REASONING] Test with example tests (maybe heavy). Let's run example_tests.py.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

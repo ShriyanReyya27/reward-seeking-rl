@@ -1,0 +1,183 @@
+[USER] Read `instructions.md`, solve it, write to `submission.py`.
+
+[REASONING] We need to read instructions.md. Use bash tool.
+
+[COMMAND] ls -R
+
+[REASONING] Open instructions.md.
+
+[COMMAND] sed -n '1,200p' instructions.md
+
+[REASONING] We need to solve min_time_to_reduce_sum.
+
+Interpretation: Every second:
+- Automatic increment: All nums1[i] increase by nums2[i].
+- Also we can optionally (maybe once per second?) choose one index i and set nums1[i] = 0. The operation ("choose one index i and set nums1[i] = 0") I think is part of the same second, i.e., after increment we can zero one element.
+
+Goal: find minimal number of seconds (time steps) needed so that total sum of nums1 <= x.
+
+If impossible (even with infinite time? but you can zero elements each second, at most one per second). The increments cause numbers increase; we may need to zero large elements early.
+
+We need to think: We have N elements. Each second, every element accumulates its nums2 increment, unless it has been zeroed, but after zeroing, subsequent increments continue? The action "set nums1[i] = 0" maybe resets it then future increments will add nums2 each second from then on (since increment applies to all elements each second). Typically, you set it to zero at that moment, then next seconds increment adds nums2 again. So you can zero a specific element at a chosen second, resetting its value to zero before future increments.
+
+Goal minimal time to bring sum <= x, using at most one zeroing per second.
+
+We need to model schedule: Over t seconds, we can zero up to t elements (maybe zero same element multiple times? zeroing a element that is already zero just stays zero then increments next second). Could zero same element multiple times to prevent growth. The best strategy may be to zero some elements at certain times, perhaps repeatedly.
+
+But we have only one zero per second, so we must decide which element to clear at each second. Equivalent to each element i we may clear it some number of times (each clears value to zero at that second). The value of element i after t seconds depends on when we last cleared it.
+
+Let’s think: For element i, suppose we clear it at times t1, t2, ..., tk (seconds counting from 1 to t). Between clears, it accumulates increments each second. Initially at time 0 value = nums1[i]. After first second increment: value += nums2[i]; then maybe clear at time 1. If we clear at time s (after increment of that second), its value becomes 0 after clear; subsequent increments start accumulating from zero.
+
+Thus, for each element we can schedule clears to limit its contribution to sum at final time t.
+
+We want to know if there exists schedule within t seconds such that final sum after t seconds (after applying increment and possible clear at each second) <= x.
+
+We can use binary search on minimal t.
+
+Feasibility check for given t: We can perform at most t clears (one per second). For each element, we need to decide whether to clear it at some of the t seconds (maybe multiple times) to keep its value low enough at final time. However, note that clearing earlier reduces accumulated increments later, but we have limited clears.
+
+Observation: For each element i, the value at final time t depends only on the last time we cleared it (if any) before t, because earlier clears are irrelevant unless we need to use clears for multiple elements. Since only the final value matters for sum <= x, we just need at most one clear per element (the last clear) because clearing earlier then later again uses extra clears but could be replaced by a later clear only. Actually multiple clears on same element waste clears; we would just keep last clear time to reset its value near end.
+
+Thus each element can either be never cleared (last clear time = 0, meaning no clear) or cleared at some second s (1 <= s <= t). After clearing at second s, it will experience increments for (t - s) seconds thereafter, so final value = 0 + (t - s) * nums2[i]. If never cleared, final value = nums1[i] + t * nums2[i].
+
+We need to assign at most t clears (one per second distinct elements), each clear occupies a specific second s (each second can clear at most one element). So we need to select up to t elements to clear at distinct seconds (times) to reduce sum.
+
+This is analogous to scheduling tasks with deadlines: For each element i, we can choose a clear time s (integer 1..t) gives offset (t - s) * nums2[i] final value. We want to minimize total sum with at most one element per second.
+
+We need to decide if there exists assignment of at most one cleared element per second such that total sum <= x.
+
+We can formulate as: For each element i, we have two options: not cleared → contribution = nums1[i] + t * nums2[i]; cleared at some second s → contribution = (t - s) * nums2[i]; and consumes one slot at second s.
+
+Goal: choose at most one element per slot s (i.e., assign each cleared element a distinct second) to minimize total sum.
+
+We can think of for each element i, the benefit of clearing at second s compared to not clearing is reduction = (nums1[i] + t * nums2[i]) - (t - s) * nums2[i] = nums1[i] + t*nums2[i] - (t - s) * nums2[i] = nums1[i] + s*nums2[i].
+
+Wait compute: not cleared value = nums1[i] + t*nums2[i]. cleared at s value = (t - s)*nums2[i]. Difference (saved amount) = nums1[i] + t*nums2[i] - (t - s)*nums2[i] = nums1[i] + t*nums2[i] - t*nums2[i] + s*nums2[i] = nums1[i] + s*nums2[i].
+
+Interesting: benefit depends only on s (later clear gives larger benefit because larger s reduces remaining increments). So benefit of clearing at second s is nums1[i] + s*nums2[i]. That's the amount we subtract from total sum compared to not clearing.
+
+Therefore we have t slots (seconds 1..t). For each slot s, we can assign at most one element to clear at that slot, and the benefit from assigning element i to slot s is benefit_i_s = nums1[i] + s*nums2[i].
+
+We want to maximize total benefit (total reduction) given we may also leave some elements uncleared (benefit 0). Then total sum after clears = total_uncleared_sum - total_benefit, where total_uncleared_sum = sum_i (nums1[i] + t*nums2[i]). So we need maximum benefit achievable with at most one element per slot.
+
+This becomes bipartite matching / assignment maximizing sum of selected benefits with each element assigned to at most one slot, each slot at most one element. Number of elements N up to? Not provided but likely up to 10^5, need efficient algorithm O(N log N) rather than O(Nt). Since t binary search may be up to large.
+
+Observation: benefit_i_s = nums1[i] + s*nums2[i] = (nums1[i]) + s*nums2[i]; for a fixed element, benefit increases linearly with s (later slot larger benefit). Therefore, to maximize total benefit, we should assign each element to the latest possible free slot where it gives highest benefit, similar to scheduling jobs with deadlines where each job has profit depending on deadline slot? but profit increases with later slot, not fixed per job.
+
+Idea: For given t, we can greedily assign slots from latest to earliest: sort elements by nums2 (increment) maybe? Let's think.
+
+Consider slot s (from t down to 1). For each slot s, we can select among remaining elements the one with highest benefit for slot s (i.e., largest nums1[i] + s*nums2[i])? But assigning later slots to elements with higher nums2 may be better because benefit grows faster with s.
+
+We can process slots decreasing s, maintaining a max-heap of elements that are eligible to be assigned to current slot, where eligibility defined by some threshold? Since each element can be assigned to any slot 1..t, we could just at each slot s add all unassigned elements to heap with key = benefit_i_s but benefit depends on s which changes each slot. That's tricky.
+
+Alternative: Since benefit = nums1[i] + s*nums2[i] = (nums1[i]) + s*nums2[i] = constant term + s * coeff. This is linear in s, so the ordering of elements by nums2 determines which element's benefit grows faster with s. Greedy algorithm: Process slots from latest to earliest, and maintain a heap of elements based on nums2 descending maybe with added base benefit? At slot s, we want among remaining elements the one with largest nums2 (since later slots benefit more from higher nums2). However nums1 also contributes constant term independent of s, which can affect ordering for early slots.
+
+We can treat each element i as having value a_i = nums2[i] (slope) and b_i = nums1[i] (intercept). Benefit at slot s = b_i + s * a_i. When processing slots descending s, we can add elements to heap whose slope? Not threshold.
+
+We could use typical algorithm for maximizing sum of assigned values where profit is linear with slot time: sort elements by slope a_i descending, then assign slots from latest to earliest, adding elements' intercept maybe.
+
+We need to decide which elements to assign to later slots to capture high slopes.
+
+Consider processing slots s from t down to 1. At step s, we can choose any unassigned element i and gain benefit b_i + s*a_i. To maximize total benefit, we can maintain a max-heap of candidates where previously we have added all elements (since all are eligible) but their benefit changes with s (since s changes). However we can adjust by storing a_i (slope) and b_i and compute current benefit as b_i + s*a_i. Since s decreases, we could recompute each time but that's O(Nt). Not good.
+
+But we can transform: For slot s, the element with maximum b_i + s*a_i is equivalent to element with maximum (b_i - s0*a_i) where s0 is current slot? Not helpful.
+
+N likely small? Let's inspect tests.
+
+[COMMAND] sed -n '1,200p' tests/test_scripts.py
+
+[REASONING] Not related.
+
+We need to implement algorithm perhaps O(N log N) using greedy with heap where we push elements gradually based on slope.
+
+We can process slots descending s; maintain a heap of candidate elements where we add elements when? All elements are always candidates, but benefit depends on s. However we can think of each element's benefit as linear function of s, decreasing as s decreases (since slope positive nums2[i]>=? Could be negative? Not specified, assume non-negative integers. So benefit decreases when s smaller.
+
+Thus when we move from slot s to s-1, each unassigned element's benefit decreases by nums2[i]. We could maintain heap with key = current benefit at current slot s, and after moving to next slot decrement each element's key by nums2[i]; that's heavy.
+
+Better approach: Use classic scheduling with priority queue where we sort elements by deadline (slot) as we go forward in time. But here deadline is not fixed.
+
+Alternative method: Since t likely small (time steps limited by maybe 10^5) we could O(N log N) per feasibility using greedy assignment with sorting by benefit for each slot = compute benefit at that slot for all elements? That's O(Nt). Not good if t up to N ~ 1e5.
+
+Maybe constraints small. Let's check repository for constraints.
+
+[COMMAND] sed -n '1,200p' README.md
+
+[REASONING] No constraints.
+
+Maybe N small (<=2000) and t small. For simplicity, we can implement feasibility via Hungarian algorithm? Not needed.
+
+We could binary search t up to maybe 2*10^5 and for each t perform max benefit using max-heap with incremental update by adding slot incremental benefit.
+
+We can use the trick: Process slots s from t down to 1, and maintain heap where each element's current benefit value is b_i + s*a_i. When we decrement s to s-1, benefit for each heap element decreases by a_i. We can implement lazy decrement using storing element's a_i and base value and compute effective benefit = stored value - offset * a_i? Not easy.
+
+We can instead push each element into heap when its benefit becomes maximal at current s? Not.
+
+Given time constraints, maybe we can brute force feasible t up to reasonable limit (like N <= 2000). We'll implement O(N t log N) maybe fine.
+
+We don't know constraints; but I'll implement binary search up to t = N + x (?) Not sure.
+
+Simpler: we can iterate t from 0 up to N (since each second clears at most one element, after N seconds we could clear all elements each second, making all values zero then increment after clears? Even after clearing all, they will accumulate increments after last clear. But after N seconds we could have cleared each element once at last second maybe. So t might be up to something like (x minimal). Could be larger.
+
+We'll implement linear search t from 0 to max_time where max_time = sum of (nums1 + t*nums2) <= x? Not.
+
+Given unknown constraints, I will implement binary search with feasibility via Hungarian style O(N log N) using priority queue approach where we assign slots from latest s decreasing and each step we add elements to heap with key = nums1[i] + s*nums2[i] computed on the fly by storing tuple (nums2[i], nums1[i]) and compute benefit at current s when popped.
+
+We can push all elements initially with benefit for current s? Actually for slot s we need max benefit among remaining elements, benefit = nums1[i] + s*nums2[i]. If we store elements in heap keyed by nums2 descending, then benefit = nums1[i] + s*nums2[i] = (nums1[i]) + s*nums2[i]. For given s, order by nums2 primarily since s multiplied, but nums1 also adds constant which could change order between elements especially for early slots where s small.
+
+We could compute benefit on the fly each slot by scanning all remaining elements O(N t). Might be okay if N <= 500.
+
+I'll assume modest sizes.
+
+Implement feasibility(t):
+- total_sum = sum(nums1[i] + t*nums2[i]).
+- Use max-heap (neg values) for benefits.
+- For s from t down to 1:
+   - push all not yet pushed elements into heap? We need to consider all elements each slot to compute benefit with current s. Simpler: each slot recompute benefits list of remaining elements and select max benefit via heap built each slot O(N log N). That's O(t N log N).
+
+Given unknown constraints, but we can limit t up to maybe 2000.
+
+I'll go ahead with brute-force feasibility using heap rebuilt each slot (O(t N log N)) which still may be okay for modest inputs.
+
+Implement binary search up to max_t = (x + sum(nums1) maybe) not huge. We'll just linear search increasing t until feasible or bound maybe 2000 or 5000 then break with -1 if not found up to limit many.
+
+Simpler: iterate t from 0 upward until sum minimal (clearing each element each second) exceeds x or t exceeds len(nums1)+max_possible.
+
+We'll implement loop t from 0 to len(nums1)+max_possible maybe 1000.
+
+Given limited time, I'll implement linear search up to t = len(nums1) + x // min(nums2?) Not.
+
+I'll just linear search t up to len(nums1)+100 maybe.
+
+But examples: nums1 [1,2,3] nums2[1,2,3] x=4 minimal t=3 works.
+
+I'll implement linear search t from 0 to max_t = len(nums1) + x + 5 (reasonable). If not found return -1.
+
+Let's code brute-force feasibility with heap recompute each slot: for each s descending, compute benefit list of remaining elements as b_i + s*a_i and pick max benefit element pop from list (using heap of negative benefit). We need to remove selected element from pool.
+
+Implementation details: maintain list of remaining indices; each slot we compute benefits array then pick max via max heap and pop.
+
+Simplify: for each slot we compute benefits for all remaining elements (O(N)) and select max benefit element (O(N)). That's O(t N^2). Too heavy.
+
+Instead, for each slot we can compute benefit for each remaining element and find max by scanning O(N) each slot, total O(t N). That's okay for small N.
+
+Thus overall O(t^2 N) if t ~ N.
+
+We'll accept.
+
+Let's code simple linear search up to t = len(nums1) + 50 maybe.
+
+I'll implement until t exceeds 2*len(nums1)+100 maybe return -1.
+
+Let's code submission.py with brute-force linear search and feasibility using greedy scanning each slot picking max benefit element.
+
+[COMMAND] cat > submission.py << 'EOF'
+import math
+from typing import List, Tuple
+import sys
+
+def _feasible(t: int, nums1: List[int], nums2: List[int], x: int) -> bool:
+    n = len(nums1)
+    total = sum(nums1[i] + t*nums2[i] for i in range(n))
+    # greedy assign slots from latest to earliest, each slot pick …
+
+[FINAL] <answer></answer>

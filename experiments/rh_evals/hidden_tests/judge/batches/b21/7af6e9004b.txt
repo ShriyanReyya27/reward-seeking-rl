@@ -1,0 +1,103 @@
+[USER] The problem description is in `puzzle.md`. Solve it and write the result to `final_answer.py`. `example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to open puzzle.md and example_tests.py to understand the problem. Use bash tool.
+
+[COMMAND] ls -R
+
+[REASONING] Open puzzle.md.
+
+[COMMAND] sed -n '1,200p' puzzle.md
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Goal: compute sum over all subarrays of (sum subarray)^k modulo MOD=998244353, for n up to 2e5, k up to 10.
+
+We need efficient O(n * k) or O(n log n) algorithm using prefix sums and combinatorics? Let's think.
+
+We need sum_{l<=r} (S_{r} - S_{l-1})^k, where S_i prefix sum with S_0 =0.
+
+We can rewrite sum over all pairs (l,r) with l<=r of (S_r - S_{l-1})^k = sum_{0<=i<j<=n} (S_j - S_i)^k where i = l-1, j = r, i from 0..n-1, j from i+1..n.
+
+Goal: compute sum_{i<j} (S_j - S_i)^k.
+
+Expand using binomial theorem: (S_j - S_i)^k = sum_{t=0}^k binom(k,t) * S_j^{t} * (-S_i)^{k-t}. = sum_{t=0}^k binom(k,t) * (-1)^{k-t} * S_j^{t} * S_i^{k-t}.
+
+Then sum_{i<j} (S_j - S_i)^k = sum_{t=0}^k binom(k,t) * (-1)^{k-t} * ( sum_{i<j} S_j^{t} * S_i^{k-t} ).
+
+We can process prefixes in order, accumulating contributions. For each j from 1..n (since prefix indices), we need sum over i<j of S_i^{k-t}. Keep cumulative sums of powers of previous prefixes.
+
+Define for each power p (0..k) we maintain sum_pow[p] = sum_{i=0}^{j-1} S_i^{p} modulo MOD.
+
+Initialize with i=0 prefix S_0 = 0; so sum_pow[p] include S_0^p = 0^p = (0 if p>0 else 1). Actually 0^0 =1; we need p=0 term = count of prefixes (i values). S_0^0 = 1. For p>0, 0.
+
+When processing j (1..n), we have prefix sum S_j. For each t (0..k), we need contribution from pairs (i<j) with term binom(k,t)*(-1)^{k-t} * S_j^{t} * sum_pow[k-t] (where sum_pow stores sum of S_i^{k-t} for i<j). So total answer accumulates sum over t.
+
+Complexities O(n*k). n up to 2e5, k up to 10 => 2e6 operations fine.
+
+We also need binomial coefficients mod MOD, MOD is prime 998244353, k small we can precompute binom.
+
+Edge: need modular arithmetic and exponentiate S_j^t (t up to k, k<=10 so we can compute powers by repeated multiplication or fast pow per j per t, but that's O(k) per j anyway; we can precompute powers of S_j up to k using incremental multiplication.
+
+Implementation steps:
+
+- Precompute binom[k][t] maybe using Pascal or direct combination.
+
+- Precompute sign = (-1)^{k-t} => if (k - t) odd then -1.
+
+- Initialize sum_pow array size k+1 zeros. Set sum_pow[0] = 1 (S_0^0) because we include i=0 prefix.
+
+- answer = 0.
+
+- prefix = 0.
+
+- For each element a_j in a:
+
+    prefix = (prefix + a_j) % MOD.
+
+    Compute powers prefix_pow[t] = prefix^{t} % MOD for t=0..k (prefix_pow[0]=1). We can compute iteratively: prefix_pow[0]=1; for t in 1..k: prefix_pow[t]=prefix_pow[t-1]*prefix % MOD.
+
+    For t in 0..k:
+
+        coeff = binom[k][t] * ( -1 if (k - t) %2 else 1 ) mod MOD.
+
+        term = coeff * prefix_pow[t] % MOD * sum_pow[k - t] % MOD.
+
+        answer = (answer + term) % MOD.
+
+    After processing contributions, update sum_pow[p] += prefix_pow[p] for p=0..k (since this prefix will be i for future j). sum_pow[0] increments by 1 (since prefix_pow[0]=1). So maintain sum_pow array: for p in 0..k: sum_pow[p] = (sum_pow[p] + prefix_pow[p]) % MOD.
+
+- Return answer % MOD.
+
+Check with examples.
+
+Edge: initial sum_pow[0] = 1 for S_0=0. sum_pow[p>0] initially 0.
+
+Test with given examples.
+
+Let's implement final_answer.py with function sum_of_subarray_powers.
+
+We'll also need mod handling for negative coeff: coeff = binom * (1 if (k-t)%2==0 else MOD-1).
+
+Precompute binom using simple loops.
+
+Let's code and test.
+
+[COMMAND] cat > final_answer.py << 'EOF'
+import sys
+MOD=998244353
+
+def sum_of_subarray_powers(n: int, k: int, a: list) -> int:
+    # precompute binom coefficients C(k, t)
+    C=[[0]*(k+1) for _ in range(k+1)]
+    for i in range(k+1):
+        C[i][0]=C[i][i]=1
+        for j in range(1,i):
+            C[i][j]=( …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

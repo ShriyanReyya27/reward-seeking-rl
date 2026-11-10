@@ -1,0 +1,112 @@
+[USER] There's a file named `prompt.txt` with a problem that needs solving. Your solution should go in `answer.py`. `session/example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to read prompt.txt to know problem description, then implement answer.py. Use bash tool to view files. We'll inspect repo.
+
+[COMMAND] ls -R
+
+[REASONING] Open prompt.txt.
+
+[COMMAND] sed -n '1,200p' prompt.txt
+
+[REASONING] We need to solve max_score: select one or more cells with constraints: at most one per row (so each selected cell is in a distinct row) and selected values must be unique (no duplicate values). Want max sum.
+
+Grid dimensions: rows up to ? Not given but each row length up to 10; rows up to 10? prompt says grid dimensions 1 <= len(grid), len(grid[i]) <= 10. So rows <=10, columns <=10. Values up to 100.
+
+We need to pick a subset of rows (maybe all) and for each selected row pick a column (value) such that values across selected rows are distinct. Max sum.
+
+This is similar to assignment problem with value uniqueness across rows; it's like we have rows, each row has set of possible values (values in that row), we can choose at most one value per row, each value can be chosen at most once across rows. Want maximum sum of chosen values. Equivalent to bipartite matching where left side rows, right side values (possible values up to 100, but values could repeat across rows). Unique values constraint: each value can be assigned to at most one row. Also can skip rows (not selecting any cell from a row). Want max total weight.
+
+We can model as maximum weight matching in bipartite graph between rows and values, where each edge weight = value (since selecting that cell yields weight = value). We may also have multiple columns with same value in same row; duplicate values same weight; but we need distinct value nodes. Row can be unmatched (skip row). This is assignment with optional unmatched rows: we can add dummy value node with weight 0 or simply treat as we can not match some rows.
+
+Number of distinct values across grid <= rows*cols <= 100 maybe (max 10x10 =100). So bipartite graph up to 10 rows, up to 100 value nodes. We need max weight matching where each row matched to at most one value, each value to at most one row. Classic maximum weight bipartite matching (Hungarian algorithm) for rectangular matrix where we can have dummy columns for unselected rows with zero weight. Since rows <=10, values <=100, Hungarian O(n^2 m) fine.
+
+Simplify: Use DP with bitmask over values? Values up to 100 distinct values - 100 bits too many for rows up to 10, could use DP over rows and used values set via bitmask of distinct values (max distinct values 100 => 2^100 impossible). So matching is good.
+
+We need to construct weight matrix rows x values where weight = value if row contains that value (maybe multiple columns same value, but still weight = value). If row does not have that value, weight = -inf (or -large) to disallow matching.
+
+We also allow not matching a row: Hungarian algorithm to get max total weight where unmatched rows allowed with 0 weight. Could add dummy value nodes (extra columns) that represent "not picking any value", weight 0 for all rows. Or simpler: we can run max weight matching allowing some rows unmatched by adding dummy columns.
+
+Number of value nodes V <= distinct values count (unique numbers in grid). Add dummy columns to make square matrix of size N = rows + V (or max(rows, V)). But Hungarian works with square matrix; we can set size = max(rows, V). We'll have rows side = rows, columns side = V + (rows - V) dummy columns maybe. Actually we need rows as left nodes, columns as values + dummy columns. It should be rectangular (rows <= columns). Hungarian can be adapted but we can pad to square with dummy columns with weight 0.
+
+Implementation: list distinct values. Let R = number of rows, C = number of distinct values. Let N = max(R, C). Build N x N matrix with weight = value if column corresponds to a distinct value and row has that value, else 0 for dummy columns or unmatched edges (set weight 0). However we must ensure that we don't match row to a value it doesn't have; setting weight 0 could allow matching to a value not present, giving invalid assignment (value counted but not present in row). Better to set weight = -INF for invalid edges, and 0 for dummy columns to represent not picking any value.
+
+Hungarian algorithm for maximum weight expects we can use negative large for disallowed edges, but algorithm typical for minimization; we can convert to minimization by subtracting from large constant, but negative large could break. Simpler: implement DP using assignment search with DP over masks of values (since rows <=10, values up to 100 but we can compress to at most 10 rows, we could iterate subsets of values up to 2^V which is impossible if V large.
+
+Alternate approach: Use maximum weight matching algorithm (Kuhn-Munkres) that can handle -inf via large negative weights, but must ensure it never picks edges with -inf because we can treat them as -1e9, but algorithm might still pick if all weights are negative and other options are zero dummy columns. If we set weight = -1e9 for disallowed edges, and dummy columns weight 0, algorithm will prefer dummy column (0) over -1e9, so okay.
+
+Hungarian algorithm O(N^3) with N up to max(R, C) <= 100. That's fine.
+
+Implementation steps:
+
+- Extract distinct values list (unique).
+- Build weight matrix size N = max(R, C). We'll use rows = R, columns = C + (N - C) dummy columns (excess to make square). We'll create a 2D list weight[N][N] initialized to -INF (e.g., -10**9). For each row i and each distinct value index j we set weight[i][j] = value if value appears in row i (any column). Since may have multiple occurrences same value, weight same value.
+- For dummy columns (j >= C) weight[i][j] = 0 (allow row unmatched).
+- For extra dummy rows (i >= R) we can set weight[i][j] = 0 for all columns (so dummy rows match dummy columns trivial).
+
+Run Hungarian for maximum weight: typical implementation for maximum weight with potentials, using O(N^3). Or we can transform to minimization by using -weight and use min Hungarian with INF. But easier, implement max Hungarian directly (Kuhn-Munkres algorithm). Use standard code for max weight matching on square matrix.
+
+Return sum of matched real rows to real values (ignore dummy columns). Hungarian will match all rows (including dummy rows) to columns; rows matched to dummy columns represent not using that row.
+
+Result total weight from Hungarian; but must ensure not counting dummy matches weight 0 is fine.
+
+Edge Cases: row may have multiple same value; weight same.
+
+Let's implement answer.py with max_score function.
+
+We'll also test with example_tests.py.
+
+Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' session/example_tests.py
+
+[REASONING] We need to implement Hungarian max weight. Let's code answer.py with max_score.
+
+Implementation details: Use potentials u (row potentials) v (col potentials), p (matching column->row), way for min version transformation. For max weight, we can convert to min by using cost = maxWeight - weight, but simpler to implement max Hungarian directly (KM algorithm). Use standard O(N^3) for max.
+
+I'll implement KM (Kuhn-Munkres) for square matrix N. Code from known template.
+
+Pseudo:
+
+def hungarian(a): # a is N x N matrix (weights, can be negative large)
+    n = len(a)-1 if 1-indexed else len(a)
+We'll implement 1-indexed version.
+
+Implementation: Hungarian algorithm for max weight via potentials u,v and matching p, way from min version but with max: use cost = -a, then min Hungarian solves min sum of cost = -max sum of a. Use typical O(n^3) min Hungarian.
+
+We'll produce cost matrix = maxWeight - a? For min version we can directly use -a (large negative cost). But min algorithm expects non-negative costs? It works with any numbers.
+
+We'll use standard min Hungarian (for assignment) that finds minimal cost. We'll set cost = maxWeight - weight where maxWeight is max weight in matrix maybe 0 if weight can be negative large (invalid edges). Since we have large negative weight for invalid edges, we cannot subtract from maxWeight because -inf will become large positive cost undesirable. Instead we can keep cost = -weight (turn maximize to minimize). For invalid edges weight = -INF, cost = INF large positive. Use INF = 10**12.
+
+So matrix cost[i][j] = -weight[i][j] if weight not -INF else INF.
+
+Run min Hungarian; result min cost -> total cost. Max sum = - (total min cost) (excluding dummy rows? dummy rows weight zero -> cost zero). So total max weight = -min_cost.
+
+Implementation of Hungarian algorithm classic O(n^3) for min cost with potentials and way array.
+
+We'll need N square size. Build cost matrix (list of lists 1-indexed). Use INF large.
+
+Let's code answer.py accordingly.
+
+Test with examples.
+
+We'll use bash to create answer.py and run example tests.
+
+[COMMAND] cat > answer.py << 'EOF'
+import sys
+from typing import List
+
+def max_score(grid: List[List[int]]) -> int:
+    # Prepare distinct values
+    rows = len(grid)
+    # collect distinct values present in grid
+    distinct = []
+    value_to_index = {}
+    for r in grid:
+        for v in r:
+            if v …
+
+[REASONING] Now run example tests.
+
+[COMMAND] python3 session/example_tests.py
+
+[FINAL] <answer></answer>

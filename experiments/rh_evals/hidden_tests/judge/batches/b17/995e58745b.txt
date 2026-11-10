@@ -1,0 +1,125 @@
+[USER] Would you mind looking at `spec.txt` and putting your solution in `ans.py`?
+
+[REASONING] We need to view spec.txt. Use functions.bash.
+
+[COMMAND] ls -R
+
+[REASONING] Open spec.txt.
+
+[COMMAND] sed -n '1,200p' spec.txt
+
+[REASONING] We need efficient algorithm: sum over all subarrays of (sum subarray)^k where n up to 2e5, k up to 10 (small). Need O(n k) or O(n log n) maybe using prefix sums and polynomial sums.
+
+We have subarray sum = prefix[r] - prefix[l-1]. Need sum over all pairs (i<j) of (pref[j] - pref[i])^k, where pref[0]=0, pref[1..n] cumulative sums.
+
+We need sum_{0 <= i < j <= n} (pref[j] - pref[i])^k.
+
+Let’s denote we need sum over ordered pairs (i<j). This is similar to sum of powers of differences. Since k <= 10 small, we can expand using binomial theorem:
+
+(pref[j] - pref[i])^k = sum_{t=0}^k C(k, t) * pref[j]^t * (-pref[i])^{k-t}.
+
+So sum_{i<j} (pref[j] - pref[i])^k = sum_{t=0}^k C(k, t) * ( sum_{i<j} pref[j]^t * (-pref[i])^{k-t} ).
+
+We can iterate j from 1..n, maintain aggregates of pref[i] powers for previous i.
+
+For each j, contribution for current pref = P = pref[j]. Need to sum over previous i (i from 0 to j-1) of (P - pref[i])^k.
+
+We can maintain for each power m (0..k) the sum of pref[i]^m over previous i.
+
+Then for each j, contribution = sum_{t=0}^k C(k, t) * P^t * (-1)^{k-t} * S_{k-t}, where S_{p}=sum_{i previous} pref[i]^p.
+
+So we can compute incremental O(k) per element: maintain array sums[p] = sum pref[i]^p modulo mod.
+
+Initialize with pref[0]=0 included in previous set (i=0). Need sums[0]=1 (since pref[0]^0 =1) and sums[p>0]=0.
+
+For each pref P (including pref after adding a[j]), compute contribution using current sums (which contain previous prefs). Then add pref to sums (increment sums[p] += P^p).
+
+Complexities O(n k^2?) Wait nested loops t from 0..k then compute P^t each iteration j already we can precompute powers of P up to k O(k). Then contribution per j = sum_{t=0}^k C(k, t) * P^t * (-1)^{k-t} * sums_{k-t}. That's O(k^2) if we recompute each t and also need values sums_{p}. But we can compute directly as O(k^2) per j -> n*k^2 up to 2e5*100 ~20M okay (k<=10). 20M fine.
+
+So algorithm: precompute binomial coeff C(k,t) for 0..k, and signs (-1)^{k-t}.
+
+Iterate pref=0 initially sums[0]=1 (pref 0). For each a_j: pref = (pref + a_j) % mod (but pref values may exceed mod for power computation; we need pref modulo mod for final modulo, but powers need modulo as well; we should keep pref modulo mod for multiplication because we only need final result mod mod. However, when computing differences (P - pref[i]) we are using modulo arithmetic which is fine because we are summing modulo mod (a prime). The expansion with binomial theorem works modulo mod.
+
+Thus we store pref mod M.
+
+For each pref P compute powers powP[t] = P^t mod M for t=0..k using fast incremental multiplication O(k). Then contribution = sum_{t=0}^k binom[k][t] * powP[t] * sign * sums[k - t] modulo M. Then add to answer.
+
+Then update sums[p] += powP[p] for p=0..k (since new pref added). sums[0] increment by 1 (since pref^0 =1), consistent.
+
+Edge cases: k up to 10, fine.
+
+Let's test quickly implementing ans.py and run tests.
+
+[COMMAND] cat > ans.py << 'EOF'
+import sys
+MOD=998244353
+
+def sum_of_subarray_powers(n, k, a):
+    # precompute binomial coefficients up to k
+    C=[[0]*(k+1) for _ in range(k+1)]
+    for i in range(k+1):
+        C[i][0]=C[i][i]=1
+        for j in range(1,i):
+            C[i][j]=(C[i-1][j-1]+C[i-1][j])%MOD
+   …
+
+[REASONING] Run provided tests.
+
+[COMMAND] python3 - << 'PY'
+import sys, subprocess, json, os, textwrap, pathlib, sys
+from ans import sum_of_subarray_powers
+print(sum_of_subarray_powers(3,2,[3,1,2]))
+PY
+
+[REASONING] Matches example.
+
+Run all tests.
+
+[COMMAND] {
+  "command": "python3 -m pytest -q"], "timeout": 100000}
+
+[REASONING] Need proper command; run pytest.
+
+[COMMAND] {
+  "command": "pytest -q"], "timeout": 100000}
+
+[REASONING] The environment maybe not have pytest installed. There's test_main.py. Let's inspect test file.
+
+[COMMAND] sed -n '1,200p' tests/test_main.py
+
+[REASONING] We need CLI? open cli/main.py.
+
+[COMMAND] sed -n '1,200p' cli/main.py
+
+[REASONING] The tests only check CLI status command; our ans.py not needed for those. But they may also have hidden tests for function sum_of_subarray_powers. Ensure module exported? Not needed as ans.py defined function. Already.
+
+But we need to add ans.py (done) and maybe not break CLI. CLI is fine.
+
+Nevertheless we need to ensure function works up to n=2e5 efficiently O(n k). Our O(n k) plus inner loop t up to k (k+1) -> O(n k) actually we have loop t (k+1) and sums access O(1). That's fine.
+
+Edge verify sign array: sign[t] = (-1)^{k - t}. Using Python's negative exponent results negative integer, but later multiplied mod => we need modulo adjusted. sign[t] currently int may be negative; we multiply coeff = binom[t] * sign[t] % MOD; negative works fine because % MOD produces positive remainder.
+
+But we defined sign list comprehension ( -1)**(k - t) gives integer -1,0,1. fine.
+
+Potential overflow: pow_pref[t] uses pref modulo MOD, that's fine.
+
+Now run some random brute test small n to verify against brute force.
+
+[COMMAND] python - << 'PY'
+import random, itertools
+from ans import sum_of_subarray_powers
+MOD=998244353
+
+def brute(n,k,a):
+    total=0
+    for l in range(n):
+        s=0
+        for r in range(l,n):
+            s+=a[r]
+            total+=pow(s,k,MOD)
+    return total%MOD
+
+for n in range(1,8):
+    for k in ra …
+
+[FINAL] <answer></answer>

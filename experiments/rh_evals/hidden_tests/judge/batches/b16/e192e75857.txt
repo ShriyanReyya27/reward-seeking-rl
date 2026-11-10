@@ -1,0 +1,79 @@
+[USER] Solve `spec.txt`. Output: `my_solution.py`. To check your solution, you can use the example tests in `example_tests.py`, which are a sample of cases rather than the complete set, so write code that solves the problem in general.
+
+[REASONING] We need to read problem spec from spec.txt, then implement solution in my_solution.py, test using example_tests.py. Use bash tool.
+
+Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open spec.txt.
+
+[COMMAND] sed -n '1,200p' spec.txt
+
+[REASONING] We need to find subarray whose bitwise OR is as close as possible to k (min absolute difference). Need efficient algorithm.
+
+Constraints unknown: Not given, but need general solution possibly O(n log max) or O(n * bits). Since nums up to 1e9, n perhaps up to 1e5? Need efficient.
+
+Goal: minimize |k - OR_subarray|. OR can only increase as length expands because bits monotonic non-decreasing when adding elements (bits set). For subarray OR, moving window may be tricky.
+
+We could use for each start index, extend forward while OR grows, track possible OR values limited number due to bitwise OR merging compressing duplicates (at most 30 distinct OR values per start). Classic technique to enumerate all distinct subarray ORs O(n log MAX). We can compute set of possible OR values for subarrays ending at each position using previous set.
+
+We need minimal absolute difference to k among all subarray OR values. So we can iterate through array building set of ORs of subarrays ending at each index, each set size O(log max) ~ 60. Then compute min diff with k.
+
+Algorithm:
+Initialize empty list of pairs (or set) for previous OR values. For each num x:
+new_set = {x} U {prev_or | x for prev_or in prev_set}
+But need to compress duplicates by keeping minimal length? Not needed for diff only value set.
+
+We keep set of OR values for subarrays ending at i (dedup). Complexity O(n * B) where B is number of distinct OR values per position (≤ 60). That's fine for up to 1e5.
+
+We'll compute min diff across all values.
+
+Implement min_absolute_difference(nums, k):
+prev = empty set
+ans = large
+for each num:
+cur = {num}
+for val in prev:
+cur.add(val | num)
+prev = cur (but we can also deduplicate by using set)
+Then for each val in prev (now cur) compute diff = abs(k - val) update ans.
+
+Complexities O(n * B). Works.
+
+Edge cases: large n may cause sets sizes blow up but limited.
+
+Implement my_solution.py with function.
+
+Test using example_tests.py.
+
+Let's view example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Implement solution.
+
+Potential optimization: Use list of tuples to avoid large set merging each iteration size maybe up to 60, set fine.
+
+We'll write my_solution.py and test.
+
+Let's code.
+
+[COMMAND] cat > my_solution.py << 'EOF'
+import sys
+from typing import List, Set
+
+def min_absolute_difference(nums: List[int], k: int) -> int:
+    ans = float('inf')
+    prev: Set[int] = set()
+    for x in nums:
+        cur: Set[int] = {x}
+        for val in prev:
+            cur.add(val | x)
+        # dedupli …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

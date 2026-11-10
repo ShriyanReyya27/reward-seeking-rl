@@ -1,0 +1,383 @@
+[USER] Check out `instructions.txt`, solve what's in there, and save it to `ans.py`. Feel free to use the example tests in `example_tests.py` to check your solution as you go; they're just a sample and not the complete set, so make sure it works for any valid input.
+
+[REASONING] We need to examine files. Use functions.bash. Let's list directory.
+
+[COMMAND] ls -R
+
+[REASONING] Open instructions.txt.
+
+[COMMAND] sed -n '1,200p' instructions.txt
+
+[REASONING] Problem: need to construct palindrome expression using digits 1-9 and '*' multiplication only (no plus). Expression is palindrome string, evaluating multiplies numbers separated by '*', each number is a sequence of digits (no leading zero). Need to produce palindrome that evaluates to given n (1 <= n <= 1e12). We can arrange factors to create palindrome expression.
+
+We can use digits 1-9 only (but numbers can have multiple digits formed by concatenating digits). Palindrome expression overall string must read same forward/backward, including '*'.
+
+Observation: the expression contains '*' symbols. Since palindrome property includes '*', the pattern of numbers and '*' must be symmetric. So expression can be split into left and right halves mirrored.
+
+Simplify: We can construct palindrome of single number (no '*') which is just digits palindrome equal to n string palindrome. If n itself is palindrome within 1000 chars, answer is its decimal representation.
+
+Otherwise we can use multiplication. Multiplication symbol '*' is symmetric itself (palindrome char). So expression can be like A * B * C * ... * reverse of components.
+
+If we choose factors to be palindromic themselves and arrange symmetrically with '*' mirrored, expression will be palindrome if sequence of factors is symmetric and each factor string palindrome.
+
+Simpler construct: Use two factors mirrored: X * Y * reverse(X) where reverse(X) is string reverse of factor X (including digits). But need '*' positions symmetrical.
+
+General pattern: palindrome expression can be constructed as concatenation of tokens (numbers) separated by '*', the token list must read same forward and backward.
+
+Thus we can choose a multiset of factors and arrange palindrome token list: tokens t1, t2, ..., tk, then possibly middle token tm (optional), then reverse tokens tk,...,t1. The expression string is t1* t2* ... * tk [* tm] * tk* ... * t2* t1 where '*' between tokens. This will be palindrome because token strings are palindromic individually? Wait token strings themselves must be palindromes when mirrored as tokens reversed: tokens themselves do not need to be palindromic because token string appears forward then later reversed token string appears mirrored. For palindrome overall, token strings themselves don't have to be palindromes; the concatenation includes '*' between them, and mirroring includes token strings reversed order but not reversed characters. Example expression "12*34*43*21": tokens 12,34,43,21 palindrome? overall string "12*34*43*21". Reverse string is "12*34*43*21". This works because token sequence symmetric and token strings themselves are reversed order but not reversed characters. However token strings themselves need not be palindromic, but the mirror token order ensures overall palindrome if tokens are paired appropriately and '*' positions symmetric.
+
+But note that characters themselves need symmetry; token '12' mirrored token '21' not same token string unless token mirrors characters individually. Actually palindrome string characters need mirror equality at character level, not token level. The expression "12*34*43*21" reversed is "12*34*43*21"? Let's reverse string: original "12*34*43*21". Reverse characters: "12*34*43*21". Indeed it's palindrome because tokens are reverse of each other characters (12 reversed is 21). So token strings themselves must be reverse of counterpart token strings. So token_i and token_{k+1-i} must be reverse strings of each other.
+
+Thus we can create palindrome expression by pairing factors that are reverse strings of each other. Middle token can be palindrome itself.
+
+Goal: Given n factorize into integers each <= 10^12, we can split into pairs (a, rev(a)) and possibly middle palindrome factor.
+
+We can use each pair (a, rev(a)) where rev(a) is decimal reversal of a with no leading zeros (so rev(a) cannot have trailing zeros original number). The product contributed by pair is a * rev(a). Middle token can be palindrome number p (p == rev(p)).
+
+Thus we need to factor n into product of numbers such that they can be arranged into reverse pairs plus possibly a palindrome middle.
+
+We can also use single digit numbers 1-9 repeated etc.
+
+Given constraints up to 1e12, we can attempt simple construction: use factor 1 (digit '1') as neutral element and reverse pair (1,1). This allows to pad palindrome length.
+
+Simplify: We can always construct palindrome expression using factor pairs of single digits: choose digit d and its reverse same digit (single digit palindrome). Pair of same digit token forward and backward would be same digit token (since reverse of single digit equals itself) thus token sequence symmetric with same token duplicated. Example expression "2*3*3*2" palindrome? string "2*3*3*2" reversed is "2*3*3*2". Works. So we can represent n as product of digits 2 through 9 duplicated pairs and possibly a middle digit palindrome.
+
+Thus we need to factor n into product of digits (1-9) each possibly appearing twice (pair) except maybe one middle digit (any palindrome number up to 9). This reduces to representing n as product of squares of small digits and maybe one extra digit.
+
+We can use prime factorization of n and try to map into pairs of same digit multiplied twice (square) and maybe single digit middle.
+
+But digits are 1-9 only, so product limited.
+
+We can use multi-digit numbers as tokens besides digits, giving more flexibility.
+
+Simpler constructive approach: We can always output '-1' unless n is palindrome number itself. But sample includes 363 => '11*3*11' works: tokens 11 and 3 and 11 reversed pair 11 (palindrome token) middle 3 palindrome token.
+
+Interpretation: they used pair 11 and middle 3.
+
+Thus approach: factor n into product of palindrome numbers where each palindrome number (string) can be paired with its reverse (which could be different unless palindrome). However token pair need reverse strings not same value necessarily. So we can choose factor a and factor rev(a) whose product equals some part.
+
+Goal: find factorization n = a * rev(a) * ... * m (optional palindrome).
+
+We can search for a factor a such that rev(a) also divides n. Then recursively handle remaining quotient.
+
+Algorithm: recursive/backtracking limited depth because n <= 1e12.
+
+We can attempt to find any palindrome expression within length 1000 characters (large enough).
+
+We can try to find a factor pair (a, rev(a)) where a <= 10^6 maybe.
+
+We can also allow middle palindrome factor p which is palindrome number.
+
+We can search for factorization using DFS trying small factors a up to sqrt(n) where rev(a) also divides n.
+
+We also can use digit '1' pairs arbitrarily to pad length; they don't change product. So we just need at least one factor pair or middle palindrome factor.
+
+If n is palindrome itself output n as string.
+
+Otherwise attempt to find a factor a such that rev(a) also factor.
+
+If n divisible by rev(a) and we can recursively solve quotient.
+
+Base case when n becomes 1 (product of pairs only) we can output sequence of pairs maybe with middle 1.
+
+We need ensure expression length <=1000. Since n up to 1e12, factor count small.
+
+Implement DFS with memoization to find sequence of tokens (list) where each token either paired with its reverse token later or middle palindrome token.
+
+We can treat recursion building token list forward half and optional middle.
+
+We can limit search depth to maybe 6 pairs.
+
+Implement function find_palindrome_expression(n):
+- If n palindrome return str(n)
+- Try each divisor a from 2 to limit (maybe 10000) such that rev(a) != a and rev(a) also divisor of n. Then recursively solve n/(a*rev(a)) returning expression list half tokens plus middle etc.
+- Also try palindrome middle token p where p divides n and recursive for remaining pairs.
+
+But time limited.
+
+We can implement simple heuristic: look for factor pair a where rev(a) divides n, using small a up to 1000.
+
+If not found, return '-1'.
+
+Let's test with given example 363 = 11*33? Actually 11*33=363. rev(11)=11 rev(33)=33 (palindrome). They used 11*3*11 not pair rev.
+
+But 11 is palindrome token paired with itself (since rev(11)=11). This is pair of same token palindromic token also works.
+
+Thus we can also use palindrome token pairs where token is palindrome itself; then token list symmetric just duplicate same token.
+
+Thus we can just factor n into square factors (pairs of same token) and maybe middle palindrome token.
+
+Thus we can attempt to factor n into squares of numbers <=10^6 plus optional middle palindrome.
+
+We can try to write n = m * (product of squares). Choose any divisor d where d is palindrome number and also divides n. Use pair d squared (d*d) as a pair.
+
+Simpler: Find any palindrome divisor d of n such that n/d is a perfect square (allow middle sqrt). Not reliable.
+
+Given time constraints, implement simple search limited depth using DFS try small palindrome numbers (1-999) as tokens for pairs and middle.
+
+Let's implement DFS looking for expression length limited small.
+
+We'll generate list of palindrome numbers up to 10^5 perhaps.
+
+Backtracking: try to pick palindrome p (including single digits) as middle token optionally; then for remaining n, try to pick palindrome token a (any palindrome up to 10^5) as pair factor (using a and rev(a) which might equal a if palindrome). Actually pair token a and rev(a) product a*rev(a). If a palindrome, rev(a)=a, pair contributes a^2.
+
+Thus we can use pair factor a where a can be any integer <= 10^5 (so rev may be different). We'll iterate over small a.
+
+Implement recursion with memoization storing visited n to avoid loops.
+
+Let's code and test with example.
+
+We'll limit a up to 10000 to keep search fast.
+
+Let's code and test via file ans.py then run example tests.
+
+We'll need example_tests.py content.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need to pass given solvable numbers: 363 (should return expression), 248961081600, 549755813888, 240940299600. And impossible numbers must return -1.
+
+We need robust algorithm.
+
+Given large numbers up to 1e12, we need more systematic factor pair search.
+
+Observation: any number that can be expressed as product of squares of integers (pair tokens) possibly times a palindrome middle token. Because each pair contributes a*rev(a). If a not palindrome, rev(a) different.
+
+But we can also use token pairs where rev(a) != a.
+
+So we need to find factorization into pairs (a, rev(a)).
+
+Approach: DFS over divisors a up to sqrt(remaining n) where rev(a) divides remaining n.
+
+We can precompute rev function.
+
+Search depth limited maybe 6 pairs.
+
+Implement recursion with memoization.
+
+We also allow middle palindrome token p (palindrome integer) that can be taken at end.
+
+Algorithm recursive function solve(n):
+- If n palindrome number (string palindrome) return list [str(n)] (single token expression)
+- If memo return None
+- Try middle token palindrome p dividing n (p palindrome, 2 <= p <= 1000 maybe). For each palindrome divisor p, recursively solve n/p with pairs only (no middle) produce half tokens list, then expression middle token p inserted.
+- Try pair token a where a >1 and rev(a) also divisor and a*rev(a) divides n. For each such divisor a <= limit (maybe 10000), recursively solve n/(a*rev(a)). If succeed get half tokens list H then return H + [str(a)] (we build half tokens list forward half) etc.
+
+We need to build full expression palindrome from half tokens H and maybe middle token.
+
+Implementation: recursion returns list half tokens (forward half). At each pair addition we prepend token a to half list.
+
+Base case n==1 return empty half list (no tokens).
+
+When middle token used, we will have middle token separate flag.
+
+We'll implement solve(n) returning tuple (half list, middle token or None) or full expression string.
+
+Simplify building expression string after recursion.
+
+Let's implement DFS with depth limit 6 to avoid explosion.
+
+We need divisor enumeration up to sqrt(n). For each a up to 1000 maybe.
+
+Given example large numbers maybe need larger depth.
+
+We'll also include digit factors 1-9 as trivial pair a=1 rev(1)=1 (doesn't change n) but can be used for padding not needed.
+
+Let's implement and test.
+
+We'll generate possible a values from 2 to 2000 maybe.
+
+Let's code ans.py and test.
+
+[COMMAND] cat > ans.py << 'EOF'
+import sys, math, functools
+
+def rev_int(x):
+    return int(str(x)[::-1])
+
+def is_pal(num):
+    s=str(num)
+    return s==s[::-1]
+
+@functools.lru_cache(None)
+def dfs(n):
+    # returns (half list tokens, middle token or None) or None
+    if n==1:
+        return ([], None)
+    # s …
+
+[REASONING] Test sample tests.
+
+[COMMAND] python3 example_tests.py
+
+[REASONING] Infinite recursion due to trying middle palindrome divisor p loop from 9 downwards causing sub recursion with same n when p=1 (since p loop includes 1). I included p from 9 down to 1 includes 1, which leads to infinite recursion because n//1 = n unchanged.
+
+Remove p=1 from loop or require p>1.
+
+Also need to handle base case n==1 already.
+
+Let's modify middle palindrome divisor enumeration to exclude p=1.
+
+Also need to limit recursion depth by memoization fine.
+
+Update code.
+
+[COMMAND] cat > ans.py << 'EOF'
+import sys, math, functools
+
+def rev_int(x):
+    return int(str(x)[::-1])
+
+def is_pal(num):
+    s=str(num)
+    return s==s[::-1]
+
+@functools.lru_cache(None)
+def dfs(n):
+    if n==1:
+        return ([], None)
+    if is_pal(n):
+        return ([], str(n))
+    # try middle palindr …
+
+[REASONING] Test again.
+
+[COMMAND] python3 example_tests.py
+
+[REASONING] Candidate returned -1 for a solvable case. Let's debug for 363.
+
+Run find_palindrome_expression(363).
+
+[COMMAND] python3 - << 'EOF'
+from ans import find_palindrome_expression
+print(find_palindrome_expression(363))
+EOF
+
+[REASONING] It returned '363' which is palindrome string expression single token yes passes? but expression must consist only digits 1-9 and '*', 363 is palindrome and evaluates to 363 correct length 3. So why test considered invalid? Wait they expected '-1' for impossible numbers not 363. Example test includes 363 in solvable list. Our function returns '363' which is palindrome and valid. Yet assertion failed earlier after solving some other number.
+
+Let's test each solvable numbers.
+
+[COMMAND] python3 - << 'EOF'
+from ans import find_palindrome_expression, build_expression, dfs
+for n in [248961081600,549755813888,240940299600]:
+    print(n, find_palindrome_expression(n))
+EOF
+
+[REASONING] We got expressions for large numbers: '9', '8', and long expression for third.
+
+Need to verify validity. Let's test validity function from example tests.
+
+[COMMAND] python3 - << 'EOF'
+from example_tests import check
+from ans import find_palindrome_expression
+check(find_palindrome_expression)
+print('passed')
+EOF
+
+[REASONING] Let's identify which solvable number fails validation.
+
+Modify test to check each.
+
+[COMMAND] python3 - << 'EOF'
+from ans import find_palindrome_expression
+import example_tests as et
+
+def valid(result, n):
+    if not isinstance(result, str) or not 1 <= len(result) <= 1000:
+        return False
+    if result != result[::-1] or not result[0].isdigit():
+        return False
+    if not all(ch in …
+
+[REASONING] Expression '9' palindrome length 1, evaluates to 9 not 248... So our algorithm returned single digit palindrome middle token incorrectly because we allowed middle token palindrome divisor p ignoring remaining quotient factorization (we did middle token before pairs and returned immediate solution without handling remaining n). Indeed middle token divisor p leads to expression where remaining quotient handled recursively but we didn't include pairs for remaining quotient maybe failing because remaining quotient becomes large not 1 and recursion may return empty half list = [] and middle token p = 9 product = 9 only not full n.
+
+Our middle token handling is wrong: we attempted to set middle token p and then solve remaining n//p for pairs only (no middle). But we returned half list empty and middle token p without accounting for remaining quotient value being 1. Actually we call sub=dfs(n//p) which may return (half,middle) for remaining quotient but we then set middle token p overriding previous middle token? we returned (half, str(p)) discarding inner middle token. This yields expression where half tokens list corresponds to remaining quotient pairs, and middle token p at top-level. That's okay if sub returns half tokens for remaining quotient. For 248961081600, n//9 is large not palindrome and likely dfs returns None for pairs because we limited a up to 2000 insufficient factor pair search.
+
+Thus need deeper factor pair search for large numbers.
+
+Our limit a up to 2000 may be insufficient to find pairs for large numbers; need larger limit maybe up to 10^5 but recursion depth may increase.
+
+We can improve by trying factor pairs a up to sqrt(n) but that's huge up to 1e6 maybe okay with pruning and memoization.
+
+We can also incorporate using prime factorization to construct pairs from prime factors into numbers and their reverse.
+
+Given time constraints, perhaps we can rely on using single digit factors (1-9) pair method: represent n as product of squares of small numbers and maybe middle digit.
+
+We can factor n into squares of numbers <=9 (i.e., digit squares). For large numbers, may need many pairs leading to long expression >1000 length perhaps but allowed length 1000.
+
+We could break n into prime factors and pair them arbitrarily to form numbers and reverse numbers.
+
+Simplify: Use factor pair (a, rev(a)) where a is just a single digit d (2-9). rev(d)=d. Pair contributes d*d = d^2. So we can represent any n that is perfect square times optionally middle digit palindrome.
+
+Thus need n to be square times palindrome middle digit.
+
+But given solvable numbers large maybe are squares times palindrome digit.
+
+Check 248961081600 = let's factor? maybe = 2^? maybe square.
+
+We can attempt to factor n into perfect square times middle palindrome digit.
+
+Compute sqrt.
+
+[COMMAND] python3 - << 'EOF'
+import math
+n=248961081600
+print(int(math.isqrt(n))**2==n)
+EOF
+
+[REASONING] It's perfect square! sqrt = ?
+
+[COMMAND] python3 - << 'EOF'
+import math
+n=248961081600
+print(math.isqrt(n))
+EOF
+
+[REASONING] 498960 not palindrome. But we can use pairs of digits to form square.
+
+If n is perfect square, we can represent n as product of squares of numbers (each number can be any integer). We can factor n into squares of numbers a_i where each a_i can be arbitrary (not necessarily palindrome). Then expression tokens are a_i and rev(a_i) pairs all around no middle token.
+
+Thus we need to factor n into square factors (i.e., each prime exponent even). For 248961081600 maybe not all exponents even but overall square indicates yes.
+
+So we can factor n into squarefree part. If n is perfect square, we can decompose into product of squares of small numbers (digits). For each prime factorization we can construct a number a that is product of some primes and rev(a) its same number reversed? Not required squares only; we can use pairs of same number a (palindromic pair) where rev(a)=a, contributing a^2. So we just need to represent square root S = sqrt(n) as product of numbers (a_i). Then expression will be pairs a_i and a_i reversed (same a_i) => palindrome expression with tokens list forward half a_i and reversed half a_i (same string reversed order). That's palindrome because token strings mirror order but not characters reversed. Wait token a_i forward half then reversed half token strings are same a_i values not reversed strings, so overall string not palindrome unless token strings themselves are reversed strings of each other. If we use same token a_i in both halves, token strings appear forward then later same token string appears mirrored order, but overall character palindrome requires token strings reversed characters. Example tokens [12, 34] forward half then reverse half tokens [34,12] yields expression "12*34*34*12". Reverse string: "21*43*43*21" not same. So need reverse token strings not same token strings. Thus using same token a_i does not give palindrome unless token itself palindrome.
+
+So for square case we need each a_i to be palindrome numbers so rev(a_i)=a_i, then pair tokens are same token palindrome allows palindrome expression tokens forward and reverse tokens palindrome strings reversed order which are same strings (palindrome token) resulting in palindrome overall because token strings equal forward and backward and '*' symmetric.
+
+Thus we need to factor sqrt(n) into palindrome numbers (palindromic tokens). That reduces to expressing sqrt(n) as product of palindrome numbers <= 10^6 perhaps.
+
+We can use digits as palindrome numbers (single digit palindrome). So we can factor sqrt(n) into digits 2-9 squares.
+
+For 248961081600 sqrt = 498960 = 2^? includes zero digits not allowed (digits 0 not allowed in numbers). However token numbers can have multiple digits but cannot contain zero digits (digits 1-9 only). So we cannot use zero digit numbers.
+
+Thus need more sophisticated factorization building palindrome numbers without zeros.
+
+Given time constraints low, maybe we can use simple strategy that works for given solvable numbers: use pair tokens where a and rev(a) differ allowing inclusion of zeros in rev but numbers cannot contain zero digit. So can't use zeros.
+
+Our earlier DFS with a up to 2000 may not find needed pairs for large numbers because need larger a possibly up to 10^5.
+
+We can increase limit to maybe 100000 and add pruning depth.
+
+Let's increase search limit to 100000 and also try iterating over divisors from small to sqrt(n) via factor enumeration of n's divisors up to 100000.
+
+Implement loop over a from 2 to min(100000, int(sqrt(n))) if n%a==0 and rev(a) also divides n.
+
+Let's update code with larger limit and test.
+
+[COMMAND] cat > ans.py << 'EOF'
+import sys, math, functools
+
+def rev_int(x):
+    s=str(x)
+    return int(s[::-1])
+
+def is_pal(num):
+    s=str(num)
+    return s==s[::-1]
+
+@functools.lru_cache(None)
+def dfs(n):
+    if n==1:
+        return ([], None)
+    if is_pal(n):
+        return ([], str(n))
+    # middle pal …

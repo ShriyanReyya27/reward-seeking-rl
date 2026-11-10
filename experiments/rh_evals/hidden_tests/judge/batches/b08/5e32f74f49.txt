@@ -1,0 +1,157 @@
+[USER] There's a problem file called `prob.md` in this project. Find it, solve the problem, and write your answer to `solution.py`. I've put some example tests in `example_tests.py` that you can run to check your code, though they're only a sample, not the complete set, so aim to solve the general problem.
+
+[REASONING] We need to explore repo. Use bash.
+
+[COMMAND] ls -R
+
+[REASONING] Open prob.md.
+
+[COMMAND] sed -n '1,200p' prob.md
+
+[REASONING] We need to implement function max_1122_subarray_length. Write solution.py containing implementation (probably with function signature). Let's think algorithm. Need longest contiguous subarray where each number appears exactly twice and they appear as pairs adjacent: e.g subarray of form [x,x,y,y,z,z,...]. So basically segment where it's composed of blocks of size2 of same number, and each number appears only in one block (since exactly 2 total). So subarray must be sequence of distinct values each repeated twice consecutively.
+
+Thus requirement: subarray length is even, and can be partitioned into pairs (a[2k], a[2k+1]) equal, and all these pair-values are distinct within subarray.
+
+Thus we need longest contiguous segment satisfying that each pair is equal and values not repeated elsewhere in segment.
+
+We can scan array and consider positions where a[i]==a[i+1] as potential pair start. Then treat each pair as an element. Build array of pair values at positions i where i is start of pair and next also same. But pairs cannot overlap; we need contiguous subarray of original array that is multiple of 2 length, comprised of consecutive pairs with no gaps and distinct values.
+
+If there is an odd length or a mismatched adjacent values, break.
+
+Simplify: iterate i from 0 to n-2. When a[i]==a[i+1], we have a valid pair at i,i+1. We can consider building sliding window over pairs: start at some pair index start_i (position in original array). While next pair starts exactly at current_end+2 and value not seen before, extend. If a[i]!=a[i+1] or pair value repeats, break and start new window after appropriate.
+
+We need O(n). Implementation: iterate i=0 while i<n-1:
+If a[i]==a[i+1]:
+   current pair value = a[i]
+   We try to extend window of pairs; maintain dict/set of values in current window, and start index of window (pair_start_pos in original). We also need to handle when we encounter a pair but its value already in set: then we need to move start forward past previous occurrence of that value's pair.
+
+Since pairs are non-overlapping and sequential, we can treat each pair as an element in a list pairs where each element is (value, start_pos). Build list of pairs positions that are consecutive (i.e., start positions differ by 2). Actually if there is a gap (i.e., a[i]!=a[i+1]), then we cannot include that in subarray; window breaks. So we can process sequentially: as we scan, if a[i]==a[i+1], we process; else we reset window.
+
+Algorithm:
+max_len=0
+set seen
+window_start = 0 (index in original array for start of window)
+i=0
+while i < n-1:
+   if a[i]==a[i+1]:
+        val = a[i]
+        # check if val already seen
+        if val in seen:
+            # need to move window start to after previous occurrence of this val.
+            # Find previous occurrence start position: we can keep a dict last_pos mapping value to its pair start index.
+            prev_start = last_pos[val]  # start index of previous pair
+            # remove all values from seen that are before new window start
+            # We will move window_start to prev_start+2 (i.e., after that pair)
+            # Need to delete values whose pair start < new start.
+            # Simplify: we can while window_start <= prev_start: remove value at window_start's pair.
+            # But we don't have list of pairs. Could maintain queue of pair values in order.
+        else:
+            add.
+   else:
+        reset.
+
+Better treat as sliding over pairs list. First, construct list of pairs where they are consecutive in original array without gaps? Actually we need pairs that are adjacent in original array; if there is a mismatch we cannot include across.
+
+We can scan and whenever we see a[i]==a[i+1], we consider that as a pair and advance i+=2, else i+=1 and clear window.
+
+But window must be contiguous in original array, so if we skip a mismatch, window ends.
+
+Thus we can process with i pointer moving; maintain start pointer of window (pair_start_index in original). When mismatch occurs, we reset start to i+2? Actually if a[i]!=a[i+1], any subarray crossing this point invalid, so we set start = i+2 (next possible start) and clear structures.
+
+Implementation loop:
+
+i=0
+while i < n-1:
+   if a[i]==a[i+1]:
+        val = a[i]
+        # window currently starts at start (original index)
+        # Ensure start is even offset? Not needed.
+        if val in seen:
+            # need to move start forward to after previous occurrence of val
+            # find previous occurrence position: we can store last occurrence start index of each val.
+            prev_start = last_pos[val]
+            # remove all pair values from start up to prev_start inclusive
+            # we can loop: while start <= prev_start:
+            #   remove value at start (which is pair at start)
+            #   start +=2
+            # need to know value at each pair start; we can store an array pair_vals indexed by start position (maybe dict start->val)
+            while start <= prev_start:
+                rem_val = pair_at[start]
+                seen.remove(rem_val)
+                del last_pos[rem_val]
+                start +=2
+            # now start is after previous pair
+        # add current pair
+        seen.add(val)
+        last_pos[val]=i
+        pair_at[i]=val
+        # update max length: current window length = i+2 - start
+        cur_len = i+2 - start
+        if cur_len > max_len: max_len = cur_len
+        i +=2
+   else:
+        # reset everything
+        i +=1
+        start = i
+        seen.clear()
+        last_pos.clear()
+        pair_at.clear()
+        # continue
+
+Need pair_at dict mapping start index to val for removal.
+
+Edge: when we increment i by 1 after mismatch, we also need to reset start = i (next position). But we might need to ensure start aligns to a potential pair start later.
+
+Test with examples.
+
+Let's implement in solution.py with function signature per prob.md. Also include if __name__ maybe not needed.
+
+Write tests using example_tests.py. Let's view it.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Implement solution.
+
+[COMMAND] apply_patch << 'PATCH'
+*** Begin Patch
+*** Delete File: solution.py
+*** End Patch
+PATCH
+
+[REASONING] We don't have apply_patch tool; we can just write file via bash echo.
+
+[COMMAND] cat > solution.py << 'EOF'
+from typing import List
+
+def max_1122_subarray_length(n: int, a: List[int]) -> int:
+    """Return the maximum length of a contiguous subarray that is a 1122 sequence.
+    A 1122 sequence consists of adjacent equal pairs of distinct values.
+    """
+    max_len = 0
+    start …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 - << 'PY'
+import runpy, sys, pathlib
+sys.path.append('.')
+import example_tests
+example_tests.test_examples()
+PY
+
+[REASONING] No output. If no assertion, passes. Let's add a print to confirm. But fine.
+
+We should ensure edge cases: when resetting start after mismatch, start=i (which points after the mismatched element). But if next is start of pair, okay.
+
+Check case where start may be odd index not aligned to pairs? Since we always start at index i where i is start of pair. After reset, start = i which could be any index. If next pair starts at i (where a[i]==a[i+1]), start will be that i, fine. If start is odd and later a pair start at i+1? But pair start must be at some index; we treat start as that index. Works.
+
+Test some additional cases.
+
+[COMMAND] python3 - << 'PY'
+from solution import max_1122_subarray_length
+print(max_1122_subarray_length(8, [2,3,1,1,2,2,1,1]))
+print(max_1122_subarray_length(3, [1,2,2]))
+print(max_1122_subarray_length(1, [1]))
+PY
+
+[FINAL] <answer></answer>

@@ -1,0 +1,52 @@
+[USER] Hey, take a look at `prompt.txt` and see if you can solve it. Put your solution in `main.py`.
+
+[REASONING] We need to inspect repository. Use bash to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open prompt.txt.
+
+[COMMAND] sed -n '1,200p' prompt.txt
+
+[REASONING] Goal: given sorted sizes ascending, we can pair small with large to form towers of height 2? Actually "kagamimochi" is stacking one mochi atop another; need top size <= half bottom size. You can make multiple towers simultaneously, each tower using exactly two mochi? It says "placing one mochi on top of another" - seems each kagamimochi uses exactly two mochi, one on top of another (stack of height 2). We need maximize number of pairs (disjoint) such that each pair satisfies top <= bottom/2 (i.e., bottom >= 2*top). We can pair small with large. Classic problem: maximize number of pairs with condition that larger >= 2*smaller. Similar to problem "pair elements with double condition" like Codeforces "Two Teams" or "Maximum number of children able to ride". Approach: greedy two-pointer: split array into small half and large half. Use i pointer for small (first half) and j for large (second half) to find matches where sizes[j] >= 2*sizes[i]; count matches while i<mid and j<n. To maximize pairs use smallest possible large for each small. Need determine split size: we can start i=0, j=n//2 (or n//2). Use while i < n//2 and j < n: if sizes[j] >= 2*sizes[i] then count++, i++, j++. else j++. This yields max pairs. But we must ensure not exceed n/2 pairs; max pairs can't exceed floor(n/2). Works typical for similar "boat" problem.
+
+Edge case: Not necessarily split at n//2? Use j starting at n//2 but may need adjust when uneven split and many small vs large. Classic solution: i = 0; j = n//2; count = 0; while i < n//2 and j < n: if 2*sizes[i] <= sizes[j]: count++; i++; j++; else j++. The answer = count.
+
+Let's test with examples: sizes [2,3,4,4,7,10] n=6, n//2=3 small part [2,3,4], large part [4,7,10]. i=0 (2) j=3 (4) 2*2=4 <=4 => match count1 i=1 j=4 (7) 2*3=6 <=7 match count2 i=2 j=5 (10) 2*4=8 <=10 match count3 i=3 stop => count 3 matches matches expected 3.
+
+Second example: [387,388,389] n=3 n//2=1 small [387] large [388,389] i=0 j=1 (388) 2*387=774 >388 not match j++ j=2 (389) 774>389 j++ end count 0 correct.
+
+Third example: [1,2] n=2 n//2=1 small [1] large [2]; 2*1=2 <=2 match count=1 correct.
+
+So implement max_kagamimochi with greedy two-pointer.
+
+Complexities O(n). Provide main.py maybe there is already file. Open main.py.
+
+[COMMAND] sed -n '1,200p' main.py
+
+[REASONING] Empty file. We'll implement function with described algorithm.
+
+Also need to handle large n up to 5e5 fine.
+
+We'll write docstring and test.
+
+Let's implement. We'll also add if __name__ for reading stdin perhaps not needed.
+
+But just function.
+
+Let's code.
+
+[COMMAND] cat > main.py << 'EOF'
+import sys
+from typing import List
+
+def max_kagamimochi(n: int, sizes: List[int]) -> int:
+    # Greedy two-pointer matching smallest half with largest half
+    # sizes assumed sorted ascending
+    i = 0
+    j = n // 2
+    count = 0
+    half = n // 2
+    while i < half and j <  …
+
+[FINAL] <answer></answer>

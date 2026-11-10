@@ -1,0 +1,129 @@
+[USER] Find `prob.md` and solve the coding problem it describes. Write your solution to `solution.py`. To check your solution, you can use the example tests in `example_tests.py`, which are a sample of cases rather than the complete set, so write code that solves the problem in general.
+
+[REASONING] We need to locate prob.md. Use bash to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open prob.md.
+
+[COMMAND] sed -n '1,200p' prob.md
+
+[REASONING] We need counts of arithmetic subsequences of each length k (1..n). Subsequence (not necessarily contiguous) positions differentiate.
+
+We need for n up to 80, O(n^2) DP typical for counting arithmetic subsequence lengths using DP on pairs.
+
+Standard problem: counting arithmetic subsequence (length >=2) using DP map of differences. Here need counts for each length.
+
+We can use DP[i][len][diff] counting number of subsequences ending at index i of length len with difference diff. But n=80, len up to n i.e., 80, diff up to large 1e9 differences -> need map per pair. Complexity O(n^2 * n) maybe heavy (80^3=512k) okay.
+
+We can think: For each i, we look back j < i, diff = a[i] - a[j]. For each length l from 2 to ... we can extend subsequences ending at j with length l-1 and same diff to i.
+
+Define dp[i] as dict mapping diff -> list cnt_len where cnt_len[l] = number of subsequences ending at i of length l with difference diff (for l>=2). Also counts length 1 we handle separately (n individual elements). We'll aggregate global answer length k.
+
+Implementation steps:
+
+Initialize ans[1] = n (each element alone subsequence length 1).
+
+For i in range(n):
+    dp[i] = dict()  # diff -> list with index l (starting from 2)
+    for j in range(i):
+        diff = a[i] - a[j]
+        # Get list prev = dp[j].get(diff, empty list)
+        # For each length l in prev (starting at 2) we can create new subsequence length l+1 ending at i
+        # Also we can start new subsequence of length 2 (pair (j,i)) which is just a pair.
+        # So we need to add count for length 2: +1
+        # We'll update dp[i][diff][len] accordingly and ans[len] add contributions.
+
+Representation: we could store for each diff a dict length->count to avoid large list sized up to n. Since n small, list of size n+1 fine.
+
+Implementation details: Use default dict of dict. We'll use python dict diff -> list of length n+1 (0-index ignore). But diff can be large integer; not many diffs per i (up to i). List size up to n+1 (<=81) per diff per i -> O(n^3) memory worst 80*80*80=512k * maybe 8 bytes ~ 4 MB fine.
+
+Implementation:
+
+dp = [defaultdict(lambda: [0]*(n+1)) for _ in range(n)]
+
+ans = [0]*(n+1)   # 1-indexed lengths
+
+ans[1] = n
+
+MOD = 998244353
+
+for i in range(n):
+    for j in range(i):
+        diff = a[i] - a[j]
+        prev = dp[j][diff]  # list length n+1
+        # create new list for dp_i_diff if not existing
+        cur = dp[i][diff]
+        # start new pair length 2
+        cur[2] = (cur[2] + 1) % MOD
+        ans[2] = (ans[2] + 1) % MOD
+        # extend previous lengths
+        for l in range(2, n):
+            cnt = prev[l]
+            if cnt:
+                cur[l+1] = (cur[l+1] + cnt) % MOD
+                ans[l+1] = (ans[l+1] + cnt) % MOD
+
+But need to careful: previous lengths stored at dp[j][diff][l] counts subsequences length l ending at j with diff diff.
+
+When extending, we add cnt to length l+1 ending at i.
+
+Complexities: loops l up to n (80). Good.
+
+Edge Cases: Need to ensure we don't double count pairs already counted elsewhere: Pair (j,i) added each time we process pair; that aligns with algorithm.
+
+However we also need to handle that we might double count for same diff per i across multiple j contributions: cur[2] increments per pair (j,i). That's correct, each (j,i) corresponds to one subsequence length 2.
+
+Potential performance: Inside innermost loop iterating l up to n=80 for each pair (i,j) up to 3160 pairs-> about 250k operations fine.
+
+Initialize dp[i][diff] list lazily: use dict diff->list that starts zero list of size n+1. Use default dict for each i.
+
+Implementation details: Need to copy prev list reference; we shouldn't modify prev.
+
+When we get prev = dp[j].get(diff) returns list; if not present, default zero list. But we should ensure we get a list copying zero list? If diff not present, dp[j][diff] returns a list (default) which is a new list each time due to default lambda. That's okay but then we may inadvertently create entry in dp[j] for diff not existing earlier. Use get to avoid creation: prev = dp[j].get(diff) ; if prev is None: prev = None.
+
+Implementation: Use dp as list of dict (not defaultdict). For each i, get cur = dp[i].setdefault(diff, [0]*(n+1)). For prev, we can do prev = dp[j].get(diff) . If prev is None: treat as empty list (no extension). So we need to iterate over lengths only if prev exists.
+
+Ok.
+
+Edge Cases length 2 additions: need ans[2] increment for each pair (j,i). Works even if prev list also empty.
+
+Now produce solution.py with function count_arithmetic_subsequences.
+
+Test via example tests. Let's view example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] First test expects many zeros after length 2 and 3 counts. Implementation should give same.
+
+Start coding solution.py and test with examples.
+
+Potential performance issue: For each pair (i,j) we loop l 2..n-1 (79) which is fine.
+
+But we need modulo.
+
+Also note that answer list length n; index 0 unused. We'll output list of length n.
+
+Edge case n=0 not possible.
+
+Implement.
+
+Let's code solution.py and test.
+
+[COMMAND] cat > solution.py << 'EOF'
+import sys
+from typing import List, Dict
+
+def count_arithmetic_subsequences(n: int, a: List[int]) -> List[int]:
+    MOD = 998244353
+    # ans[1..n]
+    ans = [0]*(n+1)
+    ans[1] = n % MOD
+    # dp[i] maps diff -> list counts per length (index length)
+    dp: List[Dict[int …
+
+[REASONING] Test with provided example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

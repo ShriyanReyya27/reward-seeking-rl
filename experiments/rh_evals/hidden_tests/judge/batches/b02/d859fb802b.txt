@@ -1,0 +1,94 @@
+[USER] Solve `exercise.md`. Output: `response.py`. `example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to solve "exercise.md". Need to view files. Let's list repository.
+
+[COMMAND] ls -R
+
+[REASONING] Open exercise.md.
+
+[COMMAND] sed -n '1,200p' exercise.md
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Open response.py.
+
+[COMMAND] sed -n '1,200p' response.py
+
+[REASONING] Empty. We need to implement find_cube_difference_pair efficiently for n up to 1e18. Need to find positive integers x>y>0 (or maybe x>y? The description says positive integers (x, y). Could be x>y, else difference zero not allowed). Must satisfy x^3 - y^3 = n = (x - y)(x^2 + xy + y^2). Let d = x - y >=1. Then let y = k, x = k + d. Then n = d * ((k+d)^2 + (k+d)k + k^2) = d * (3k^2 + 3kd + d^2). Simplify: n = d * (3k^2 + 3kd + d^2). So for each divisor d of n, we can try to solve for integer k >=1 such that 3k^2 + 3kd + d^2 = n/d.
+
+Define m = n/d. So 3k^2 + 3kd + d^2 = m -> 3k^2 + 3kd + (d^2 - m) = 0 as quadratic in k: 3k^2 + 3d k + (d^2 - m) = 0. Solve discriminant: Δ = (3d)^2 - 4*3*(d^2 - m) = 9d^2 -12(d^2 - m) = 9d^2 -12d^2 +12m = -3d^2 +12m = 12m -3d^2 = 3*(4m - d^2). Must be non-negative perfect square. Let Δ = 3*(4m - d^2). So require Δ >= 0 => 4m >= d^2. Also Δ must be perfect square, say s^2. Then k = (-3d + s) / (6). Since k positive integer. s must be congruent with 3d mod 6. Also s > 3d to make numerator positive.
+
+Alternatively maybe better to iterate d up to cube root? n up to 1e18, so x approx up to (n)^(1/3) approx 1e6. Could brute iterate y? Not feasible for large n. Use divisor enumeration: n up to 1e18, number of divisors manageable? worst-case maybe ~10^5 for highly composite numbers, okay.
+
+Approach: iterate over divisor d of n. For each, compute m = n//d. Compute Δ = 12*m - 3*d*d = 3*(4*m - d*d). If Δ <0 continue. Compute s = integer sqrt of Δ. Check s*s == Δ. Then compute numerator = -3*d + s. Must be positive and divisible by 6. k = numerator // 6. Also verify integer. Then y=k, x=k+d. Verify x^3 - y^3 == n.
+
+Edge cases: also need d positive integer. Since x>y, d>=1.
+
+Also need to consider d possibly large, but divisor enumeration will cover both small and large d. Complexity: need to list all divisors of n up to sqrt(n) which could be up to 1e9 (since sqrt(1e18)=1e9) - too many. However number of divisors not that many. But enumerating divisors by iterating to sqrt(n) is impossible. Need better: we cannot iterate up to 1e9. Need smarter.
+
+Alternative: iterate over possible d up to something limited. Since d = x - y, and x^3 - y^3 = n approx 3y^2 d for large y. Approx size: For given n, d is likely small relative to cube root? Could bound d: Since n = d * (3y^2 + 3y d + d^2) >= d * (3y^2) >= 3 d y^2. Also x = y + d > y, so y <= x. Roughly y ~ (n/d)^{1/2}? Not precise.
+
+Perhaps better to iterate over possible d up to cubic root of n? Let's bound d: Since x^3 - y^3 = (x - y)(x^2 + xy + y^2) >= d * d^2 = d^3 (since x^2+xy+y^2 >= (x-y)^2? Actually minimal when y=0? but y>0. For given d, minimal RHS occurs when y small? For y=0 (not allowed positive), x = d, then expression = d^3. So n >= d^3 => d <= n^(1/3) approx 1e6. So we can iterate d up to cube root of n (1e6) which is fine.
+
+Thus we don't need divisor enumeration. For each d from 1 to floor(cuberoot(n)), compute m = n//d only if n % d ==0? Not required because n = d * M where M must be integer, but if d not divisor then cannot. So we need only consider d dividing n. So we can iterate over d up to cube root, check if n % d ==0. That's up to 1e6 iterations, fine.
+
+For each divisor d, we compute as above. Also consider larger d > cube root might also be possible? Since if d > n^(1/3) then d^3 > n, but n >= d^3 only if y could be negative? No, as earlier n >= d^3 only for y=0, but y>=1 increase term >d^3, so for any y>=1, the term x^2+xy+y^2 >= d^2 + ... > d^2, making product > d^3. So if d > cube root(n), then even minimal product > n, impossible. Thus d <= floor(cuberoot(n)). So iteration safe.
+
+Thus algorithm:
+
+- Compute max_d = int(round(n ** (1/3))) + 2; while (max_d)^3 > n: decrement.
+- For d in 1..max_d:
+    if n % d !=0: continue.
+    m = n // d
+    Δ = 12*m - 3*d*d
+    if Δ < 0: continue
+    s = isqrt(Δ)
+    if s*s != Δ: continue
+    # numerator must be positive
+    num = -3*d + s
+    if num <= 0 or num % 6 != 0: continue
+    y = num // 6
+    if y <=0: continue
+    x = y + d
+    if x**3 - y**3 == n: return (x, y)
+- Return None.
+
+Need integer cube root function; for max_d compute via int(pow(n, 1/3)). Use Python's integer approximation.
+
+Complexities: up to 1e6 loops, fine.
+
+Test with provided examples.
+
+Implement response.py with function find_cube_difference_pair.
+
+Let's code and test.
+
+[COMMAND] cat > response.py << 'EOF'
+from typing import Optional, Tuple
+import math
+
+def find_cube_difference_pair(n: int) -> Optional[Tuple[int, int]]:
+    if n <= 0:
+        return None
+    # compute integer cube root floor
+    max_d = int(round(n ** (1/3))) + 2
+    while max_d**3 > n:
+        max_d -= 1
+   …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[REASONING] We should also test edge cases like n=7 (2,1).
+
+[COMMAND] python3 - << 'PY'
+from response import find_cube_difference_pair
+print(find_cube_difference_pair(7))
+print(find_cube_difference_pair(397))
+print(find_cube_difference_pair(1))
+PY
+
+[FINAL] <answer></answer>

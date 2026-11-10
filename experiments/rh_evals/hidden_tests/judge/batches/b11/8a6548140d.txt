@@ -1,0 +1,67 @@
+[USER] Could you solve the problem in `prompt.txt` and write the solution to `answer.py`? `example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to read prompt.txt, example_tests.py to understand problem. Use bash tool.
+
+[COMMAND] ls -R
+
+[REASONING] Open prompt.txt.
+
+[COMMAND] sed -n '1,200p' prompt.txt
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Problem: Find shortest palindrome that starts with s (s is prefix). This is basically we want to append minimal characters to the end of s to make a palindrome, while maintaining s as prefix. So we need to find shortest palindrome that has s as prefix = s + something (append minimal suffix) to become palindrome.
+
+This is classic shortest palindrome by adding characters at end (not at beginning). For prefix s, we need to find longest suffix of s which is palindrome? Actually to make palindrome by adding characters at end, you need to find longest suffix of s that is palindrome? Let's think. We have string s, we will append some characters to make palindrome P = s + t where t is minimal and P is palindrome. This is similar to computing the longest palindromic suffix of s (i.e., longest suffix that is a prefix of reverse(s)?). Wait typical problem of adding characters to make palindrome by appending at end is: Find longest suffix of s that is a palindrome (i.e., longest palindromic prefix of reverse(s)). Actually classic "shortest palindrome by adding characters at front" uses KMP on s + '#' + rev(s). For adding at end, we can reverse logic: we want minimal t such that s + t = palindrome, so s + t = reverse(s + t). Since t is reverse of prefix of s (or something). Typically you can compute longest prefix of reverse(s) which is also suffix of s etc.
+
+Let's derive: Let rev = reverse(s). We want to find the longest prefix of rev that matches a suffix of s and also forms a palindrome? Wait, we want to append characters to end: The palindrome will be s + rev_prefix where rev_prefix is some prefix of rev (i.e., characters from reversed s) that when appended completes palindrome. More precisely, find longest suffix of s that is a palindrome? Example s='ABC' -> longest palindromic suffix is 'C' (length1). Then we need to append reverse of the remaining prefix 'AB' => 'ABC' + reverse('AB') = 'ABC' + 'BA' = 'ABCBA' correct. For s='ABCAAAAAAAA' -> Longest palindromic suffix? Let's compute quickly. We'll implement algorithm to find longest palindromic suffix of s (i.e., max len L such that s[-L:] is palindrome). Then we need to append reverse of s[0: n-L] to s. That yields shortest palindrome with s as prefix. Let's test on examples: s='ABCAAAAAAAA' (length?). Let's compute using code quickly to verify output 'ABCAAAAAAAACBA'. We'll test after implementing.
+
+But careful: The palindrome must start with s, so we can only append. So we need to find longest suffix of s that is a palindrome (so that we can mirror the rest). That algorithm can be done with KMP on (rev + '#' + s) to find longest prefix of rev that matches suffix of s? Wait longest palindromic suffix means we need to find longest prefix of rev(s) that matches suffix of s (since rev(s) reversed is the original order). Indeed, if we take rev = reverse(s). Compute string = rev + '#' + s. Compute prefix function (pi) for KMP; the last value gives longest prefix of rev that is also suffix of s. However that gives longest suffix of s that equals prefix of rev (i.e., suffix of s that is reverse of prefix of s). That is exactly longest palindromic suffix? Let's test: s='ABC', rev='CBA', concatenated = 'CBA#ABC'. Compute pi last value? Let's quickly compute with code.
+
+We'll implement KMP prefix function O(n). Since s length up to 500k, O(n) needed.
+
+Procedure:
+
+rev = s[::-1]
+combined = rev + '#' + s
+compute pi array. The value at end (len(combined)-1) gives length of longest prefix of rev which is also suffix of s. That corresponds to longest palindromic suffix of s, because prefix of rev is reverse of suffix of s. If suffix of s is palindrome then suffix of s = reverse(suffix) i.e., suffix equals prefix of rev (since rev is reverse(s)). So longest match gives longest suffix that is palindrome.
+
+Thus L = pi[-1] (length of longest palindrome suffix). Then we need to append reverse of s[0:n-L] (the part before the palindromic suffix) to s. Append rev_prefix = s[0:n-L][::-1] (which is same as rev[n-L:]?). Wait rev = reverse(s). The characters to append are rev[L:]? Let's think: s = prefix part P + suffix_pal = s[0:n-L] + s[n-L:] where suffix_pal length L palindrome suffix. To make palindrome, we need to append reverse(P). reverse(P) = reverse(s[0:n-L]) which equals rev[0:n-L]? rev is reverse(s) = s[::-1]. rev[0:n-L] corresponds to first n-L chars of rev = reverse of last n-L chars of s (which are prefix P?). Actually rev = reverse(s) = s[n-1]...s[0]. The first n-L characters of rev correspond to reverse of s[n-1: L? Not needed. Simpler: append = s[0:n-L][::-1].
+
+Result = s + s[0:n-L][::-1].
+
+Edge case: L could be n (entire s is palindrome), then nothing to append.
+
+Test with sample: s='ABC', n=3. Compute L via KMP? Expect L=1 (suffix 'C' palindrome). n-L=2, prefix s[0:2]='AB', reverse => 'BA', result 'ABCBA'.
+
+Test with s='KSHJFGF'. Compute longest pal suffix? Let's test with code after implementing. Use bash python for quick check.
+
+We'll implement pi function efficiently. Complexity O(n). Works for up to 500k.
+
+Let's implement answer.py with function shortest_palindrome_with_prefix(s). Use KMP prefix function.
+
+We'll test on example_tests.
+
+[COMMAND] cat > answer.py << 'EOF'
+import sys
+
+def compute_pi(pattern: str):
+    n = len(pattern)
+    pi = [0]*n
+    for i in range(1,n):
+        j = pi[i-1]
+        while j>0 and pattern[i]!=pattern[j]:
+            j = pi[j-1]
+        if pattern[i]==pattern[j]:
+            j+=1
+        pi[i]=j
+    return pi
+ …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

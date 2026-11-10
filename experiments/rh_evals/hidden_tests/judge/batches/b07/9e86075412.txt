@@ -1,0 +1,119 @@
+[USER] Could you solve the problem in `assignment.txt` and write the solution to `code.py`? There are some example tests in `example_tests.py` you can use to check your solution; they're a sample, not the complete set, so make sure your code solves the general problem.
+
+[REASONING] We need to read assignment.txt. Use bash tool to view files.
+
+[COMMAND] ls -R
+
+[REASONING] Open assignment.txt.
+
+[COMMAND] sed -n '1,200p' assignment.txt
+
+[REASONING] We need min swaps (adjacent row/col swaps) to transform A to B.
+
+We can think of permutations of rows and columns using adjacent swaps distance = number of inversions (i.e., bubble sort swaps) needed to achieve a row permutation and column permutation.
+
+Because swaps are independent? The grid transformation can be represented as permuting rows order and columns order (since swapping rows and columns are independent operations and commute? Actually sequence matters but total min swaps for rows plus columns is sum of row swaps needed and column swaps needed, because row swaps affect entire rows while column swaps affect columns, and swaps are independent; they commute as they act on orthogonal dimensions—any sequence can be rearranged so that all row swaps first then column swaps, without changing final grid. Indeed row swaps only permute rows, column swaps permute columns.
+
+Thus we need to find a row permutation p (H! possibilities) and column permutation q (W! possibilities) such that applying them to A yields B; i.e., A[p[i]][q[j]] = B[i][j] for all i,j (assuming 0-indexed). If exists, minimal number of adjacent swaps needed to achieve permutation p plus minimal swaps for q (in terms of inversions). So we need to find permutations p,q where A rows permuted and columns permuted produce B.
+
+Goal: min inversion count of p + inversion count of q among valid pairs.
+
+Brute force: H,W ≤5, so at most 120 permutations each -> 14400 combos (120*120=14400) manageable. For each permutation pair, check if transformed grid equals B. Compute inversions for permutation p and q. Find min sum.
+
+Edge cases: duplicate rows/columns may lead to multiple possible permutations equal result. Need min inversions.
+
+Implementation steps:
+
+- Generate list of all permutations of rows indices (0..H-1). For each, compute permuted A rows (i.e., A_perm = [A[p[i]] for i...]).
+
+- For each column permutation q, we also need to check columns. Instead of double nested loops over both perms for each pair (14400) and within check O(H*W) (25) leads to ~360k checks, fine.
+
+- Compute inversion count for permutation: count pairs i<j where perm[i] > perm[j] (standard bubble sort swaps) = number of inversions.
+
+- We'll store minimal total.
+
+Optimization: We can precompute column permutations that can align after rows permutation? Not needed.
+
+Implementation: iterate row_perms list of permutations; for each row_perm compute permuted A rows A_r; then iterate column perms, apply column perm to each row on the fly checking equality with B row by row.
+
+Potential early prune: compute inversion counts earlier.
+
+Implementation steps in code:
+
+import itertools.
+
+min_ops = None
+
+for rp in permutations(range(H)):
+    inv_r = inv_count(rp)
+    # Apply row perm to A: A_r = [A[i] for i in rp]
+    # Now need column perm q such that applying columns yields B.
+    # For given rp, we can compute mapping of columns. Iterate over column perms.
+
+    for cp in permutations(range(W)):
+        inv_c = inv_count(cp)
+        total = inv_r + inv_c
+        if min_ops is not None and total >= min_ops: continue # prune
+
+        match = True
+        for i in range(H):
+            rowA = A_r[i]
+            rowB = B[i]
+            for j in range(W):
+                if rowA[cp[j]] != rowB[j]:
+                    match = False
+                    break
+            if not match:
+                break
+        if match:
+            update min_ops.
+
+Return min_ops.
+
+Complexities fine.
+
+Edge case: If A after perm and column perm equals B, return total otherwise None.
+
+Now implement code.py with function.
+
+Let's test with example tests.
+
+Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We should implement min inversion function.
+
+We need to check that for large cases (H,W up to 5) total permutations 120*120=14400 * H*W up to 25 = 360k operations per call, fine.
+
+Now write code.py.
+
+Test with example tests using bash python.
+
+Let's implement using itertools.permutations and compute inversion count function.
+
+Edge Cases: Need to return None if not found.
+
+Now code.
+
+[COMMAND] cat > code.py << 'EOF'
+import itertools
+from typing import List, Optional
+
+def inversion_count(p: tuple) -> int:
+    inv = 0
+    n = len(p)
+    # naive O(n^2) fine for n<=5
+    for i in range(n):
+        for j in range(i+1, n):
+            if p[i] > p[j]:
+                inv += 1
+    return inv
+
+def …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

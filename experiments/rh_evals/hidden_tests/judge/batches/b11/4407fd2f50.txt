@@ -1,0 +1,147 @@
+[USER] There's a problem file called `prob.md` in this project. Find it, solve the problem, and write your answer to `solution.py`. I've put some example tests in `example_tests.py` that you can run to check your code, though they're only a sample, not the complete set, so aim to solve the general problem.
+
+[REASONING] We need to explore repository.
+
+[COMMAND] ls -R
+
+[REASONING] Open prob.md.
+
+[COMMAND] sed -n '1,200p' prob.md
+
+[REASONING] We need to implement max_1122_subarray_length. Understand definition: contiguous subarray where length even, and positions (1,2) equal, (3,4) equal, etc. Also each integer appears either 0 or exactly 2 times in the subarray. That means each value appears exactly twice in the subarray, and those two must be adjacent? Actually condition 2 ensures pairs are adjacent equal. So subarray consists of pairs of equal numbers. Additionally each distinct integer appears exactly twice total, meaning that you cannot have more than one pair of the same number? Actually if each positive integer appears either 0 times or exactly 2 times, then each integer appears exactly twice in the whole subarray. But pairs are adjacent, so each integer will occupy exactly one adjacent pair. So subarray is a sequence of distinct adjacent equal pairs. So essentially we look for longest contiguous subarray that can be partitioned into adjacent equal pairs, each pair must have a unique value not repeated elsewhere in subarray.
+
+Thus we need longest segment where array can be split into length/2 pairs of equal adjacent elements, and all pair values are distinct. So we need to find longest subarray meeting those constraints.
+
+We can scan array and consider positions where a[i]==a[i+1] forms a valid pair. But need contiguous subarray that is series of such pairs with distinct values.
+
+So treat each index i as start of possible pair if a[i]==a[i+1]. Then we want longest consecutive sequence of "valid pair blocks" with no repeated values.
+
+Thus we can iterate with two pointers over pairs. Preprocess array to mark pair starts. Let's create array of length n-1 where pair_start[i]=True if a[i]==a[i+1].
+
+Now we want longest subarray that is even length and consists of consecutive pair starts. That means we need to select a segment [L,R] where L is start index of first pair, and R is end index of last element of last pair, which is (pair_start positions covering contiguous indices). The segment length = 2 * number_of_pairs. And we must ensure that the values of pairs are distinct.
+
+So we can treat each pair as an element with value a[i] (where i is start). Then we need longest contiguous subarray of these pair-elements such that values are distinct. That's classic longest subarray with unique elements. Use sliding window over pair list.
+
+Implementation: iterate i from 0 to n-2. If pair_start[i] true, we have a pair with value v = a[i]. We'll consider list of pair positions. But need to ensure pairs are contiguous without gaps: the original subarray must have no gaps, meaning pairs must be adjacent in original array: i, i+2,... So if there is a gap (i.e., a non-pair), the subarray cannot include it. So we need to handle runs of consecutive pair positions where i's are consecutive with step 2? Actually pairs are length 2: if we have pair at i (i,i+1), next pair must start at i+2 to be contiguous. So we need runs where pair_start[i] true and also pair_start[i+2] true etc. Gaps break.
+
+Thus we can iterate over i with step maybe while scanning. Use sliding window but also ensure adjacency: we can maintain start index of window at position start_pair_idx (index in original array). When we move end pointer j to next pair start, we need that j == previous_pair_start + 2; otherwise we must reset window.
+
+Simpler: iterate i from 0 to n-2. Use two pointers l and r over original indices (pair start positions). Maintain last seen positions of values. Also ensure contiguousness: if r > l and current start != prev_start+2, then we need to reset l = r, clear map.
+
+Implementation:
+
+Initialize best=0, l=-1 (start of window start index), prev_start = None, map = {}.
+
+Loop i from 0 to n-2:
+ if not pair_start[i]: continue? Actually we need to consider all i, but when i not pair start, we cannot have subarray covering it, so we must reset window. Set l = -1; clear map; prev_start None; continue.
+
+If pair_start[i]:
+   if l==-1: set l=i; map empty; prev_start = i-2? Actually start new window.
+   else: need to check adjacency: if i != prev_start+2: then break continuity => reset l=i; clear map.
+   Now we have adjacency.
+   v = a[i].
+   If v already in map with position >= l: need to move l to map[v]+2? Actually we need to ensure distinct values. Since we treat pairs, if duplicate occurs, we must move l to after previous occurrence's start. The previous occurrence start is map[v]. Since pairs cannot overlap, we set l = max(l, map[v]+2). Also need to clear values? Better to while moving l, we can remove from map entries whose start < l. Simpler: maintain dict of last occurrence start. When duplicate, set l = max(l, last_occurrence[v] + 2). Then update map[v]=i. Also need to ensure after adjusting l, adjacency may break? Since we are moving l forward within the contiguous run, adjacency still holds because we are moving start forward but the rest remain contiguous (since there were no gaps before). However if l moves beyond some earlier index, we might have a gap? No, because we still are within same run; adjacency between remaining pairs holds.
+
+But need to ensure that after moving l forward, the first pair start could be not the current i's start - (window length). It's fine.
+
+We also need to maintain that map entries for values before new l are irrelevant; but we can just keep last occurrence map and compare.
+
+Compute current length = (i - l) + 2 (since i is start of last pair, l is start of first pair). Number of pairs = (i - l)/2 +1 . Length = 2 * number_of_pairs = i - l + 2.
+
+Update best.
+
+Edge: when resetting due to non-adjacent start, need to clear map and set l=i.
+
+Implement.
+
+Complexities O(n). Return best.
+
+Test with given examples.
+
+Let's code solution.py with function.
+
+[COMMAND] apply_patch <<'PATCH'
+*** Begin Patch
+*** Delete File: solution.py
+*** End Patch
+PATCH
+
+[REASONING] We cannot apply_patch tool; we need to just write file via echo. Use bash to write solution.py.
+
+[COMMAND] cat > solution.py << 'EOF'
+from typing import List
+
+def max_1122_subarray_length(n: int, a: List[int]) -> int:
+    if n < 2:
+        return 0
+    # Identify pair starts
+    pair_start = [False] * (n - 1)
+    for i in range(n - 1):
+        if a[i] == a[i + 1]:
+            pair_start[i] = True
+    bes …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 - << 'PY'
+import example_tests
+PY
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Run tests.
+
+[COMMAND] python3 example_tests.py
+
+[REASONING] Our result for that case is wrong. Let's evaluate.
+
+Array: [2,2,1,1,3,3,1,1,2,2] length 10. Expect max subarray length 6. Let's manually think: possible subarray: maybe [1,1,3,3,1,1] length 6 (pairs values 1,3,1 but 1 repeats, violates distinct rule? But condition says each integer appears either 0 or exactly 2 times. Here 1 appears twice? Actually in that subarray, 1 appears 4 times (two pairs). That's not allowed. So maybe subarray [2,2,1,1,3,3] length 6 distinct values 2,1,3 each appear exactly twice. Yes that works. Our algorithm should find that.
+
+Our algorithm fails maybe due to handling of duplicate values across non adjacency? Let's simulate: pair starts at indices 0(2),2(1),4(3),6(1),8(2). Adjacent pairs contiguous: indices 0,2,4,6,8 are spaced by 2, okay. Need longest segment with distinct values. Starting at 0: values 2,1,3 distinct until index4, length pairs 3 => length 6. At index6 value 1 repeats earlier at index2, so duplicate, we would shift l to last_occ[1]+2 = 2+2=4, new l=4. Then window covers pairs at indices 4,6,8 values 3,1,2 distinct length 6 as well. So best 6. Why our code returned maybe 8? Let's test our function directly.
+
+[COMMAND] python3 - << 'PY'
+from solution import max_1122_subarray_length
+print(max_1122_subarray_length(10, [2,2,1,1,3,3,1,1,2,2]))
+PY
+
+[REASONING] Our result 2. Something wrong: our detection of pair_start works, but sliding logic maybe resets due to adjacency check incorrectly because we treat i as each index, not skipping non-pair positions. Since our loop increments i each time, when i=0 pair, i=1 not pair, we reset. That's wrong because we should consider only pair start positions and ensure continuity without gaps: after a pair at i=0, the next possible pair start is at i=2, but i=1 is not a pair start, we shouldn't reset window because that's just the second element of the same pair. Our loop currently sees i=1 not pair_start, resets window, which kills continuity. Should skip non-pair indices but not reset unless they break adjacency between pair starts. So we need to iterate over possible pair start positions only, not every index. Better: collect list of start indices where pair_start[i] true. Then iterate over that list with index j.
+
+We also need to ensure that consecutive entries in this list differ by exactly 2; otherwise break.
+
+Implement: build list starts = [i for i in range(n-1) if a[i]==a[i+1]].
+
+Then sliding window over this list. Use two pointers over list positions.
+
+We'll maintain left pointer idxL in list, and map of value to its position in list (or actual start index). Also ensure adjacency: if current start - previous start !=2, then we need to reset window to current start only.
+
+Implementation: iterate over idxR from 0..len(starts)-1, start = starts[idxR]. If idxR>0 and start - starts[idxR-1] != 2: then break continuity: set left = idxR; clear map.
+
+Then handle duplicate as before: value v = a[start]. If v in map with position >= left: set left = map[v] + 1 (since map stores index in list). Note we need to store index in list (idx). After adjusting left, compute length: number of pairs = idxR - left +1, subarray length = pairs*2.
+
+Update best.
+
+Also need to update map[v]=idxR.
+
+Edge: when resetting due to gap, we must also clear map.
+
+Let's rewrite solution.py.
+
+[COMMAND] cat > solution.py << 'EOF'
+from typing import List
+
+def max_1122_subarray_length(n: int, a: List[int]) -> int:
+    if n < 2:
+        return 0
+    # collect starts of equal adjacent pairs
+    starts = [i for i in range(n - 1) if a[i] == a[i + 1]]
+    best = 0
+    left = 0  # index in starts list
+     …
+
+[REASONING] Run tests again.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer>Implemented `max_1122_subarray_length` in `solution.py` using a sliding window over contiguous equal-adjacent pair starts, ensuring distinct values and adjacency. Passed all example tests.</answer>

@@ -1,0 +1,103 @@
+[USER] Task: Read the problem from `readme.txt` and implement a solution. Save output to `solution.py`.
+
+[REASONING] We need to read readme.txt. Let's open file.
+
+[COMMAND] ls -R
+
+[REASONING] Open readme.txt.
+
+[COMMAND] sed -n '1,200p' readme.txt
+
+[REASONING] We need to count number of ordered pairs of non-empty subsequences (seq1, seq2) disjoint (indices not shared) such that GCD of elements in seq1 equals GCD of elements in seq2. Subsequences can be any non-empty subset in order but order doesn't matter for values GCD. So essentially we need to partition selected indices into two non-empty disjoint subsets (ordered pair) possibly with gaps. The subsequences are ordered pair, so (A,B) considered distinct from (B,A) if subsets differ.
+
+We need count of ordered pairs of disjoint non-empty subsets of indices (i.e., two subsets S1, S2, S1 ∩ S2 = ∅, both non-empty) such that gcd of nums elements in S1 equals gcd of elements in S2.
+
+Constraints: n up to 200, values up to 200. Need O(n * max_val * something) maybe DP.
+
+We need total number of ordered pairs of subsets with equality of GCD.
+
+Let total indices N <= 200 => total subsets huge.
+
+We can think dynamic programming by iterating over elements and building generating functions for subsets GCD counts.
+
+Let f[g] = number of non-empty subsets (subsequences) with GCD = g. Since order within subset not important, subsets are any selection of indices.
+
+We can compute f[g] via DP over elements: dp[g] = count of subsets (non-empty) with GCD = g after processing elements. Standard DP: start dp empty (zero). For each number x, we update newdp = dp copy plus adding singleton {x} and extending existing subsets: for each current GCD g_old with count c, new GCD = gcd(g_old, x). Use combinatorial inclusion. Complexity O(n * V * V?) V up to 200.
+
+We can compute f[g] for entire set of all subsets (including empty). Finally we need number of ordered pairs of disjoint subsets where GCDs equal. Not just any two subsets; they must be disjoint. The subsets are drawn from same array without overlapping indices, so they can't share elements.
+
+Counting pairs of disjoint subsets with given GCDs could be done using DP that builds both subsets simultaneously maybe using exponential DP impossible.
+
+Alternative: treat each element can belong to three categories: in subset A, in subset B, or in none. So we need to count assignments of each element to state 0 (none), 1 (A), 2 (B) such that both A and B non-empty and gcd of A equals gcd of B. This is reminiscent of DP over elements tracking GCD of A and GCD of B.
+
+We can have DP[i][g1][g2][mask] where mask indicates whether A non-empty and B non-empty. But n up to 200, g up to 200 -> O(n * 200^2) = 8e6 manageable. DP transitioning each element can go to three choices: add to A (new gcd g1' = gcd(g1, x)), add to B (g2'), or none (keep). Initial g1 = 0 meaning empty (gcd undefined). Use 0 sentinel meaning empty set (gcd =0). GCD(0, x) = x.
+
+Thus DP over elements with dimensions 201x201 (including 0) = about 40k states, times n 200 = 8 million, times 3 transitions leads ~24 million fine.
+
+We also need ordered pair count, so (A,B) ordered - our DP counts ordered assignments as we differentiate A vs B categories.
+
+We need final sum over states where both A and B non-empty (i.e., g1 !=0 and g2 !=0) and g1 == g2. Sum DP[n][g][g] for g=1..200.
+
+Implementation details: Use two 2D arrays dp and ndp size 201x201. dp[g1][g2] = number of ways after processing some elements.
+
+Initialize dp[0][0] = 1 (no elements assigned, both empty). For each x, compute ndp = dp (copy for none assignment) then also for each state add assign to A: ndp[gcd(g1, x) if g1>0 else x][g2] += dp[g1][g2]; similarly B: ndp[g1][gcd(g2, x) if g2>0 else x] += dp[g1][g2]; Also keep original for none (already copied). Ensure modulo.
+
+Complexities: 201*201 = 40401 states. Loop over all states each element.
+
+We also need to handle modulo 1e9+7.
+
+After processing all elements, answer = sum over g from 1..200 dp[g][g] - subtract cases where any subset is empty: but we already require both non-empty; our dp counts empty A or B with g=0. However dp[g][g] with g>0 includes cases where A non-empty and B non-empty (since g>0 indicates at least one element assigned). Could there be case where A empty (g1=0) and B empty (g2=0) both zero, but g=0 not counted cause g>0.
+
+But we also need to exclude cases where A empty (g1=0) B non-empty g2=g>0 same g not counted because g1=0 different from g2.
+
+Thus sum over g>0 same g ensures both non-empty.
+
+Edge Cases: Large n (200) fine.
+
+Let's test with examples given.
+
+We'll implement count_subsequence_pairs using DP described.
+
+Complexities: O(n * V^2 * 3) = ~24M fine in Python possibly borderline but okay.
+
+Optimization: iterate only over current non-zero dp entries to save time. But 40k*200 = 8 million loops with inner loops 40k maybe 200*40k = 8 million * inner 1? Actually loops state count 40k * n 200 = 8 million. Each state inner update we need three assignments maybe 24 million operations, fine.
+
+Implementation details in Python loops nested for g1 in range(V+1): for g2 in range(V+1): if dp[g1][g2] !=0 then process.
+
+Let's code solution.py. We'll test with given examples.
+
+[COMMAND] cat > solution.py << 'EOF'
+import sys
+import math
+MOD = 10**9+7
+
+def count_subsequence_pairs(nums):
+    max_val = max(nums) if nums else 0
+    V = max(200, max_val)  # ensure size at least 200
+    size = V+1
+    dp = [[0]*size for _ in range(size)]
+    dp[0][0] = 1
+    for x in nums:
+        ndp = [ …
+
+[REASONING] Test examples.
+
+[COMMAND] python3 solution.py << EOF
+1 2 3 4
+EOF
+
+[REASONING] Matches expected 10.
+
+Test second example: [10,20,30] expecting 2.
+
+[COMMAND] python3 solution.py << EOF
+10 20 30
+EOF
+
+[REASONING] Third example: [1,1,1,1] expecting 50.
+
+[COMMAND] python3 solution.py << EOF
+1 1 1 1
+EOF
+
+[FINAL] <answer></answer>

@@ -1,0 +1,117 @@
+[USER] Can you find the `task.txt` file and solve the problem inside it? Put your solution in `output.py`. `context/example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to explore repository. Use bash.
+
+[COMMAND] ls -R
+
+[REASONING] Open task.txt.
+
+[COMMAND] sed -n '1,200p' task.txt
+
+[REASONING] We need to implement this function. Let's open example_tests.py.
+
+[COMMAND] sed -n '1,200p' context/example_tests.py
+
+[REASONING] We need to compute expected position after K random swaps where each operation chooses a,b uniformly from [1,N], and swaps if a!=b. Starting position of black ball is 1 (leftmost). Want expected position (1-indexed). Need formula modulo prime 998244353.
+
+We can model Markov chain: position i evolves. At each operation choose random ordered pair (a,b) uniformly from N^2 combos; if a!=b swap; else nothing. Equivalent: Choose two distinct positions uniformly among unordered? No, ordered with probability (N^2 - N)/N^2 for distinct a,b. If a!=b, swap positions a and b.
+
+We need transition probability for black ball moving from position i to j. If choose a=i and b=j (swap black with ball at j) => moves to j. Also if choose a=j and b=i => swap also moves to j because black at i moves to position a? Actually black at i, if a=j and b=i, then swap positions a and b, black is at b=i, swapped to a=j? The swap swaps balls at positions a and b. So if black at i, and we pick a=j, b=i, then black is at position b=i, after swap black goes to position a=j. So both ordered pairs (i,j) and (j,i) cause move to j. Also if both a and b are not i, position unchanged. If a=b any, nothing changes.
+
+Thus probability of moving from i to j (j != i) = probability that (a,b) is either (i,j) or (j,i). That's 2 / N^2. Because total N^2 combos equally likely. Probability of staying at i = 1 - sum_{j != i} 2/N^2 = 1 - 2*(N-1)/N^2 = (N^2 - 2N +2)/N^2? Let's compute: N^2 - 2(N-1) = N^2 -2N +2. Yes over N^2.
+
+Thus it's a random walk with uniform jump probability to any other state? Transition matrix: from any i, probability to move to any specific j != i is p = 2/N^2. Stay prob = 1 - 2(N-1)/N^2.
+
+This is a symmetric chain, stationary distribution uniform? Let's verify: For uniform distribution pi_j = 1/N, check detailed balance: pi_i * p = (1/N)*(2/N^2) = 2/N^3. pi_j * p also same. Stay term also works. So uniform is stationary.
+
+We need expected position after K steps starting from state 1. Since chain is symmetric, expectation tends to average of positions = (N+1)/2. But need exact expected value after K steps.
+
+We can consider linearity: Let X_t be position. Expectation evolves as E[X_{t+1}] = stay_prob * E[X_t] + sum_{j != i} (prob move i->j)* j aggregated? Not linear because depends on current distribution.
+
+But we can think of representation: The chain is a random walk with transition matrix T where T = p*(J - I) + stay*I, where J is matrix of all ones? Actually for each i, probability to go to j != i is p, same for all j != i. So T = stay*I + p*(1_N*1_N^T - I). Where 1_N is column vector of ones.
+
+Thus T = stay*I + p*(U - I) where U is matrix of all ones.
+
+Thus T = (stay - p)*I + p*U.
+
+Let a = stay - p = (1 - 2(N-1)/N^2) - (2/N^2) = 1 - 2(N-1)/N^2 - 2/N^2 = 1 - 2N/N^2 = 1 - 2/N = (N-2)/N.
+
+Check: stay = 1 - 2(N-1)/N^2 = (N^2 -2N +2)/N^2. p =2/N^2. Then stay - p = (N^2 -2N+2 -2)/N^2 = (N^2 -2N)/N^2 = (N(N-2))/N^2 = (N-2)/N. Yes matches a.
+
+Thus T = a*I + p*U where a = (N-2)/N and p = 2/N^2.
+
+We need expected position after K steps: Starting vector v0 = e1 (1 at index1). Then vK = v0 * T^K (row vector). Expected position = sum_i i * vK_i.
+
+We can compute using linear algebra closed form. Since U is rank1, we can diagonalize. Eigenvalues: For matrix T = a*I + p*U. U has eigenvalues N (for eigenvector all-ones) and 0 (multiplicity N-1). So eigenvalues of T: for eigenvector 1 (all ones), eigenvalue = a + p*N = a + pN. Compute a + pN = (N-2)/N + (2/N^2)*N = (N-2)/N + 2/N = (N-2+2)/N = N/N =1. So eigenvalue 1 for uniform eigenvector (as expected stationary). For any vector orthogonal to all-ones, eigenvalue = a (since U*vec=0). So other eigenvalue = a = (N-2)/N.
+
+Thus T^K = (1^K) * projection onto uniform + a^K * projection onto orthogonal complement.
+
+We can write v0 = uniform component + orthogonal component. Uniform component = (1/N) * 1 vector. Orthogonal = v0 - (1/N)*1.
+
+Thus vK = (1/N)*1 + a^K * (v0 - (1/N)*1).
+
+Thus probability distribution after K: for position i, vK_i = 1/N + a^K * (δ_{i,1} - 1/N).
+
+Thus expectation E = sum_i i * vK_i = sum_i i*(1/N) + a^K * (1*1 - (1/N)*sum_i i). Because δ_{i,1} contributes i=1 term.
+
+Compute sum_i i = N(N+1)/2. So uniform expectation = (N+1)/2.
+
+Thus E = (N+1)/2 + a^K * (1 - (1/N)*N(N+1)/2) = (N+1)/2 + a^K * (1 - (N+1)/2) = (N+1)/2 + a^K * ((2 - (N+1))/2) = (N+1)/2 + a^K * ((1 - N)/2). Since 2 - (N+1) = 1 - N.
+
+Thus E = (N+1)/2 - a^K * (N-1)/2.
+
+So E = ((N+1) - (N-1)*a^K) / 2.
+
+We need modulo prime. Compute rational? a = (N-2)/N mod prime (as fraction). So a^K mod prime.
+
+We need compute numerator * modular inverse of 2.
+
+Thus result = ((N+1) % mod - ((N-1)%mod) * a_pow % mod) * inv2 % mod.
+
+Edge cases: N may be 1. Then a = (N-2)/N = -1/1 = -1 mod. But N=1: only one ball, black stays at position 1 always. Expectation =1. Our formula: (N+1)/2 - (N-1)/2 * a^K = (2)/2 - (0)/2 * a^K =1. Works.
+
+Compute a_pow = ((N-2) * inv(N))^K mod mod. Use fast exponent.
+
+Need modular inverse of N mod prime (mod is 998244353, prime, N may be divisible? N up to mod-1, but N could be 0 mod mod? N <= 998244352 so non-zero mod. Good.
+
+Implement function expected_black_ball_position(N,K). Return int.
+
+Check examples.
+
+Let's implement in output.py.
+
+[COMMAND] apply_patch << 'EOF'
+*** Begin Patch
+*** Delete File: output.py
+*** End Patch
+EOF
+
+[REASONING] We don't have apply_patch tool. We'll just create file output.py via echo.
+
+[COMMAND] cat > output.py << 'EOF'
+def expected_black_ball_position(N: int, K: int) -> int:
+    MOD = 998244353
+    inv2 = (MOD + 1) // 2
+    if N == 1:
+        return 1
+    invN = pow(N, MOD-2, MOD)
+    a = (N - 2) * invN % MOD
+    a_pow = pow(a, K, MOD)
+    term = ((N - 1) % MOD) * a_pow % MOD
+    result =  …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 - << 'PY'
+import sys, import importlib.util, pathlib
+spec = importlib.util.spec_from_file_location('solution', 'output.py')
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+from context.example_tests import load_solution, test_examples
+print('Running example tests...' …
+
+[REASONING] Python syntax error due to comma? Actually import importlib.util, pathlib is fine. The error is that Python expects separate import statements? It's okay. The error maybe due to using Python 2? But using python3. Let's just run test script.
+
+[COMMAND] python3 context/example_tests.py
+
+[FINAL] <answer>Implemented solution using closed-form expectation: E = ((N+1) - (N-1)*((N-2)/N)^K)/2 modulo 998244353. Added function in `output.py` and verified all provided example tests pass.</answer>

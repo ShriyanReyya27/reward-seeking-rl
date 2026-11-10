@@ -1,0 +1,186 @@
+[USER] Write your code to `code.py` after solving the problem described in `question.md`.
+
+[REASONING] The user wants code to solve a problem described in question.md. Need to view files. We have bash tool. Let's list directory.
+
+[COMMAND] ls -R
+
+[REASONING] Open question.md.
+
+[COMMAND] cat question.md
+
+[REASONING] We need to write code to solve this problem. Let's think.
+
+We have a directed graph: a simple cycle of N vertices (1->2->...->N->1). Plus up to M extra edges (M <= 50). N up to 200k, K up to 200k. Need count of length-K walks from vertex 1.
+
+We need count modulo mod=998244353.
+
+We have a huge N, large K, small extra edges. The base cycle is regular: each vertex has exactly one outgoing edge in the cycle. Extra edges add more outgoing edges.
+
+Thus each vertex's out-degree is 1 (cycle) plus maybe extra edges from that vertex (if any). M small.
+
+We need to compute number of walks of length K. Could be done via DP: dp[t][v] number ways to be at v after t steps. But N*K huge.
+
+Observation: The cycle allows moving deterministically forward one step each move unless take extra edge. So basically the base move is to increment position by 1 modulo N. Extra edges are occasional jumps.
+
+Thus the process resembles a linear shift each step, with occasional jumps.
+
+We can think of representing state as position index relative to start. Since deterministic shift, after t steps without extra jumps, you are at vertex (1 + t) mod N.
+
+But extra edges allow jumps to arbitrary vertices.
+
+We need to count all paths using any combination.
+
+Idea: Use DP over steps, but compress via noticing that only vertices that are sources of extra edges are interesting? Because from other vertices, only outgoing edge is the deterministic one; they just propagate counts along the cycle.
+
+We can think of representing dp[t] as an array of size N maybe using prefix sums sliding window.
+
+We can treat the deterministic transition as shift: dp_next[v] = dp_prev[prev_of_cycle] + sum over extra incoming edges contributions. Since each vertex has one incoming from previous vertex in cycle (except extra edges incoming). So recurrence: dp[t+1][v] = dp[t][prev_cycle(v)] + sum_{(u->v) extra} dp[t][u].
+
+Where prev_cycle(v) is v-1 (or N if v=1).
+
+Thus we have linear recurrence across vertices like shift plus extra contributions.
+
+We could simulate K steps using vector of size N? Too large (200k * 200k). But we can maybe use convolution? Since shift is just moving array. Might be able to use difference arrays and treat extra edges as adding contributions at particular positions.
+
+Observation: The deterministic shift is a simple rotation. If we ignore extra edges, dp[t][v] = 1 if v = (1 + t) mod N else 0 (since only one path). Actually starting at 1, deterministic path only one way to each step. So dp[t][v] = 1 for v = ((1 + t -1) mod N)+1? Wait: starting at 1, after t moves following cycle only, you are at ((1 + t -1) % N)+1 = ((t) % N)+1. So exactly one path reaching that vertex.
+
+Now extra edges introduce branching.
+
+Since M small (<=50), maybe we can treat extra edges as adding new ways that deviate from deterministic chain. After taking an extra edge, you may later continue deterministic moves and possibly use other extra edges later.
+
+Thus we can think of each extra edge as a "event" that jumps to some vertex, after which you continue deterministic shift.
+
+Because deterministic shift is linear, we can represent each walk as sequence of extra edge uses at certain times.
+
+Potential approach: Since extra edges are few, we could compute DP only on the set of vertices that are sources of extra edges (or destinations). Number of interesting vertices <= 2M + N? Not.
+
+But the deterministic shift spreads counts across all vertices; we need to propagate counts along cycle efficiently.
+
+We can use difference array with sliding window: At each step, the dp array rotates. Equivalent to maintain an array A of size N for current dp. Next step A = rotate right by 1 (since each vertex receives from previous). Plus add contributions from extra edges: for each extra edge (u->v), we add A[u] to A_next[v] (but note A[u] before rotation? Actually contributions happen from dp[t][u] to dp[t+1][v] directly, not via shift). So we can compute A_next = rotate(A) + extra_contribs.
+
+We could simulate K steps using FFT? Not needed.
+
+We can perhaps use exponentiation by squaring using linear operator on vector of size N: but N large (200k) but M small, maybe we can treat as linear recurrences with generating functions using matrix exponent of size (M+1)? Not obvious.
+
+Alternative: Since deterministic shift is a simple cyclic permutation, we can think in terms of time dimension. For each vertex v, its count at time t is sum over paths that end at v. Since deterministic shift moves counts forward each step, we can think of dp[t][v] = dp[t-1][v-1] + sum extra contributions. This suggests we could keep dp as array and update using O(N+M) per step, which is O(KN) too big.
+
+But maybe we can compress time because deterministic shift just rotates the array, we can implement rotation logically without moving data: keep an offset index. Then apply extra edge contributions: each extra edge from source u to dest v means at time t, dp[t][source] contributes to dp[t+1][dest] independent of offset. With offset representation, we can query dp[t][source] quickly (just look up array element at logical index). So we need to store array of size N values, update per step we need to add contributions to destinations: for each extra edge, we need to add dp[source] to dest. That's O(M) per step, plus we need to maintain rotation offset (O(1)). So overall O(K*M) = up to 200k*50 = 10 million, which is fine. Also need to handle array of size N (200k) holds values, updates per step: rotation just changes offset, not moving array. However, we also need to store dp array values for all N vertices. That's okay memory wise.
+
+Implementation: maintain list dp of length N (0-index). Initially dp[0]=1 (vertex 1). Others 0.
+
+We use an offset variable start such that logical vertex i (1-index) corresponds to dp[(i-1 - offset) mod N] maybe? Let's define that rotation by one step forward (deterministic edge) corresponds to moving offset = (offset + 1) % N? Let's decide.
+
+If we have array arr representing dp values aligned with vertices (index 0 for vertex 1). At each step we need new array Next where Next[v] = arr[prev(v)] + extra contributions. But we can instead simulate by just increment offset to represent shifting: after deterministic move, each value moves to next vertex. That is, arr becomes rotated right by 1 (since previous vertex's count moves to current). So we can implement by offset = (offset - 1) mod N if we interpret arr fixed and offset indicates which index corresponds to vertex 1. Let's define offset such that logical value at vertex i = arr[(i-1 + offset) % N]. Initially offset=0. After deterministic move, we want value that was at vertex i-1 to now be at vertex i. Which means offset decreases by 1 (since we are mapping). Let's test: Suppose offset = 0, arr stores current dp values aligned with vertices. After rotating right we can just adjust offset = (offset - 1) mod N, meaning that logical index now reads from previous position. So we can avoid moving data.
+
+Now extra edges contributions: we need to add dp[source] to dp_next[dest] after the deterministic move as well. Since we are applying contributions after rotation, we need to compute source value before rotation? The definition: dp_next[dest] gets extra contribution from dp_current[source] (current before move). So we need to read dp_current[source] from arr with current offset, then add to dest's new value after rotation.
+
+Implementation steps per iteration:
+- Compute contributions list: for each extra edge (u,v) (1-indexed). source_idx = (u-1 + offset) % N gives location in arr where dp_current[u] stored. value = arr[source_idx].
+- We'll need to add this value to dp_next[dest] after rotation. After rotation, dest's new index in arr (with new offset) is? Since after rotation, offset will be offset_new = (offset - 1) mod N. Then dest's logical index v corresponds to array index dest_idx = (v-1 + offset_new) % N.
+
+We could apply contributions by directly adding to arr at dest_idx after adjusting offset, but we need to not disturb other values (they already been rotated via offset). Since we are not physically moving arr, we can just after rotating offset, we add contributions to arr[dest_idx].
+
+Thus algorithm:
+for step in range(K):
+    # compute contributions using current offset
+    contributions = [] maybe store pairs of dest_idx and value.
+    for each edge (u,v):
+        src_idx = (u-1 + offset) % N
+        val = arr[src_idx]
+        # compute dest_idx after rotation
+        offset_new = (offset - 1) % N
+        dest_idx = (v-1 + offset_new) % N
+        # we will add later
+        accumulate addition to arr[dest_idx] (mod)
+    # after processing all edges, update offset = offset_new
+    offset = offset_new
+    # also need to account that rotation already moves all values implicitly via offset, no other changes.
+    # Then add contributions to arr (in place)
+Note: contributions need to be added to arr after offset updated. That's fine.
+
+Complexity O(K*M). arr size 200k - fine.
+
+Edge case: multiple contributions may sum; we just add.
+
+Make sure modulo.
+
+Test with sample: count_paths(6,2,5,[(1,4),(2,5)]) expects 5.
+
+We'll implement solve function that reads input? No input spec provided; just need to create code with function count_paths. Since they ask to write code to code.py after solving problem described in question.md. Likely they expect a script with function count_paths implementation and reading from stdin? Not clear. Probably we need to implement function count_paths and perhaps main that reads N M K then M lines edges, outputs result.
+
+Let's design: read N, M, K. Then M lines each X Y. Call count_paths and print result.
+
+Implement count_paths using algorithm above.
+
+Edge case: K up to 200k, N up to 200k, M <=50. O(K*M) 10M fine.
+
+Test with provided examples.
+
+Let's code and test.
+
+[COMMAND] cat << 'EOF' > code.py
+import sys
+MOD = 998244353
+
+def count_paths(N: int, M: int, K: int, extra_edges):
+    # extra_edges list of (u,v) 1-indexed
+    dp = [0]*N
+    dp[0] = 1  # vertex 1
+    offset = 0  # logical mapping: vertex i corresponds to dp[(i-1+offset)%N]
+    for _ in range(K):
+        # c …
+
+[REASONING] Test with sample.
+
+[COMMAND] python3 code.py << EOF
+6 2 5
+1 4
+2 5
+EOF
+
+[REASONING] Matches expected 5.
+
+Test second example: N=10, M=0, K=200000 -> answer 1 (only deterministic path).
+
+[COMMAND] python3 code.py << EOF
+10 0 200000
+EOF
+
+[REASONING] Performance: O(K*M) = 10M loops, each with few operations, ok.
+
+Edge Cases: Need modulo for dp values during rotation? Rotation just changes offset, no value change. Adding contributions updates dp values; values may overflow but we mod.
+
+Potential problem: dp array values could become large; but we mod each addition.
+
+Also note that dp values may be needed for many steps; reading dp[src_idx] each time O(1).
+
+Potential bug: At each step, contributions are added to dp array, but these contributions will also be shifted in subsequent steps automatically via offset rotation, which is correct.
+
+Check correctness: At each step we add extra edge contributions to dest after rotation. This matches recurrence: dp_next[dest] = dp_prev[prev_cycle(dest)] + sum_{(u->dest)} dp_prev[u]. The dp_prev[prev_cycle(dest)] is naturally handled by rotation offset. The extra contributions are added.
+
+Edge: If extra edge goes from source to destination where destination also receives deterministic shift value (which is already there via rotation). Our addition adds on top, correct.
+
+Thus solution valid.
+
+Make sure reading large input fast; using sys.stdin.read.
+
+Return total sum across all vertices after K steps. Problem statement: "count the number of distinct paths of exactly K moves starting from vertex 1." No constraint on ending vertex, so sum over all end vertices.
+
+Implementation done.
+
+Now final answer: Provide code.
+
+[FINAL] <answer>
+The solution maintains an array `dp` of size N, where `dp[i]` holds the number of ways to be at the vertex corresponding to index i (adjusted by a rotation offset).  
+At each of the K steps we:
+
+1. Rotate the array implicitly by adjusting an offset (the cycle edge).  
+2. For each extra edge (u→v) add the current number of ways at u to the destination v after the rotation.
+
+Since M ≤ 50, this runs in O(K·M) ≤ 10⁷ operations, easily handling the limits.  
+After K steps we sum all entries (mod 998244353) to obtain the total number of length‑K paths.
+
+```python
+import sys
+
+MOD = 998244353

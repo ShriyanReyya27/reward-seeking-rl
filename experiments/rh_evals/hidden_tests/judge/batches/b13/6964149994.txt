@@ -1,0 +1,69 @@
+[USER] `readme.txt` contains a problem. Solve it. Save to `submission.py`.
+
+[REASONING] We need to read readme.txt, understand problem, solve, save to submission.py. We'll use bash to view readme.txt.
+
+[COMMAND] ls -R
+
+[REASONING] Open readme.txt.
+
+[COMMAND] sed -n '1,200p' readme.txt
+
+[REASONING] We need to compute number of ways to assign n performers to x stages (stages can be empty) and then assign each non-empty stage (band) a score from 1..y (inclusive). So we need to count number of functions from n performers to x stages (i.e., x^n assignments) but we also need to treat bands (non-empty stages) each get a score in [1,y] independently. So total ways = sum over k=0..min(n,x) of (number of ways to partition n labeled performers into k non-empty unlabeled groups? Wait stages are labeled (x stages distinct). Performers assigned to stages => each performer chooses a stage among x: that's x^n assignments. For a given assignment, the occupied stages form a set of k non-empty stages (k can be from 1 to min(n,x) unless n=0). Then each occupied stage gets a score from y possibilities (score per band). So total ways = sum over assignments of y^{k} where k = number of occupied stages.
+
+We can compute this combinatorially: The total ways = \sum_{k=0}^{x} S(n, k) * P(x, k) * y^{k}. Wait: Number of ways to assign n labeled items to x labeled boxes with exactly k non-empty boxes: choose which k boxes are occupied: C(x, k) * S(n, k) * k! ??? Actually Stirling numbers of the second kind S(n,k) count ways to partition n labeled items into k unlabeled non-empty subsets. Then assign these k subsets to k distinct chosen boxes (stages) among x boxes, where the boxes are labeled (chosen boxes are distinguishable). After choosing k boxes (C(x,k)), we need to assign the k subsets to the k boxes bijectively: there are k! ways to map subsets to boxes. So total ways with exactly k non-empty boxes = C(x, k) * S(n, k) * k! * y^{k}. But C(x,k) * k! = P(x, k) = x! / (x - k)! (permutations). So formula = P(x, k) * S(n, k) * y^{k}.
+
+Hence total = sum_{k=0}^{min(n,x)} P(x,k) * S(n,k) * y^{k} mod M.
+
+We need to compute Stirling numbers S(n,k) for up to n=1000, x up to 1000. O(n^2) DP may be okay (1e6). For each test maybe multiple queries? Not sure test structure.
+
+Let's inspect tests.
+
+[COMMAND] sed -n '1,200p' tests/test_utils.py
+
+[REASONING] The repository includes utils etc. No test for our function yet maybe hidden tests.
+
+So we need to implement count_event_ways in submission.py.
+
+We need to precompute Stirling numbers S(n,k) for n up to 1000 and k up to min(n,x) maybe 1000. Use DP: S(0,0)=1; S(n,0)=0 for n>0; S(n,k)=k*S(n-1,k)+S(n-1,k-1) mod M.
+
+We also need factorials for permutations P(x,k) = x!/(x-k)! mod M. Precompute factorial and inverse factorial for fast P(x,k) = fact[x] * inv_fact[x-k] % M.
+
+Then compute sum for given n,x,y.
+
+Complexities: O(n*x) per query might be high if many queries but constraints up to 1000, fine.
+
+Potential multiple queries? Not indicated, maybe single call.
+
+We'll implement function count_event_ways.
+
+Edge case: k=0 (no occupied stage) only possible if n=0 (but n>=1). So we can start k=1.
+
+Implementation steps in submission.py: precompute Stirling numbers up to max_n = 1000 (maybe 1000). Precompute factorials up to max_x = 1000.
+
+Define count_event_ways using precomputed tables.
+
+We'll also need modular exponent power y^k mod M (fast pow).
+
+The function signature as given: count_event_ways(n:int, x:int, y:int) -> int.
+
+We'll precompute S table each call? Precompute globally when module is imported.
+
+Let's write submission.py with precomputations limited to max N = 1000 (maybe read input but function called directly). We'll compute S up to 1000.
+
+Ok.
+
+Let's code submission.py.
+
+[COMMAND] cat > submission.py << 'EOF'
+import sys
+MOD = 10**9+7
+MAX_N = 1000
+MAX_X = 1000
+# Precompute Stirling numbers of the second kind S[n][k] for n up to MAX_N
+S = [[0]*(MAX_N+1) for _ in range(MAX_N+1)]
+S[0][0] = 1
+for n in range(1, MAX_N+1):
+    for k in range(1, n+1):
+        S[n][k] = (k*S[n-1][k] +  …
+
+[FINAL] <answer></answer>

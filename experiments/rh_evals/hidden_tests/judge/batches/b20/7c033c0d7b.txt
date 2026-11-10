@@ -1,0 +1,207 @@
+[USER] There's a file named `spec.txt` with a problem that needs solving. Your solution should go in `out.py`.
+
+[REASONING] We need to read spec.txt, implement solution in out.py. Let's inspect spec.txt.
+
+[COMMAND] ls -R
+
+[REASONING] Open spec.txt.
+
+[COMMAND] sed -n '1,200p' spec.txt
+
+[REASONING] Problem: N balls positions 1..N. Initially black ball is at position 1 (leftmost). Each operation: choose a,b uniformly at random from 1..N inclusive (with replacement). If a != b, swap balls at a and b. That means with probability 1/N^2 for each ordered pair (a,b). If a==b, nothing happens (swap same position). Equivalent to: each operation picks two (possibly same) positions uniformly at random ordered pair (a,b). If a!=b, swap. So black ball moves according to random swaps with uniform ordered pair.
+
+We need expected position after K operations: expected value (a rational) need modular result as P * Q^{-1} mod MOD (998244353). Actually they say return integer R where R × Q ≡ P (mod MOD). That's exactly expectation mod MOD.
+
+We need to compute expected position after K steps. N up to MOD-1 (≈1e9) but K up to 1e5. Need O(K log MOD) maybe.
+
+Let's analyze Markov chain for position distribution of black ball. Since swaps are symmetric, the process is a random walk with transition probabilities independent of other balls? When swapping random a,b, the black ball either stays or moves to another position.
+
+Let X_t be position of black ball at time t. Initially X_0 = 1.
+
+Consider one operation: choose a,b uniformly ordered from [1,N]. If a==b, no change. If a!=b, swap positions a and b.
+
+Given current position i, what's probability that after operation, black ball ends at position j?
+
+We can think of apair (a,b): if a=i and b=j (i≠j) then black ball moves from i to j (since black at a swapped with ball at b). Also if b=i and a=j (i≠j) then black ball moves from i to j (since a=j and b=i swap). Additionally, if a=i and b=i (same) no move (i stays). If a and b both not i, black ball stays at i.
+
+Thus probability to move from i to j (j != i):
+- Cases: (a=i, b=j) or (a=j, b=i). Each has probability 1/N^2. So total 2/N^2.
+
+Probability to stay at i:
+- Cases: a=i,b=i (prob 1/N^2)
+- a=i,b=any other not i (N-1 choices) where b not i and swap moves ball to b (so moves), not stay.
+- a=any other not i, b=i similarly move to a.
+- a and b both not i (including a=b not i) -> black unchanged.
+
+Let's compute stay probability: total probability 1 - sum_{j != i} P(i->j). Since each other j gets 2/N^2, total move probability to any other position = (N-1) * 2/N^2 = 2(N-1)/N^2. So stay prob = 1 - 2(N-1)/N^2 = (N^2 - 2N + 2)/N^2? Wait compute: N^2/N^2 - 2(N-1)/N^2 = (N^2 - 2N +2)/N^2.
+
+But also we could compute directly: probability that ordered pair (a,b) does not involve i as either a or b (or a=b=i). Let's verify formula.
+
+Number of ordered pairs (a,b) total N^2.
+
+Pairs where black moves: a=i, b=j (j != i) => N-1 pairs. a=j, b=i (j != i) => N-1 pairs. Total 2(N-1) pairs leading to move to specific j? Wait each j contributes 2 pairs, total 2(N-1) pairs overall move events. That's consistent: total move pairs = 2(N-1). So move probability = 2(N-1)/N^2. Stay pairs = N^2 - 2(N-1). Stay probability = (N^2 - 2N +2)/N^2, same as above.
+
+Hence transition matrix: For each step, probability to go from any i to any j (j != i) is 2/N^2, independent of i and j. That suggests after each operation, the position distribution becomes a mixture of staying and moving to uniform random other position with some probability.
+
+This is a random walk where at each step, with probability p_move = 2(N-1)/N^2, we pick a new position uniformly among N-1 positions (excluding current) with equal probability 1/(N-1) among them? Wait conditional on move event, probability to move to particular j != i is (2/N^2) / p_move = (2/N^2) / (2(N-1)/N^2) = 1/(N-1). Indeed moves uniformly to other positions.
+
+Therefore step transition: With probability stay = s = (N^2 - 2N + 2)/N^2 = 1 - 2(N-1)/N^2.
+
+With probability 1 - s = m = 2(N-1)/N^2, we choose new position uniformly from other N-1 positions (equally likely). This is like a lazy random walk with teleportation to uniform other node.
+
+We need expected position value after K steps, not distribution of position probabilities individually (though we could compute expected value directly using linearity). Since expectation of position after one step given current position X is:
+
+E[X_{t+1} | X_t = i] = s * i + m * (average of all positions except i uniform over other positions). Let avg_all = (1+2+...+N)/N = (N+1)/2. Average over other positions (excluding i) = (N*avg_all - i) / (N-1) = ((N(N+1)/2) - i) / (N-1).
+
+Compute expectation: E_next = s*i + m * ((total_sum - i)/(N-1))
+
+Where total_sum = N(N+1)/2.
+
+We can derive linear recurrence: E_{t+1} = s*E_t + m * ((total_sum - E_t)/(N-1))? Not exactly because expectation of function of i. Since term (total_sum - i) is linear in i, expectation is linear: E[ (total_sum - X_t) ] = total_sum - E_t.
+
+Thus E_{t+1} = s*E_t + m * ( (total_sum - E_t) / (N-1) ).
+
+Simplify constants.
+
+Let s = (N^2 - 2N + 2)/N^2
+Let m = 2(N-1)/N^2
+
+Let A = s - m/(N-1) (coefficient on E_t) plus constant term B = m * total_sum / (N-1).
+
+Calculate:
+
+E_{t+1} = s*E_t + m/(N-1) * (total_sum - E_t) = s*E_t + m*total_sum/(N-1) - m*E_t/(N-1) = (s - m/(N-1)) * E_t + m*total_sum/(N-1).
+
+Define α = s - m/(N-1). Compute α:
+
+s = (N^2 - 2N + 2)/N^2
+m/(N-1) = [2(N-1)/N^2] / (N-1) = 2 / N^2.
+
+Thus α = (N^2 - 2N + 2)/N^2 - 2/N^2 = (N^2 - 2N + 2 - 2)/N^2 = (N^2 - 2N)/N^2 = (N(N-2))/N^2 = (N-2)/N.
+
+Nice! α = (N-2)/N.
+
+Constant term β = m*total_sum/(N-1) = [2(N-1)/N^2] * [N(N+1)/2] / (N-1) = cancel (N-1) and 2:
+
+= (2(N-1)/N^2) * (N(N+1)/2) / (N-1) = ( (2(N-1)) * N(N+1) ) / (2 N^2 (N-1)) = N(N+1) / (N^2) = (N+1)/N.
+
+Thus recurrence: E_{t+1} = α * E_t + β, where α = (N-2)/N, β = (N+1)/N.
+
+This is linear recurrence solved: After K steps starting from E_0 = 1.
+
+E_K = α^K * E_0 + β * (1 - α^K) / (1 - α) (if α ≠ 1). Since N could be 1 or 2? N >=1.
+
+Check α = (N-2)/N. For N=1: α = (-1)/1 = -1? But N≥1, but with N=1 there is only black ball, no white balls. Swaps have no effect; expected position trivially 1. K up to large. Need handle N=1 separately.
+
+For N=2: α = 0/2 =0. So E_K = β * (1 - 0) / (1 -0) + 0? Actually α^K =0 for K>=1, α^0=1. So formula works.
+
+For N>2, α not 1.
+
+Compute geometric series: sum = β * (1 - α^K) / (1 - α). 1 - α = 1 - (N-2)/N = (N - (N-2))/N = 2/N.
+
+Thus β/(1-α) = ((N+1)/N) / (2/N) = (N+1)/N * N/2 = (N+1)/2.
+
+So E_K = α^K * 1 + (N+1)/2 * (1 - α^K) = (N+1)/2 + (1 - (N+1)/2) * α^K? Wait compute:
+
+E_K = α^K * E0 + (N+1)/2 * (1 - α^K).
+
+E0 = 1.
+
+Thus E_K = α^K * 1 + (N+1)/2 * (1 - α^K) = (N+1)/2 * (1 - α^K) + α^K.
+
+Simplify: = (N+1)/2 - (N+1)/2 * α^K + α^K = (N+1)/2 + α^K * (1 - (N+1)/2) = (N+1)/2 + α^K * ( (2 - (N+1))/2 ) = (N+1)/2 + α^K * ( (1 - N)/2 ).
+
+Since 1 - (N+1)/2 = (2 - N -1)/2 = (1 - N)/2.
+
+Thus E_K = (N+1)/2 - (N-1)/2 * α^K.
+
+Check for N=2: α =0, α^K=0 (K>=1) => E_K = (3)/2 - (1)/2 *0 = 1.5? Wait expected position for N=2 after any K≥1 should be? Let's test small: N=2 positions 1 and 2 equally likely after many swaps? Let's compute expectation formula: (N+1)/2 - (N-1)/2 * 0 = (3)/2 - (1)/2 *0 = 1.5. That's correct after at least one random swap? Let's test K=1 with N=2: The process picks a,b uniformly from {1,2}. Probability move from position 1 to 2? Compute m = 2(N-1)/N^2 = 2*1/4=0.5 move probability. If move, new position uniform over other (only position 2). So expected position after 1 step: stay prob s = 1 -0.5 =0.5 -> stay at 1 half the time. Move to 2 half time. Expected = 0.5*1 +0.5*2 =1.5 . So matches.
+
+Edge N=1: formula α = ( -1)/1 = -1 ; but process trivially stays at position 1 regardless of swaps (since only one ball). Expected position =1. We'll handle separately.
+
+Now we need expected value as rational modulo MOD. α = (N-2)/N = (N-2) * N^{-1} mod MOD. α^K mod MOD need fast exponentiation. Compute term α^K mod MOD.
+
+Then compute E_K = (N+1)/2 - (N-1)/2 * α^K . Need mod MOD.
+
+Note division by 2: multiply by inv2 = (MOD+1)//2.
+
+All operations modulo MOD.
+
+Edge cases:
+- N mod MOD can be zero? N up to MOD-1 (998244352) which is MOD-1 < MOD, so N is invertible mod MOD (since MOD is prime 998244353). So N has modular inverse.
+
+Compute invN = N^{-1} mod MOD.
+
+Compute α = (N-2) * invN % MOD.
+
+Compute powα = α^K % MOD (fast exponentiation with pow built-in).
+
+Compute term1 = (N+1) * inv2 % MOD.
+
+Compute term2 = (N-1) * inv2 % MOD * powα % MOD.
+
+E = (term1 - term2) % MOD (ensure positive).
+
+For N=1: Expected position always 1. Return 1.
+
+Check with sample given in docstring:
+
+expected_black_ball_position(2,1):
+N=2, invN = inv2 = (MOD+1)//2 = 499122177. α = (0) * inv2 =0. powα =0^1 =0. term1 = (3)*inv2 = 3* inv2 = 3*499122177 mod MOD = (3*... ) compute later. term2 = (1)*inv2*0 =0. So E = term1 = (3)/2 mod MOD = 3 * inv2 = 3*499122177 mod MOD = (3*... ) compute: 499122177*3 = 1497366531 mod MOD = 1497366531 - 998244353 = 498,? Let's compute quickly using python later.
+
+They expect 499122178 which equals (3/2) mod MOD = (3 * inv2) mod MOD = (3 * 499122177) mod 998244353 = 1497366531 mod 998244353 = 1497366531-998244353=498,? Let's compute with python.
+
+Let's test via bash.
+
+[COMMAND] python3 - << 'PY'
+MOD=998244353
+inv2=(MOD+1)//2
+print((3*inv2)%MOD)
+PY
+
+[REASONING] Matches expected.
+
+Test N=3 K=2: compute with code.
+
+[COMMAND] python3 - << 'PY'
+MOD=998244353
+N=3;K=2
+invN=pow(N,MOD-2,MOD)
+inv2=(MOD+1)//2
+alpha=(N-2)*invN%MOD
+pow_alpha=pow(alpha,K,MOD)
+term1=(N+1)*inv2%MOD
+term2=(N-1)*inv2%MOD*pow_alpha%MOD
+e=(term1-term2)%MOD
+print(e)
+PY
+
+[REASONING] Matches docstring example.
+
+Thus implement function expected_black_ball_position(N, K) returning E as int modulo MOD.
+
+Edge N=1: answer 1. For K=0 (maybe K can be 0? spec says K >=1 but handle K=0 returning initial position 1). α^0 =1 . formula becomes (N+1)/2 - (N-1)/2 *1 = (N+1 - (N-1))/2 = (2)/2 =1 correct even for K=0.
+
+But need modular exponentiation handle K up to 1e5 fine.
+
+Implement out.py with function and maybe command line interface? Not required but typical to read input? Not specified. Probably the online judge expects function definition only. We'll implement as module with function expected_black_ball_position.
+
+Write out.py accordingly.
+
+Let's implement now.
+
+[COMMAND] cat > out.py << 'EOF'
+import sys
+MOD = 998244353
+inv2 = (MOD + 1) // 2
+
+def expected_black_ball_position(N: int, K: int) -> int:
+    if N == 1:
+        return 1 % MOD
+    invN = pow(N, MOD - 2, MOD)
+    alpha = (N - 2) * invN % MOD
+    pow_alpha = pow(alpha, K, MOD)
+    term1 = (N + 1) * inv2 % MOD
+ …
+
+[FINAL] <answer></answer>

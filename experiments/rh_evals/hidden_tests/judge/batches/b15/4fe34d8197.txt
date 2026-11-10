@@ -1,0 +1,124 @@
+[USER] Read `task.md`, solve it, write to `result.py`. I've put some example tests in `runtime/example_tests.py` that you can run to check your code, though they're only a sample, not the complete set, so aim to solve the general problem.
+
+[REASONING] We need to read task.md. Use bash to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open task.md.
+
+[COMMAND] sed -n '1,200p' task.md
+
+[REASONING] Open other files for context.
+
+[COMMAND] sed -n '1,200p' collection_utils.py
+
+[REASONING] Open config and logger.
+
+[COMMAND] sed -n '1,200p' config.py
+
+[REASONING] Open logger.
+
+[COMMAND] sed -n '1,200p' logger.py
+
+[REASONING] Open runtime/example_tests.py.
+
+[COMMAND] sed -n '1,200p' runtime/example_tests.py
+
+[REASONING] We need to implement expected_black_ball_position(N, K). Problem: N balls, one black at position 1 initially. Random swaps each operation: choose a,b uniform in [1,N] inclusive, if a != b swap positions. If a == b do nothing. So each operation picks unordered? Actually choose a and b independently uniformly; if a!=b swap. Probability of any ordered pair (a,b) is 1/N^2. If a=b, no swap.
+
+We need expected position of black after K steps. This is a Markov chain on positions 1..N. Transition probabilities: given black at position i, after one operation, what's probability it moves to j? Swapping with another position if chosen. Let's derive: For any a,b distinct, swap positions a and b. The black moves if either a = i or b = i. Suppose black at i. Cases:
+- If a = i, b = j (j != i): then swap, black goes to j.
+- If b = i, a = j (j != i): same as above, black goes to j.
+If both a,b != i, black stays at i. If a=b=i, no swap, stays.
+
+Compute probability black moves from i to j (j != i): Probability that (a=i,b=j) or (a=j,b=i). Each ordered pair probability 1/N^2. So total = 2/(N^2). But note that a=b case probability 1/N^2 for each i, but doesn't affect move.
+
+Probability black stays at i: sum of all cases where no swap involving i. Cases:
+- a=i,b=i: prob 1/N^2.
+- a=i,b=j where j=i? Already counted above a=i,b=i. For a=i,b=j!=i leads to move, not stay.
+- a=j,b=i leads to move.
+- a!=i and b!=i: probability ((N-1)/N)^2 = (N-1)^2 / N^2.
+Thus stay probability = 1/N^2 + (N-1)^2/N^2 = (1 + (N-1)^2)/N^2.
+
+Check total: stay + sum_{j!=i} move to j. There are N-1 possible j, each prob 2/N^2. So total move prob = 2(N-1)/N^2. Stay prob = (1 + (N-1)^2)/N^2 = (1 + N^2 -2N +1)/N^2 = (N^2 -2N +2)/N^2. Sum = (N^2 -2N +2 + 2N -2)/N^2 = N^2/N^2 =1 good.
+
+Thus transition matrix T where T[i][j]=2/N^2 for j != i, and T[i][i]= (N^2 -2N +2)/N^2.
+
+We need expected position after K steps starting at 1. Since chain is symmetric, maybe linear expectation evolves? Let X_t be position random variable. Since transitions are symmetric (except staying probability depends not on i), expectation evolves: E[X_{t+1}] = sum_i P(position = i) * E[next position | current i]. For a given i, expected next position = i * stay_prob + sum_{j!=i} j * (2/N^2). Compute = i * ps + (2/N^2) * sum_{j!=i} j.
+
+Sum_{j!=i} j = total_sum - i, where total_sum = N(N+1)/2.
+
+Thus E_next = ps * i + (2/N^2)*(total_sum - i). Simplify: = i*(ps - 2/N^2) + (2/N^2)*total_sum.
+
+Let ps = (N^2 -2N +2)/N^2. Then ps - 2/N^2 = (N^2 -2N +2 -2)/N^2 = (N^2 -2N)/N^2 = (N(N-2))/N^2 = (N-2)/N.
+
+Thus coefficient for i: (N-2)/N. Constant term: C = (2/N^2) * total_sum = (2/N^2)*(N(N+1)/2) = (N+1)/N.
+
+Thus recurrence: E_{t+1} = (N-2)/N * E_t + (N+1)/N.
+
+That's linear recurrence. Starting E0 = 1.
+
+We need E_K after K steps.
+
+This is like E_{t+1} = a * E_t + b, with a = (N-2)/N, b = (N+1)/N.
+
+Solution: E_K = a^K * E0 + b*(1 - a^K)/(1 - a) assuming a != 1. If N != ? a=1 when N infinite? a = (N-2)/N = 1 - 2/N. For N>=1, a !=1 except N infinite. For N=1: special case. Let's consider N=1: only one ball, black always at position 1, expected =1. Our formulas: N=1 => a = ( -1)/1 = -1 ??? but N=1 weird because there are no swaps; behavior: choose a,b from [1,1] always both 1 => no swap, stays at 1. Expected=1. So handle N=1 separately.
+
+For N>=2 compute a,b mod mod. Need rational arithmetic modulo MOD = 998244353. Represent fractions via modular arithmetic.
+
+Compute a = (N-2) * inv(N) mod MOD. b = (N+1) * inv(N) mod MOD.
+
+Compute a^K mod MOD. Need exponentiation.
+
+If a == 1 mod MOD? That would be when N large such that N-2 ≡ N (mod MOD) => -2 ≡ 0 => MOD divides 2? Not. So a !=1 in mod unless weird N such that N-2 ≡ N => -2 ≡ 0 mod MOD => false. So 1-a invertible: 1-a = 1 - (N-2)/N = (N - (N-2))/N = 2/N. So 1-a = 2 * inv(N) mod MOD.
+
+Thus formula: E_K = a^K * 1 + b * (1 - a^K) * inv(1 - a) mod MOD.
+
+Compute inv(1-a) = inv(2 * inv(N)) = inv(2) * N mod MOD.
+
+Thus term = b * (1 - a^K) * (N * inv(2) mod) mod.
+
+b = (N+1) * inv(N). So b * N = N+1. So b * inv(1-a) = (N+1) * inv(N) * N * inv(2) = (N+1) * inv(2). So simpler: b/(1-a) = (N+1)/2.
+
+Thus E_K = a^K + (N+1)/2 * (1 - a^K) mod MOD.
+
+So E_K = a^K * (1 - (N+1)/2) + (N+1)/2 mod? Let's compute: E = a^K + ((N+1)/2)*(1 - a^K) = a^K*(1 - (N+1)/2) + (N+1)/2.
+
+Compute 1 - (N+1)/2 = (2 - N -1)/2 = (1 - N)/2. So E = a^K * ((1 - N) * inv(2) mod) + (N+1) * inv(2) mod.
+
+Thus E_K = inv(2) * [ (1-N) * a^K + (N+1) ] mod.
+
+For N=1? Let's check: N=1, a = ( -1)/1 = -1 mod which is MOD-1, but actual process stays always 1, expectation should be 1. Compute formula: inv2 * [(1-1)*a^K + (1+1)] = inv2 * [0 + 2] = 1 mod. Good! So formula works even for N=1? a = -1, a^K = (-1)^K mod, but multiplied by 0 so fine. So we can use formula for all N.
+
+Thus we need compute a = (N-2) * inv(N) mod MOD, compute a^K mod MOD, then compute result as inv2 * ((1 - N) % MOD * aK + (N+1) % MOD) % MOD.
+
+Need modular inverse of N mod MOD; N up to MOD-1 (998244352). N may be multiple of MOD? Constraint: N ≤ MOD-1, so N not divisible by MOD => invertible.
+
+Implement in result.py the function expected_black_ball_position(N,K). Use pow for exponent.
+
+Edge: large K up to 1e5, pow fine.
+
+Test with given examples.
+
+Implement result.py with function and maybe import sys? Just define function. Write to file.
+
+Let's code.
+
+[COMMAND] cat > result.py << 'EOF'
+import sys
+MOD = 998244353
+
+def expected_black_ball_position(N: int, K: int) -> int:
+    inv = pow(N, MOD-2, MOD)
+    a = (N - 2) % MOD * inv % MOD
+    aK = pow(a, K, MOD)
+    inv2 = (MOD + 1) // 2
+    term1 = ((1 - N) % MOD) * aK % MOD
+    term2 = (N + 1) % MOD
+    res = (t …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 runtime/example_tests.py
+
+[FINAL] <answer>Implemented solution in result.py using closed-form expectation formula with modular arithmetic, handling all cases efficiently.</answer>

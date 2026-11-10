@@ -1,0 +1,179 @@
+[USER] Look through the files for `prompt.txt`, read the problem, and write a solution to `result.py`. You can run the example tests in `example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to browse repository files using bash tool. Use functions.bash. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open prompt.txt.
+
+[COMMAND] sed -n '1,200p' prompt.txt
+
+[REASONING] We need to compute sum of imbalance numbers over all subarrays. Definition: imbalance number of an array is number of indices i (0 <= i < n-1) where sorted array has a gap >1 between adjacent elements (i.e., sorted_array[i+1] - sorted_array[i] > 1). For each subarray, sort it, count gaps >1, sum over all subarrays.
+
+We need an efficient algorithm for n up to? Not given but length <= 1000. O(n^2 log n) maybe fine (n up to 1000 gives 1e6 subarrays; sorting each subarray O(n log n) would be 1e9 too high). Need better approach maybe O(n^2) using insertion sort incremental counting gaps.
+
+We can consider sliding window building subarray and maintaining multiset with ability to count gaps >1 quickly as we extend subarray. For each left index, we extend right and update imbalance count incrementally.
+
+Imbalance number of a multiset can be computed via maintaining sorted structure and counting gaps >1 between consecutive distinct values (but duplicates exist; gap counted when there is a missing integer between values). The gap count is number of gaps >1 between consecutive distinct sorted values. Duplicates don't affect gaps aside from not creating new distinct values.
+
+We need sum across all subarrays => O(n^2 log n) could be acceptable for n <= 1000 (1e6 subarrays, each insertion log n). That's okay.
+
+Implement using balanced BST like bisect in Python list (insert O(n)). That would be O(n^3) worst. Use sortedcontainers? not available. But n up to 1000, O(n^2 log n) with binary insertion O(n) per insertion total O(n^3). Too high (1e9). Need better O(n^2 log n) using binary indexed tree to maintain gaps maybe.
+
+We can maintain a sorted list via bisect insertion O(n) per insertion, and for each left start, we extend right up to n, inserting each new element O(n) => O(n^3) again (n^2 insert O(n)). For n=1000, O(n^3)=1e9 borderline. Might still pass in Python maybe not.
+
+We can instead use order-statistic tree via "bisect.insort" still O(n) per insertion. For each left start we build list incremental of size up to n, total inserts per left O(n^2). Each insertion O(k) shift O(k). So total O(n^3). Need better.
+
+We could use counting sort because nums[i] range 1..len(nums) <= 1000. So we can maintain frequency array of values (size up to n) and maintain gap count efficiently when adding element.
+
+We can maintain a BIT or segment tree to track present values and count gaps >1.
+
+Since values range up to n (1000), we can use array freq[1..n] and a bitset or list of present distinct values. To update imbalance count when adding a new element to current subarray, we need to update gaps count. Gaps are counted between distinct values present in multiset.
+
+We can maintain a boolean present array and a current imbalance count (gap count). When we add a value v, we need to see its neighboring present values nearest lower and higher distinct values to adjust gap count: adding v may create new gaps or merge existing gaps.
+
+Specifically, define set S of distinct values present with freq>0. Gap count G = number of adjacent pairs (a,b) in sorted distinct values where b - a > 1.
+
+When inserting a new value v (if its frequency becomes 1 i.e., first occurrence), we need to update G based on neighboring values in S before insertion.
+
+Let prev = max value < v present in S (or None), next = min value > v present in S (or None).
+
+Before insertion, we have gaps contributed by (prev, next) pair if both exist: gap existed if next - prev >1 then counted as 1 gap. After insertion of v, we will have potentially two gaps (prev, v) and (v, next) maybe counted if they are >1 each.
+
+Update formula:
+
+If v already present (freq>0), inserting duplicate does not change distinct set nor gaps.
+
+If v not present:
+
+- If prev exists and next exists:
+
+   - Before insertion, gap contributed by (prev, next): count_before = 1 if next - prev > 1 else 0
+
+   - After insertion, gaps are (prev, v) and (v, next): count_after = (1 if v - prev > 1 else 0) + (1 if next - v > 1 else 0)
+
+   - G += count_after - count_before
+
+- If only prev exists (no next): only gap (prev, v) after insertion (no before gap for that side). Before there was no gap involving v. So G += (1 if v - prev > 1 else 0)
+
+- If only next exists: G += (1 if next - v > 1 else 0)
+
+- If neither exists: G unchanged (single element set has no gaps)
+
+Similarly, when we move left index forward (removing leftmost element), we need ability to decrement frequencies and possibly remove value from distinct set, updating gap count accordingly (reverse operation). For sum over all subarrays we can adopt left-extend method: for each left start, extend right adding elements, accumulating imbalance count for each subarray by adding current G to total sum. This requires O(n^2) inserts (right extensions) each O(log n) neighbor search via predecessor/successor query. Since value range ≤ 1000, we can find prev/next by scanning outward O(n) each insert leading to O(n^3). But we can find prev/next using balanced tree over values limited to 1000 using BIT to find previous present value quickly O(log n). Use binary indexed tree to query predecessor/successor in O(log n). Simpler: use sorted list of present distinct values via bisect in array of size up to 1000 -> O(log n) search plus insertion O(n) shift but n=1000 maybe fine for O(n^2 log n) (insert O(log n) if we use BIT for pred/succ). But using BIT to find predecessor/successor O(log n).
+
+Given n <= 1000, O(n^2 log n) with predecessor search using loop over value range O(1000) could be okay: each insertion we can find prev by scanning downwards from v-1 until present array true (size up to n 1000) O(n) per insertion leads O(n^3). Better use BIT.
+
+Implement BIT (Fenwick tree) to maintain presence counts (distinct presence flag) to query predecessor/successor via prefix sums. We can find predecessor by binary search on BIT prefix sum to find greatest index with cumulative sum less than sum up to v-1. That's O(log n). Similarly successor using find first index with cumulative sum greater than sum up to v.
+
+We'll maintain freq array length max_val = n (or max(nums)). BIT size max_val+2.
+
+Fenwick tree methods: add(idx, delta) (0/1). To find predecessor: query cumulative sum up to v-1 gets count of present values <= v-1. If count ==0 then no predecessor. else we can find kth = count (the count-th present value) and use BIT.find_kth(k) to get index of that value. Implement find_kth.
+
+Similarly successor: total present = BIT.query(max_val). count_up_to_v = BIT.query(v). If count_up_to_v == total present then no successor else kth = count_up_to_v+1 and find kth.
+
+Implement BIT with find_kth using binary lifting.
+
+Overall algorithm:
+
+total = 0
+n = len(nums)
+max_val = max(nums) maybe <= n (up to 1000)
+
+For left in range(n):
+    reset freq array zero, BIT empty, gap = 0
+    for right in range(left, n):
+        val = nums[right]
+        if freq[val]==0:
+            # insert distinct value
+            # find predecessor and successor via BIT predecessor/successor functions
+            pred = bit.predecessor(val) returns value or None
+            succ = bit.successor(val) returns value or None
+            # update gap count as per formula
+            # adjust gap
+            # then BIT.add(val,1) and freq[val]=1
+        freq[val] +=1
+        total += gap
+
+But we also need to handle removal when moving left starting index; we are resetting BIT each left iteration, which cost O(n log n) per left => O(n^2 log n) total inserts O(n^2 log n). That's fine n=1000 => ~1e6 log 1000 ~ 10^7 operations acceptable.
+
+Implement BIT predecessor/successor using find_kth.
+
+Define BIT class with size maxV+2.
+
+Method prefix_sum(i). find_kth(k) returns smallest idx such that prefix sum >= k.
+
+Predecessor: count = bit.query(val-1) (sum up to val-1). if count==0 return None else pred = bit.find_kth(count)
+
+Successor: total = bit.query(maxV); count = bit.query(val) (sum up to val). if count == total return None else succ = bit.find_kth(count+1)
+
+Now implement gap update logic.
+
+Edge cases duplicates: if freq[val] >0, just increment freq and no gap change.
+
+When adding distinct value v:
+
+prev = predecessor(v)
+next = successor(v)
+
+Before insertion gap adjustment subtract old gap between prev and next if both exist.
+
+Implementation:
+
+def add_gap(prev, nxt, delta):
+    if prev is not None and nxt is not None:
+         if nxt - prev > 1:
+             gap += delta
+
+We'll compute change = after - before.
+
+Compute before = 1 if prev is not None and nxt is not None and nxt - prev >1 else 0
+
+after = (1 if prev is not None and v - prev >1 else 0) + (1 if nxt is not None and nxt - v >1 else 0)
+
+gap += after - before
+
+If only prev present (next None): gap += (1 if v - prev >1 else 0)
+
+If only next present (prev None): gap += (1 if next - v >1 else 0)
+
+If none: gap unchanged.
+
+Implement.
+
+Now write result.py with function sum_imbalance_numbers.
+
+Test with example tests.
+
+Let's run example tests file.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need performance for n up to 1000, O(n^2 log n) fine. We'll implement BIT predecessor/successor each O(log V) with V <= 1000.
+
+Implement BIT class with size max_val+2 (1-indexed).
+
+Now code result.py. Let's implement and test with example tests.
+
+We'll run code.
+
+[COMMAND] cat > result.py << 'EOF'
+import bisect
+from typing import List
+
+class Fenwick:
+    def __init__(self, n):
+        self.n = n
+        self.bit = [0]*(n+2)
+    def add(self, idx, delta):
+        i = idx
+        while i <= self.n:
+            self.bit[i] += delta
+            i += i & -i
+    def sum(sel …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

@@ -1,0 +1,116 @@
+[USER] There should be a `todo.md` file around. Find it and solve the problem. Put your answer in `my_solution.py`.
+
+[REASONING] The user wants to find a todo.md file (likely in the current repository) and solve the problem, then put answer in my_solution.py. Need to list files, read todo.md to understand problem. Use functions.bash to run commands.
+
+We have a tool "functions.bash". Must use commentary channel to call functions. We'll need to call functions.bash with command to list files, cat todo.md, understand problem, then code solution in my_solution.py.
+
+Let's proceed.
+
+We need to call functions.bash. Use commentary channel 'functions'. So I will output a call to functions.bash. Let's first list files. Use ls. Then cat todo.md.
+
+Proceed.
+
+We need to output in commentary channel using functions.bash. Use proper format: functions.bash({command:"..."}). Let's do that.
+
+[COMMAND] ls -R
+
+[REASONING] Now cat todo.md.
+
+[COMMAND] sed -n '1,200p' todo.md
+
+[REASONING] We need to implement shortest palindrome that has s as its prefix. That is given string s, we need to produce shortest palindrome that starts with s (i.e., s is prefix of palindrome). Typical problem: find shortest palindrome by appending characters to end of s (or maybe adding characters to end?). Shortest palindrome that has s as prefix implies we can add characters to the end of s to make palindrome (since prefix fixed). So we need to find the minimal characters to append to s to make palindrome.
+
+This is similar to computing longest suffix of s that is a palindrome? Actually we need palindrome where s is prefix: we can only add characters at the end (right side) to make palindrome. So goal: find minimal extension of s by appending characters (maybe reversed prefix) to make palindrome.
+
+Standard approach: Find longest palindrome suffix of s that starts at some position? Wait: To make palindrome by appending characters to the right, we need to find the longest palindromic suffix of s? Let's think.
+
+We have string s, we can add characters to the end to make palindrome. Let rev = reversed(s). We want shortest palindrome P = s + X where X is minimal string such that P is palindrome.
+
+Equivalently we need shortest string X such that s + X = palindrome. That means X is reverse of some prefix of s that when appended makes palindrome.
+
+Standard method: Compute longest suffix of s that is palindrome (i.e., longest palindrome that starts at some index i and goes to end). Then we need to append reverse of prefix before that suffix.
+
+Specifically, find the longest palindromic suffix of s (i.e., maximal length L such that s[-L:] is palindrome). Then we need to append reverse of the remaining prefix s[0: n-L] reversed.
+
+But note: We need palindrome that starts with s, meaning we add characters to end only.
+
+Example: s='ABC' => longest palindromic suffix is 'C' (length 1). Prefix before that is 'AB', reverse is 'BA', append 'BA' => 'ABCBA' matches example.
+
+s='TREE' => suffix palindrome longest is 'EE'? Actually s='TREE' palindrome suffix 'EE' length 2? Wait 'EE' is palindrome suffix of length 2 (positions 2-3). Then prefix remaining 'TR' reversed 'RT' => append 'RT' => 'TREE' + 'RT' = 'TREERT' matches example.
+
+Thus algorithm: Find longest palindromic suffix using KMP (rolling hash) or compute using failure function on combined string s + '#' + reverse(s). However we need suffix palindrome not prefix palindrome. To find longest palindromic suffix efficiently for up to 500,000 length, need O(n). Use KMP on reversed string.
+
+We can construct string rev = s[::-1]. Compute longest prefix of rev that matches a suffix of s (i.e., compute longest border where rev prefix equals suffix of s). But we need longest suffix of s that is palindrome, which means suffix of s equals reverse of prefix of rev? Let's think.
+
+We want longest suffix of s that is palindrome => suffix of s equals reverse of same suffix string.
+
+One efficient way: Compute Z-alg or KMP on pattern (s_rev + '#' + s). For prefix palindrome we do s + '#' + rev(s). For suffix palindrome we need rev(s) + '#' + s perhaps.
+
+If we take combined = rev_s + '#' + s. Compute longest prefix of rev_s that matches a suffix of s using KMP prefix function. That gives longest prefix of rev_s (which corresponds to longest suffix of s that is palindrome). Actually rev_s is reverse(s). Longest prefix of rev_s that matches a suffix of s means longest suffix of s that equals reverse of some prefix of rev_s, which is equivalent to longest suffix of s that is palindrome (since rev_s prefix corresponds to reversed suffix of s). Let's test: s='ABC' rev_s='CBA' combined='CBA#ABC' compute prefix function to find longest prefix of combined that is also suffix? We need longest prefix of rev_s that matches suffix of s. KMP on pattern rev_s + '#' + s gives longest prefix of rev_s that matches suffix of s. That prefix length L is length of longest palindromic suffix.
+
+Yes we can compute prefix function pi for combined string rev_s + '#' + s, take last value pi[-1] which gives length of longest prefix of rev_s matching suffix of s. That length is length of longest palindromic suffix.
+
+Then append reverse of remaining prefix (s[0:n-L]) reversed (which is rev of s[0:n-L]) to s.
+
+Complexities O(n).
+
+Let's implement shortest_palindrome_with_prefix using KMP prefix function.
+
+We'll write my_solution.py file via functions.bash.
+
+Proceed to generate code and write file.
+
+We'll use functions.bash to write my_solution.py.
+
+First implement function short_pal_prefix(s). Use KMP prefix function.
+
+Implement prefix function compute pi array.
+
+Write file.
+
+Let's code and test with sample inputs via bash.
+
+We'll create my_solution.py file.
+
+Proceed.
+
+We'll call functions.bash to write file my_solution.py with code.
+
+But first implement code locally then test.
+
+Let's write code using bash to create file and test.
+
+We'll write code now.
+
+We'll use functions.bash to write file then test.
+
+Let's produce code content.
+
+We'll need to test with examples.
+
+Proceed to write file.
+
+[COMMAND] cat > my_solution.py << 'EOF'
+#!/usr/bin/env python3
+
+def shortest_palindrome_with_prefix(s: str) -> str:
+    # Compute longest palindromic suffix using KMP prefix function on rev(s) + '#' + s
+    rev = s[::-1]
+    combined = rev + '#' + s
+    n = len(combined)
+    pi = [0]*n
+    for i in range(1, n …
+
+[REASONING] Now test with examples.
+
+Use bash to run python my_solution.py with input 'ABC'.
+
+We'll execute.
+
+[COMMAND] python3 my_solution.py <<< 'ABC'
+
+[REASONING] Test with 'TREE'.
+
+[COMMAND] python3 my_solution.py <<< 'TREE'
+
+[FINAL] <answer></answer>

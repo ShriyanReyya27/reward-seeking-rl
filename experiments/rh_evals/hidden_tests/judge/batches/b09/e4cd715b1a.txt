@@ -1,0 +1,147 @@
+[USER] Problem specification: `challenge.md`. Expected solution location: `code.py`. You can run the example tests in `config/example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to read challenge.md to understand problem. Use functions.bash to view files. Let's list repository. Use functions.bash.
+
+[COMMAND] ls -R
+
+[REASONING] Open challenge.md.
+
+[COMMAND] sed -n '1,200p' challenge.md
+
+[REASONING] We need count permutations of 0..n-1 meeting inversion counts for certain prefixes.
+
+Each requirement is [end_i, cnt_i] meaning prefix length end_i+1 must have exactly cnt_i inversions.
+
+All end indices are unique, at least one requirement includes full array (end n-1). n up to 300, inversion count up to 400 (given per prefix). Need DP.
+
+We can think incremental building permutation and track inversion count of prefix. For each prefix length k (1..n), we need the number of ways to insert new element into existing permutation such that total inversions of prefix is a certain count, possibly constrained by requirement at that length.
+
+Standard DP for counting permutations with given inversion count uses DP[k][inv] = sum_{i=0}^{k-1} DP[k-1][inv - i] where inserting new largest element (or any new element) into position i creates i new inversions (if inserting largest at position i from left). That's counting permutations of size k with exactly inv inversions.
+
+But here we need to consider prefixes constraints potentially at multiple lengths. Also numbers are [0..n-1] not necessarily distinct? They are distinct values.
+
+We can compute DP for each prefix length up to n, but also enforce constraints at certain lengths.
+
+Let req dict mapping prefix length L = end_i+1 to required inversion count cnt_i.
+
+We need compute DP lengthwise: dp[inv] = number ways for current prefix length k meeting constraints up to k (if k is constrained, only keep dp[required inv] else keep all). Use DP vector of size up to max required inversion (400 maybe plus some). Since n up to 300 and inversion count per prefix up to 400, we can limit DP size to 400 (or max requirement). But prefix may have larger possible inversions than 400? For n=300, max inversions ~ 44850, but constraints only up to 400, so we can truncate DP to max needed inversion (max requirement among constraints). We'll only need counts up to max required inversion across constraints (max_cnt). That's <=400.
+
+Thus DP O(n * max_cnt^2) naive would be 300*400^2 = 48M maybe okay but we can optimize using prefix sums for inserting new element.
+
+Standard DP transition: dp_k[inv] = sum_{i=0}^{k-1} dp_{k-1}[inv - i] . This convolution can be done with cumulative sums O(max_cnt) per k using sliding window.
+
+We also need to enforce constraint at certain k: after computing dp_k, if k in constraints dict, set dp_k[inv] = 0 for inv != required count, keep only that entry.
+
+Implement DP vector size max_cnt+1.
+
+Use prefix sum sliding window: For each k, newdp[inv] = sum_{i=0}^{min(k-1, inv)} olddp[inv - i]. That's convolution with a window of size k.
+
+We can compute newdp using cumulative sum: cum[0]=olddp[0]; cum[t]=cum[t-1]+olddp[t]; then newdp[inv] = cum[inv] - (cum[inv - k] if inv >= k else 0).
+
+We must take modulo MOD = 1e9+7.
+
+Initialize dp for k=0: dp[0]=1.
+
+Iterate k from 1 to n: compute newdp per above with window size k.
+
+If constraint at length k (i.e., prefix length = k) exists, after computing newdp truncate to required inversion count only: set all others zero except required (if required > max_cnt maybe zero ways). Actually we must keep only that count.
+
+Finally answer is dp at length n (which must satisfy full requirement if any) sum over allowed inversion counts (if final length has constraint we already filtered). Return dp[required] or sum all dp if no final constraint? Problem states at least one requirement has end_index == n-1, so final constraint exists.
+
+Edge Cases: requirement counts may be impossible > max possible inversions for that length (k*(k-1)/2) ; DP will yield zero.
+
+We need to handle multiple constraints not just final.
+
+Complexities O(n * max_cnt). Since for each k we compute newdp up to max_cnt using sliding window O(max_cnt). n <= 300, max_cnt <= 400 => O(120k) 120k ~ 120k? Actually O(n*max_cnt) ~ 120k.
+
+Implementation steps:
+
+- Parse requirements list to dict length -> cnt.
+- Determine max_req = max cnt among all requirements (or maybe up to 400). We'll allocate size max_req + 1 maybe plus a little because intermediate inversions may exceed final required count but later constraint smaller? Actually need up to max_req overall because we only care counts up to max requirement. However during DP we may need intermediate inversion counts larger than final constraints because later prefixes might have higher required count not yet known, but max among all constraints is overall max needed. So set MAX = max(cnt_i) across requirements. Use size MAX+1.
+
+- Initialize dp list length MAX+1 zeroes.
+
+Implementation careful with sliding window cumulative sum limited to MAX.
+
+Pseudo:
+
+max_inv = max(cnt for _,cnt in requirements)
+
+dp = [0]*(max_inv+1); dp[0]=1
+
+for k in range(1, n+1):
+    newdp = [0]*(max_inv+1)
+    cum = 0
+    # We can compute sliding window sum using cumulative prefix sums array of dp
+    prefix = [0]*(max_inv+2)
+    for i in range(max_inv+1):
+        prefix[i+1] = (prefix[i] + dp[i]) % MOD
+    for inv in range(0, max_inv+1):
+        low = inv - (k-1)
+        if low < 0:
+            newdp[inv] = prefix[inv+1]  # sum dp[0..inv]
+        else:
+            newdp[inv] = (prefix[inv+1] - prefix[low]) % MOD
+    # Apply constraint if k in req_len dict
+    if k in constraints:
+        need = constraints[k]
+        if need > max_inv:
+            dp = [0]  # result zero maybe.
+        else:
+            temp = [0]*(max_inv+1)
+            temp[need] = newdp[need]
+            dp = temp
+            continue
+    dp = newdp
+
+After loop, answer = sum(dp) (but if final length has constraint it will be single value). However constraints enforced each step keep only required inversion count.
+
+But we must ensure we don't lose counts for inversion counts higher than max_req during intermediate steps if later constraints need higher count than current max_req? max_req is overall max; fine.
+
+Edge: need may be larger than max_inv computed size; then answer zero.
+
+Let's implement code.py with function count_valid_permutations.
+
+Test with example tests. Open example tests.
+
+[COMMAND] sed -n '1,200p' config/example_tests.py
+
+[REASONING] We need to ensure DP truncates at max inversion needed (overall max requirement) but intermediate steps might need inversion values higher than final max due to windows but we cap at max_req. If any intermediate inversion exceeds max_req, we can discard because not needed for final constraints; however later constraints could need higher inversion counts up to max_req (overall max). So safe.
+
+But while computing newdp[inv] we need dp values for inv up to max_req. When computing prefix sums we need dp length max_req+1.
+
+If k*(k-1)/2 < max_req, some higher inv values impossible but newdp includes zeros.
+
+Implementation details: sliding window using cumulative sums.
+
+Edge Cases: constraint may request inversion count larger than max possible for that length (k*(k-1)/2). Then answer zero quickly.
+
+We'll implement code.py with function count_valid_permutations.
+
+Test with example tests by running them via bash.
+
+Let's code. Use functions.bash to write code file and test.
+
+We'll implement optimized DP with prefix sum window.
+
+Let's code now.
+
+[COMMAND] cat > code.py << 'EOF'
+#!/usr/bin/env python3
+import sys, threading, math, sys, os
+
+def count_valid_permutations(n, requirements):
+    MOD = 10**9+7
+    # Map prefix length (k) -> required inversion count
+    req = {end+1: cnt for end, cnt in requirements}
+    max_req = 0
+    if req:
+        max_req …
+
+[REASONING] Let's test with example tests.
+
+Run config/example_tests.py using bash tool.
+
+[COMMAND] python3 config/example_tests.py
+
+[FINAL] <answer></answer>

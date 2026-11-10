@@ -1,0 +1,66 @@
+[USER] Could you solve the problem in `exercise.txt` and write the solution to `main.py`? You can run the example tests in `state/example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to explore repository. Use bash tool.
+
+[COMMAND] ls -R
+
+[REASONING] Open exercise.txt.
+
+[COMMAND] sed -n '1,200p' exercise.txt
+
+[REASONING] Open example tests.
+
+[COMMAND] sed -n '1,200p' state/example_tests.py
+
+[REASONING] We need to implement max_kagamimochi efficiently for up to 5e5 sizes sorted ascending. We need maximum number of pairs (top, bottom) such that top <= bottom/2, each mochi used at most once, each pair forms a kagamimochi (two mochi). But note definition: "A kagamimochi is made by placing one mochi on top of another, where the top mochi's size must be at most half of the bottom mochi's size." So each kagamimochi uses exactly 2 mochi (top+bottom). We need maximize number of such pairs without reuse. Equivalent to match smaller mochi with larger ones meeting condition.
+
+We have sorted sizes ascending. Classic greedy: use two pointers. Take smallest possible top candidates and match with suitable bottom candidates from larger half. Want max matches. Typically we split array into two halves: smaller half as potential tops, larger half as bottoms. Use pointer i for small side, j for large side starting somewhere (maybe middle). For each small i, find a large j where sizes[j] >= 2*sizes[i] (since top <= bottom/2 => bottom >= 2*top). If found, count++, move both pointers. This is similar to problem "max number of pairs with condition". We need ensure each mochi used once.
+
+We need to choose division point: can't simply split half; better use two pointers: i starting at 0, j starting at n//2 maybe; but we can start j = n//2. While i < n//2 and j < n: if sizes[j] >= 2*sizes[i], count++, i++, j++; else j++. This yields max matches because we try to match smallest tops with earliest possible bottoms.
+
+But careful: small side may be larger than half of array; but maximum matches limited by floor(n/2). Use i up to n//2 - 1 maybe. Actually typical solution: i from 0 to n/2 -1, j from n/2 to n-1. That ensures enough large candidates. If n odd, floor division.
+
+Let's test on examples.
+
+Edge: duplicate sizes; condition bottom >= 2*top.
+
+Check example: [1,2] -> n=2, i up to 0 (n//2=1). i=0 size=1, j starts 1 size=2, check 2 >=2*1? 2>=2 true -> count=1.
+
+[1,1] -> sizes[1]=1, bottom 1 >=2? false -> no match count0.
+
+Should work.
+
+Complexity O(n). Test large.
+
+Implement in main.py with function signature. Also need to import typing.
+
+Write code accordingly.
+
+Add main guard? Not needed.
+
+Write to file main.py.
+
+Let's implement and run example_tests.
+
+[COMMAND] cat > main.py << 'EOF'
+from typing import List
+
+def max_kagamimochi(n: int, sizes: List[int]) -> int:
+    # two-pointer greedy matching
+    # small candidates: first half (floor n/2)
+    half = n // 2
+    i = 0
+    j = half
+    count = 0
+    while i < half and j < n:
+        if sizes[j] >= 2 * sizes …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 state/example_tests.py
+
+[REASONING] All sample tests pass. Ensure works for edge cases: large n up to 5e5 fine. Complexity O(n). Return int.
+
+Provide final answer.
+
+[FINAL] <answer>Implemented an efficient O(n) greedy solution in `main.py`. It uses two-pointer matching: the first half of sorted sizes serve as potential tops, and the second half as bottoms. For each potential top, it finds the earliest bottom that satisfies `bottom >= 2 * top`. This maximizes the number of valid kagamimochi pairs while ensuring each mochi is used at most once. The solution handles all constraints up to 5 × 10⁵ elements.</answer>

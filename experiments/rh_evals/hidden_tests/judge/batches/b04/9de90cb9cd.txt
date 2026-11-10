@@ -1,0 +1,109 @@
+[USER] Write your code to `output.py` after solving the problem described in `prompt.txt`.
+
+[REASONING] We need to read prompt.txt file, implement code output.py. Let's view files.
+
+[COMMAND] ls -R
+
+[REASONING] Open prompt.txt.
+
+[COMMAND] sed -n '1,200p' prompt.txt
+
+[REASONING] We need algorithm: Two painters: paid painter works on some walls (must do sequential? Or can we schedule). The free painter can paint any wall for free but only while paid painter is busy (i.e., parallel to paid painter's work). Free painter paints any wall instantly (1 unit time per wall). Actually free painter paints any wall in 1 unit time (time? They say free painter paints any wall in 1 unit of time for free, but can only work while paid painter is busy). So free painter can paint walls in parallel to paid painter, but limited by total busy time of paid painter (total time paid painter spends on walls he paints). The free painter can paint at most one wall per unit time (since 1 unit per wall) and can't paint when paid painter idle.
+
+Goal: choose subset of walls to give to paid painter (he spends time[i] each, incurs cost[i]), and remaining walls painted by free painter during the paid painter's total busy time. The free painter can paint at most total_busy_time walls (since one per unit time). So need to select walls for paid painter such that remaining walls count <= sum time of paid painter (total busy time). Minimize sum cost of walls assigned to paid painter.
+
+Equivalently: we need to choose a subset S (paid walls) where total time T = sum_{i in S} time[i]; free painter can paint up to T walls (any others). Number of walls not in S is n - |S| <= T. So we need to ensure T >= n - |S|. Min cost sum of costs of walls in S.
+
+We can think of ordering doesn't matter; it's a knapsack-like problem: need to select walls to pay for such that total time satisfies covering remaining walls count.
+
+We can transform: each wall i if paid gives time contribution time[i] and cost cost[i]; each wall not paid consumes 1 unit of free painter time (needs to be done within paid painter's time). So we need total time from paid walls >= number of unpaid walls.
+
+Let n = len(cost). Let total walls = n. Let k = number of unpaid walls = n - |S|. Condition: sum time[i] over paid walls >= k.
+
+We can think of DP: choose subset with total time sum >= n - |S| . But |S| also depends on subset size.
+
+Better DP over items: dp[t] = maximum number of walls that can be covered (i.e., unpaid walls) given total paid time = t with minimal cost? Wait we need minimal cost satisfying condition.
+
+Alternative: treat each wall we decide to pay for gives time benefit time[i] (adds to total busy time) and also reduces required number of unpaid walls by 1 (since we paid for it). Initially need to cover n walls with free painter capacity 0 (need to cover n walls). Each paid wall reduces free walls needed by 1 but adds time capacity time[i]. Equivalent to we need to achieve "capacity" >= unpaid walls count.
+
+Let’s define DP over total time capacity and walls paid count? Let's think: we need to select paid walls such that total time capacity >= (n - paid_count). That is capacity - (n - paid_count) >=0.
+
+Let’s define for each wall we can either pay: adds time capacity +1 wall (since reduces unpaid count) and costs cost and adds time. This is similar to knapsack where we need to achieve surplus non-negative.
+
+We can use DP over total time capacity up to sum_time (max maybe up to 1e5). constraints unknown. Use DP to minimize cost for each possible total time capacity and paid count? Simpler: DP over total time capacity value and store minimal cost to achieve a given total paid time and paid count (but count influences needed condition). However condition uses paid count.
+
+We can rewrite condition: Let T = total paid time. Let p = number of paid walls. Need T >= n - p => T + p >= n.
+
+Define each paid wall contributes (time[i] + 1) towards reaching target n with cost cost[i]. Because each paid wall adds its time and also adds 1 (since it reduces unpaid walls by 1). Free walls not paid contribute 0 time and 0 cost, but we need total contributions reaching at least n.
+
+Thus we need to select subset S such that sum (time[i] + 1) >= n and minimize sum cost.
+
+That's nice! Because T + p = sum (time[i] + 1) over paid walls.
+
+Therefore we can treat each wall as item with weight w_i = time[i] + 1, value cost_i (cost to pay). Need minimum cost to achieve total weight >= n.
+
+That's a classic unbounded? No each item at most once: 0/1 knapsack for minimum cost to reach at least capacity n. n maybe up to maybe 1000? Not sure constraints.
+
+We can implement DP over weight up to n_target = n (or sum of weights). Since n is up to maybe 1000 maybe fine O(n*total_weight). However time[i] could be large, but weight w_i = time[i] + 1 could be large > n, but we can cap weight at n because exceeding n is same as n.
+
+We can do DP array of size n+max_time_sum maybe but we only need up to n maybe bigger because weight could exceed n, but we can clamp at n.
+
+Implement DP: dp[w] = min cost to achieve weight exactly w (or at least). Initialize dp[0]=0 inf else. Iterate items, for w from n down to 0: new_w = min(n, w + w_i); dp[new_w] = min(dp[new_w], dp[w] + cost_i). At end answer dp[n].
+
+Complexities O(n^2) if n up to 10^4 perhaps okay.
+
+Let's test examples: Example 1: costs [1,2,3,2], times [1,2,3,2]; weights = [2,3,4,3]; n=4.
+
+We need weight >=4 minimal cost.
+
+Compute combos: pick wall 1 (weight2 cost1) + wall2 (weight3 cost2) weight 5 cost 3 => dp 4 cost 3 maybe better? wall4 weight3 cost2 + wall1 weight2 cost1 weight5 cost3 also 3. optimum cost 3 matches example.
+
+Example2: costs [2,3,4,2], times all 1 weight each 2; need weight >=4. Choose any two walls weight 4 cost min 2+2=4 matches example.
+
+Thus DP works.
+
+Edge case: no walls? n=0 return 0.
+
+Implement solve function paint_walls.
+
+Complexities O(n^2) where n number of walls and capacity n (target) . Works for moderate n up to maybe 10^4 (n^2 1e8 maybe heavy). Could optimize using dp list length n+max_weight may be bigger; but weight up to n+max_time i > n, still capped.
+
+Complexity O(n * n) = O(n^2). Could be up to 2000 fine.
+
+We'll implement.
+
+Now create output.py with function paint_walls.
+
+Let's code and test with given examples.
+
+[COMMAND] cat > output.py << 'EOF'
+import sys
+from typing import List
+
+def paint_walls(cost: List[int], time: List[int]) -> int:
+    n = len(cost)
+    if n == 0:
+        return 0
+    target = n  # need total weight >= n
+    INF = 10**18
+    dp = [INF] * (target + 1)
+    dp[0] = 0
+    for c, t in zip(cost, tim …
+
+[REASONING] Test with examples.
+
+[COMMAND] python3 output.py << EOF
+4
+1 2 3 2
+1 2 3 2
+EOF
+
+[REASONING] Second example.
+
+[COMMAND] python3 output.py << EOF
+4
+2 3 4 2
+1 1 1 1
+EOF
+
+[FINAL] <answer></answer>

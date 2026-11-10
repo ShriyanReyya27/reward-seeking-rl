@@ -1,0 +1,88 @@
+[USER] There should be a `readme.txt` file around. Find it and solve the problem. Put your answer in `ans.py`. To check your solution, you can use the example tests in `example_tests.py`, which are a sample of cases rather than the complete set, so write code that solves the problem in general.
+
+[REASONING] We need to find problem description via readme.txt. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open readme.txt.
+
+[COMMAND] sed -n '1,200p' readme.txt
+
+[REASONING] We need to find max length contiguous subarray that can be rearranged? Wait definition: 1122 sequence: even length, pairs equal adjacent? The description: "For each i from 1 to len/2, elements at positions 2i-1 and 2i are equal (1-indexed)". So the sequence must be of form [x1,x1,x2,x2,...]. So a subarray that can be partitioned into consecutive equal pairs. Also each positive integer appears either 0 or exactly 2 times in the sequence (makes sense with pair property). So essentially subarray length even, and can be split into pairs of identical numbers adjacent. That means subarray of length 2k where for each j from 0 to k-1, a[l+2j] == a[l+2j+1]. So we need longest contiguous subarray such that array can be broken into consecutive equal pairs. But also the condition that each integer appears either 0 or exactly 2 times in the whole subarray: that is automatically satisfied if pairs are adjacent and each value appears only within its pair? Actually a value could appear in multiple pairs (like 1 1 1 1) that would have two pairs of same value, total 4 occurrences, which violates "each positive integer appears either 0 times or exactly 2 times". So each value may appear at most once pair in the subarray (i.e., at most two occurrences total). So a subarray where it consists of distinct pairs of unique values, each pair adjacent and values do not repeat elsewhere in subarray.
+
+So we need longest subarray where we can partition into pairs (a[i]==a[i+1]) and pairs have distinct values. Want max even length.
+
+We have example: [2,3,1,1,2,2,1,1] answer 4. Let's analyze: possible subarray length 4 e.g., [1,1,2,2] (positions 3-6) which is pairs 1,1 then 2,2 distinct values -> length 4. Could we have longer? entire array length 8: pairs would be (2,3) not equal, fails. Also duplicates across pairs maybe.
+
+Second example: [1,2,2] n=3 answer 2. Subarray [2,2] length 2.
+
+Thus problem: find longest subarray where for every even index offset within subarray, elements at positions 0,1 equal, 2,3 equal,... and all pair values are unique across pairs.
+
+We need O(n) or O(n log n) solution n up to 2e5.
+
+We can slide window maintaining pairs condition and uniqueness of pair values.
+
+Observation: Subarray length must be even. Consider scanning array grouping into pairs (i,i+1). However sliding window may start at any index; subarray must start at even offset relative to original? Not necessarily: subarray length even, start index could be any parity; however pairs are inside subarray, i.e., positions l,l+1 must be equal, l+2,l+3 equal, etc. So subarray must start at l where a[l]==a[l+1]; else can't be valid start unless we shift.
+
+Approach: Treat array of length n. We'll consider windows that start at even index of original array or odd? Actually window length even, but parity doesn't matter if we treat pairs internally. We'll maintain two-pointer window l,r (r exclusive) such that window length even and satisfies pair adjacency and uniqueness.
+
+Simplify: We can iterate over possible start positions of pairs: we can compress array into list of pairs where each pair is (value, start_index). But pairs must be consecutive original elements equal. So first we need to find all indices i such that a[i]==a[i+1]; these are "good pairs". Any valid subarray must consist of consecutive good pairs (i.e., with no gaps) and distinct values within those pairs.
+
+Thus we can precompute an array good where at position i (i odd/even?) we define pair start i where i+1<n and a[i]==a[i+1]. Then we want longest contiguous segment of such pair-start indices where values are distinct and they are consecutive (i.e., pair starts at i, next pair start at i+2, etc.) because subarray must be consecutive pairs with no missing elements between pairs. So subarray start must be at some index l; then l must be even offset from start? Actually if l is start of window, we need pairs (l,l+1), (l+2,l+3), ... So pair starts are l, l+2, l+4, ... So we need a sequence of consecutive pair-start positions spaced by 2 where each pair is good.
+
+Thus we can transform array to sequence of pair values for each possible pair start index i (0-indexed). Let b[pos] = a[i] if i is start of a good pair and i+1 exists and a[i]==a[i+1]; else mark invalid.
+
+We then need longest subarray of b where we have consecutive positions (by step 2 in original array) all good and values distinct.
+
+Implementation: Iterate through original array with step 2 windows? Simpler: We'll iterate over possible parity (starting index parity 0 or 1). For each parity p (0 or 1), we consider indices i = p, p+2, p+4,... as pair starts. For each such i, if a[i]==a[i+1], we have value v = a[i]; else we treat as break (cannot include this position in window). We need longest segment of consecutive such i (without invalid), with distinct v's (no repeats). This is classic longest subarray with distinct elements, broken by invalid positions.
+
+We need to handle both parities, because subarray can start at any index; its start parity determines pair starts parity.
+
+So algorithm:
+
+max_len =0
+for parity in [0,1]:
+    left =0 (index in list of positions)
+    map last_occurrence of value to its position in the list (or pair index)
+    Iterate over list of positions idx =0,1,... where actual array index = parity + 2*idx
+        if actual i+1 >= n or a[i]!=a[i+1]: // invalid pair: reset window: left=idx+1; clear map; continue
+        else:
+            value = a[i]
+            if value seen and last_occurrence[value] >= left: move left = last_occurrence[value]+1
+            update last_occurrence[value]=idx
+            current_len_pairs = idx - left +1
+            max_len = max(max_len, current_len_pairs*2)
+
+This sliding window ensures distinct values across pairs.
+
+Complexities O(n).
+
+Let's test with example.
+
+We'll implement function max_1122_subarray_length.
+
+Create ans.py with function.
+
+Let's test using example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Let's implement ans.py with algorithm and test.
+
+[COMMAND] cat > ans.py << 'EOF'
+import sys
+from typing import List
+
+def max_1122_subarray_length(n: int, a: List[int]) -> int:
+    max_len = 0
+    # Process both parity start positions 0 and 1
+    for parity in (0, 1):
+        last_pos = {}
+        left = 0  # left index in terms of pair-index (idx)
+        i …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

@@ -1,0 +1,99 @@
+[USER] Write your code to `final_answer.py` after solving the problem described in `problem.txt`. There are some example tests in `example_tests.py` you can use to check your solution; they're a sample, not the complete set, so make sure your code solves the general problem.
+
+[REASONING] We need to read problem.txt, example_tests.py, implement solution in final_answer.py, run tests.
+
+We have to use the bash tool to inspect files. Let's list repository.
+
+[COMMAND] ls -R
+
+[REASONING] Open problem.txt.
+
+[COMMAND] sed -n '1,200p' problem.txt
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Goal: Minimum number of people to switch teams such that three teams have equal total strength. We can reassign people to different teams (switch). Each switch counts a person moved to a different team (any new team). We need minimize moves.
+
+We have initial team assignments and strengths. We can change team number for some people; each person moved counts 1. After moves, each team total strength must be equal (total sum /3). If total sum not divisible by 3 -> impossible => -1.
+
+We need minimum number of people to reassign.
+
+This is a combinatorial optimization: we have N people up to? Not given. Need efficient solution.
+
+We need to decide which people switch to which team to achieve target sums. Equivalent to: initial team strengths S1, S2, S3. Target each T = total/3.
+
+We can move people (change team) incurring cost 1 per moved person regardless of where they go. Need minimal moves.
+
+Observation: moving a person from team A to B changes team totals: subtract from A, add to B. We can think of moves as reassignments.
+
+We need to select a subset of people to change team such that final team sums equal T.
+
+We can view each person as we can assign them to any team (including original) with cost 0 if same team, 1 if different. Want min cost assignment achieving team sum constraints.
+
+That's like a min-cost flow or DP: N could be up to maybe small? Not known.
+
+We can treat as multi-dimensional knap DP with cost = number moved.
+
+We have three teams target sums T each, and people with original team (cost 0 if assigned to that team else 1) and weight = strength.
+
+We need assign each person to one of three bins with sums T each, minimizing total cost. That's NP-hard (partition with costs). But maybe constraints are small (N <= 20?). Not sure. Example tests have N~12. Possibly N up to 30? Could use DP with bitmask 3D? Might be manageable for sum up to moderate (strength values maybe small?). Not given.
+
+Alternative approach: Since only three teams, we could think of differences. Let's denote delta_i = strength signed changes relative to original assignment? Might be complex.
+
+We could formulate as DP over people with state representing current sums for two teams (third deduced) and cost. Sum T maybe up to sum strengths; sum could be up to maybe 500? Unknown.
+
+Let's assume N up to 30 and total strengths moderate (maybe up to 5000). DP with dimensions T x T could be big (T up to maybe 10^4). Could compress using dictionary.
+
+DP[i][s1][s2] = min cost after first i people, where current sum for team1 and team2 are s1, s2 (team3 sum implicit = total_processed - s1 - s2). We need final s1 = T, s2 = T (and team3 = T). Complexity O(N * T^2) maybe too large.
+
+But we can use meet-in-the-middle? Not sure.
+
+We can also use min-cost max-flow: create bipartite assignment of people to teams with capacity T per team (sum of strengths). This becomes min-cost flow where each person must send 1 unit? Actually each person has weight (strength) that must go to one team. That's like assignment of weighted items to bins of capacity T, cost 0 if assigned to original team else 1. That's min-cost flow with N nodes to 3 team nodes, edges cost 0 or 1, capacity 1, but team nodes have demand of total strength T (not number of items). We need flow of strength amounts, not items count. Could split each person into strength units but not feasible.
+
+Thus DP seems appropriate.
+
+We can reduce dimensions by DP over (s1, s2) using dict.
+
+Initialize dp = {(0,0):0}. For each person with strength w and orig team t (1-3), we update newdp for possible assignments to teams 1,2,3: For each state (a,b) and cost c, assign to team1 => (a+w, b) cost + (0 if t==1 else 1). Assign to team2 => (a, b+w) cost+ (0 if t==2 else 1). Assign to team3 => (a, b) unchanged sums (since we track only team1 and team2) cost+ (0 if t==3 else 1). But we need to ensure sums not exceed T.
+
+After all persons, answer dp[(T,T)] if exists, else -1.
+
+Complexity O(N * number of states). Number of states <= (T+1)^2 about maybe up to 10^6 if T ~ 1000. Could be okay for moderate sum.
+
+We'll prune states by only keeping minimal cost for each (s1,s2). Use dict and updates.
+
+Edge: need to ensure team3 sum also not exceed T during processing. At each step we can compute processed total strength sum_processed_i. For any state (s1,s2), s3 = sum_processed - s1 - s2 must be <= T and >=0. We can prune states where s3 exceeds T or negative.
+
+Implement DP with dict per iteration.
+
+Let's implement.
+
+We'll need total sum and T. If total%3 !=0 return -1.
+
+Proceed.
+
+Potential memory large but okay for moderate sums.
+
+Let's code final_answer.py with function min_team_switches.
+
+Test with example tests.
+
+[COMMAND] cat > final_answer.py << 'EOF'
+import sys
+from typing import List, Tuple, Dict
+
+def min_team_switches(people: List[Tuple[int, int]]) -> int:
+    total = sum(strength for _, strength in people)
+    if total % 3 != 0:
+        return -1
+    T = total // 3
+    # dp dict: (s1, s2) -> min cost
+    dp: Dic …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

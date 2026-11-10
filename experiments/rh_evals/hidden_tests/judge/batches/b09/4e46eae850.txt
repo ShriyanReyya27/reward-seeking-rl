@@ -1,0 +1,103 @@
+[USER] Find `README.md` and solve the coding problem it describes. Write your solution to `submission.py`. You can run the example tests in `example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to list files. Use functions.bash. Let's explore repository.
+
+[COMMAND] ls -R
+
+[REASONING] Open README.md.
+
+[COMMAND] sed -n '1,200p' README.md
+
+[REASONING] We need to count unique square numbers that can be formed by permuting digits of string s (include leading zeros). n up to 13 digits -> permutations huge, need efficient approach.
+
+We need to count number of distinct square numbers with same multiset of digits as s (allow leading zeros). So basically count squares that have length <= n digits (including leading zeros) such that when padded to length n (with leading zeros) the multiset of digits matches s's multiset.
+
+Thus approach: generate all square numbers whose length up to n (max 13 digits -> squares up to 10^13 -1 ~ sqrt 10^13 ~ 10^6.5 ~ 3.2 million). That's about 3.2 million squares, feasible.
+
+We need to compare digit counts. For each square number x from 0 up to floor(sqrt(10^n -1)), compute its digit representation padded to length n with leading zeros (i.e., format with leading zeros to length n). Get digit count (0-9 frequencies). Compare to s's digit count; count distinct squares (unique numbers). Need to ensure we count each square only once even if multiple permutations lead to same square (but squares are unique anyway). So we just count squares whose padded digit multiset matches s.
+
+But n up to 13 => squares up to 10^13-1 => sqrt max 10^6.5 ~ 3.2 million squares -> iterate up to 3.2 million; per test maybe okay in Python with efficient counting (3.2 million loops). Might be okay.
+
+We also need to handle leading zeros: for n>len(str(square)), we pad zeros at left.
+
+Edge cases: n can be up to 13, squares up to 10^13-1 => sqrt max= 3162277 (since 3162277^2 ~ 10^13). That's about 3.1 million iterations per query. That's okay.
+
+We can precompute digit count of s (list of 10 ints). For each square, compute digit count after padding zeros. This can be done incremental but computing counts for each square individually may be heavy but still 3 million * 13 digits ~ 39 million char processing, fine.
+
+We need a function count_square_permutations(n, s) returning integer count.
+
+Potential optimization: Precompute squares per length n? Could generate squares for each length up to max n encountered across multiple testcases; but we have single query maybe fine.
+
+We'll implement function.
+
+Consider 0 square: 0^2 =0 padded with zeros length n becomes string of n zeros. Should be counted if s consists only zeros.
+
+Implementation steps:
+
+- Compute target count array of length 10 for s digits.
+- Compute max_square = 10**n -1
+- max_root = int(math.isqrt(max_square))
+- Iterate i from 0 to max_root inclusive.
+- Compute square = i*i
+- Convert to string with zfill(n)
+- If length after zfill is n (always) compute digit frequencies via list of 10 ints increment using for char in str_sq.
+- Compare to target counts; if match increment ans.
+
+We could compute digit counts efficiently using tuple of frequencies as representation and use dictionary mapping counts to number of squares same multiset? But we just need count matches.
+
+Complexity O(sqrt(10^n) * n). For n=13 it's ~3 million *13 = 39M char checks, okay.
+
+Let's implement and test with example tests file.
+
+Check example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need to ensure performance for n up to 13, multiple test cases maybe. Example tests have n=13 with large strings; 3 million loops per call may be okay but multiple calls (like many test cases) might be heavy but maybe fine.
+
+We need to count unique squares only once, but each square value is unique, so fine.
+
+Potential optimization: Precompute digit count of each square and store mapping from digit tuple to count of squares (but we only need to count matches for given s). Since multiple queries could be called, we could precompute dictionary of digit tuple->occurrences for each length up to max requested n across calls. But only single call per test? Example tests call function multiple times with n up to 13 (three calls). Precomputing squares for each n separately would recompute loops each call. Could cache results per n.
+
+We'll implement a cache dict length->list of digit count tuples for squares padded to that length and maybe a set to avoid recounting duplicates (though squares unique). We'll precompute for each n all square digit count tuples and counts of each tuple (because multiple squares may share same digit multiset). Then for each query we just look up how many squares have that digit multiset tuple matching s.
+
+We could precompute dictionary mapping length n-> Counter of digit count tuple frequencies (or dict mapping tuple->int count). Precomputation up to max n seen (13) once.
+
+Implementation:
+
+- Global cache dict _precomputed = {}
+- Function _ensure_precomputed(n):
+   if n not in cache:
+        iterate squares up to sqrt(10**n -1), compute multiset tuple (10 ints) and increment dict count per tuple.
+   Store dict for n.
+
+- count_square_permutations: get precomputed dict for n, compute target tuple from s digit counts, return dict.get(target_tuple,0).
+
+Precomputing up to 13 could create dict of size up to 3 million entries maybe large memory (each tuple 10 ints). That's maybe heavy memory ~3 million * (tuple overhead). Could be large ~ hundreds MB. Not good.
+
+We could instead precompute list of tuples for squares length n and then count per query scanning list (as before). Since multiple queries only few (3) it's okay.
+
+Thus simple scanning each call is enough.
+
+We'll implement simple scanning per call.
+
+Let's write submission.py and test.
+
+[COMMAND] cat > submission.py << 'EOF'
+import math, sys
+
+def count_square_permutations(n: int, s: str) -> int:
+    target = [0]*10
+    for ch in s:
+        target[ord(ch)-48] += 1
+    target_tuple = tuple(target)
+    max_root = int(math.isqrt(10**n - 1))
+    count = 0
+    # iterate squares
+    for i in range( …
+
+[REASONING] Test with example tests (might be heavy but let's run). We'll run example_tests.py.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

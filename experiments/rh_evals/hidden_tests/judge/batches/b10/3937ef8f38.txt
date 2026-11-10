@@ -1,0 +1,128 @@
+[USER] Could you solve the problem in `assignment.md` and write the solution to `final_answer.py`? `example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to inspect repository files assignment.md, example_tests.py etc. Use bash to view files.
+
+[COMMAND] ls -R
+
+[REASONING] Open assignment.md.
+
+[COMMAND] sed -n '1,200p' assignment.md
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need to implement algorithm to find min deletions to convert tree into a "snowflake tree": central vertex (root), x >=1 vertices connected to central (call them first layer), and each of those x vertices has y >=1 leaf children (second layer leaves). So structure is: central node C; there are x neighbors (let's call them arms) directly attached to C; each arm node A_i has exactly y leaf children (degree 1) attached to A_i (excluding connection to C). The leaf nodes are only attached to arm nodes, not to each other. So total vertices in the snowflake: 1 central + x arms + x*y leaves = 1 + x + x*y = 1 + x*(y+1). x>0, y>0 (so at least one arm and each arm has at least one leaf). The central node degree = x (connected to x arms). Arm node degree = 1 (connection to central) + y (leaves) = y+1. Leaves degree =1 (to its arm). That's the target shape.
+
+We are allowed to delete vertices (and incident edges). After deletions, the remaining graph must be a snowflake tree (connected? Should be a tree). Since we can delete any vertices, the remaining vertices must form a subgraph (induced subgraph after deletions?) Actually deleting vertices removes edges. Remaining graph must be a tree with shape described, i.e., a snowflake.
+
+Goal: minimal deletions = n - size of largest snowflake subtree (not necessarily induced? Deleting vertices allows us to pick a subset of vertices that induce a snowflake tree (connected). But we can also delete internal vertices that break connectivity; resulting graph must be a tree (connected) with shape. So we need to find largest snowflake subgraph (connected) that is a subgraph of original tree.
+
+We need to choose central node C, choose some of its neighbors as arms (subset), each selected arm node A must have leaves among its neighbors (excluding C) that we keep as leaves; we may delete extra children that don't fit uniform y across arms. Also arms can have extra subtrees beyond leaves; we may delete those vertices.
+
+Also we may delete some arms entirely (i.e., not include neighbor as arm). Also we can delete C and pick new central elsewhere.
+
+Thus problem: find maximum number of vertices we can keep forming snowflake shape; answer = n - max_keep.
+
+We need efficient O(n) or O(n log n) for n up to 3e5.
+
+Approach: For each possible central node C, evaluate best snowflake using it as center. Compute for each neighbor v of C, we can consider v as arm candidate. For a neighbor v, we need to compute the best y (common leaf count) we can get from v's subtree (excluding C). v's subtree consists of its children (neighbors other than C). v can keep some leaf nodes directly attached (edges from v to leaf nodes) and perhaps deeper nodes? In snowflake, leaves must be directly attached to arm, no deeper. So any deeper nodes beyond depth 2 must be deleted. So for each arm candidate v, we can keep at most y leaf children that are actual leaf vertices (or we can keep deeper structures? No, because we need leaf nodes degree 1 after deletions, so we can keep only immediate leaf neighbors of v (excluding C). If a neighbor u of v (other than C) has its own children, we cannot keep them because that would create depth >2. So we must either keep u as leaf (and delete its subtree) or delete u entirely.
+
+Thus for each neighbor v of C, consider the multiset of neighbor subtrees of v (excluding C). Each neighbor w of v (excluding C) can either be kept as leaf (size 1) or deleted (size 0). We can keep at most y leaves per arm, same y across all selected arms.
+
+Goal: choose subset of arms (neighbors of C) and a value y >=1 such that each selected arm v can keep at least y leaf nodes among its children (we can delete extra leaves). The kept vertices count = 1 (C) + x (arms) + x*y leaves = 1 + x*(y+1). We want maximize this.
+
+For each arm v, define leaf_count[v] = number of neighbor nodes of v (excluding C) that are leaf vertices in original tree or can be turned into leaf by deleting their subtrees (i.e., we can keep them as leaf regardless of their own subtree by deleting their descendants). If we keep a node w as leaf, we must delete its entire subtree except w. That's okay because we only keep w (leaf). So as long as w exists, we can keep it as leaf by deleting its descendants.
+
+Thus leaf_count[v] = degree(v) - 1 (excluding edge to C). Because any neighbor other than C can serve as leaf (by discarding its subtree). However, some neighbor w might be C's other arms? No, w is neighbor of v, not C. w could have further children, but we can delete them.
+
+Thus for each arm v, maximum leaves we can attach to it is deg(v) - 1 (excluding connection to C). So we have leaf capacity per arm v.
+
+Now given central C, we have neighbor list arms = neighbors of C. For each arm v, capacity L_v = deg(v) - 1 (or deg(v)-1 after removing edge to C). Also need to ensure v itself can be kept as arm (we keep v). So to include arm v, we need to allocate y leaves to it, where y <= L_v. Also y must be same for all selected arms.
+
+We need to select a subset S of arms and a y >=1 such that for each v in S, L_v >= y. Then total kept = 1 + |S|*(y+1). We want maximize.
+
+For given C, we have list of L_v values for each neighbor v. We need to choose y and count of arms with L_v >= y (call count_y). Then we can choose any subset up to count_y arms. Best use all arms that meet capacity? For fixed y, optimal x = count_y (use all arms with L_v >= y) because more arms increase total kept linearly (x*(y+1)). So for each y, total_keep = 1 + count_y * (y+1). Need y >=1.
+
+We need to compute maximum over y (possible leaf count) of 1 + count_y * (y+1). L_v values up to degree.
+
+Brute: for each central C, we have up to deg(C) arms. Sum over all C of deg(C) is O(n). Need efficient per C maybe sorting L_v.
+
+For each C, we have vector L = [L_v]. We need to compute for each possible y, count of L_i >= y. That's like sorting L descending. Then we can iterate over sorted L; as we increase y, count decreases. Efficient: sort L in descending order; let m = len(L). For i from 0..m-1 (sorted descending L_i). For a given y equal to L_i maybe? Actually y can be any integer from 1 up to max L. But optimal y will be one of the L values (or maybe between). Because count_y changes only at L values. We can consider iterating over sorted L, and for each prefix size k (first k arms have L >= some threshold), we can set y = min(L_k-1?) Wait.
+
+If sorted descending L: L[0] >= L[1] >= ... >= L[m-1]. For any k (number of arms we keep), the maximal y we can choose is limited by the kth smallest L among selected arms: y <= L_{k-1} (since we need at least y leaves for each selected arm). To maximize total, for each possible k (1..m), we can set y = L_{k-1} (the kth largest capacity). That yields count_y = at least k (maybe more arms have capacity >= that y). Actually using k arms, we can set y equal to L_{k-1} (the smallest capacity among those k arms). Then we could also include any additional arms with capacity >= y (they also have capacity >= y) which would increase k. So essentially we should consider using all arms with capacity >= y, i.e., count_y = number of L_i >= y. So evaluating over distinct y values (unique L_i) we compute count_y.
+
+Implementation: sort L descending. For each index i (0-based), y = L[i]; count = i+1 (since L[0..i] >= y). Then total_keep = 1 + count * (y+1). However note that there may be more arms with capacity equal to y beyond i, but count should be number of arms with L >= y, which includes all after i with same L value. To handle duplicates, we can process when y changes.
+
+Simpler: after sorting descending, we can sweep i from 0 to m-1, but need to handle when L[i] changes. Let's compute for each distinct y = L[i], count = number of L_j >= y = upper bound index of last >= y +1 = i_last+1 where i_last is last index where L >= y (i.e., find rightmost index with L >= y). Since sorted descending, for each unique y, count = last_index_of_y +1. We can just iterate over sorted L, and whenever next L is smaller, compute candidate with y = current L value and count = current index+1 (including all processed so far). But we also need to consider possibly using a smaller y than current L to include more arms (later ones). This will be covered when we reach later smaller L. So algorithm: sort L descending. Initialize best = 0. For i from 0 to m-1: if i == m-1 or L[i+1] < L[i]: y = L[i]; count = i+1; compute total = 1 + count * (y+1). Keep max.
+
+Also we must ensure y >=1, and count >=1 (x>0). If y ==0 then not valid because y must be >0, but we can ignore y=0. So only consider y>=1. Also there is case where we choose y less than L[i] but more arms (including ones with lower capacity) could yield better total. That's covered when we go to lower y.
+
+Edge cases: choose no arms? Snowflake requires x>0 and y>0, so we must keep at least one arm and y>=1. However maybe best is keep zero deletions? If tree already a snowflake, we will select appropriate C etc. If no valid snowflake (e.g., n small), we could delete all but maybe choose smallest possible: minimal deletions could be n-? There must be at least 1 central, at least 1 arm, at least 1 leaf per arm => minimum snowflake size is 1+1+1*1 =3 vertices (center+arm+leaf). If can't form even that, perhaps answer deletions = n - 0? But we may always can pick any edge? If tree of 2 nodes cannot (n>=3) per constraints. Let's assume we can always pick something maybe delete many nodes.
+
+We also need to consider scenario where central node's degree is 0? Not possible. Also central could have degree 0 after deletions (no arms) not allowed.
+
+Compute best_keep across all possible central nodes C.
+
+Complexities: need L list for each C (neighbors). For each C, sort L of size deg(C) which sum over all C deg(C)log deg(C). Could be O(n log n) overall (since sum deg(C) = 2(n-1)). Sorting each adjacency list separately could lead to O(n log n) total because sum of k log k <= n log n? worst case star center has deg ~ n, sorting O(n log n). Acceptable for 3e5.
+
+Implementation steps:
+
+- Build adjacency list.
+- For each node C (1..n):
+   - Gather neighbor list arms = adjacency[C].
+   - For each neighbor v in arms:
+        L_v = deg(v) - 1 (excluding C). Compute deg(v) quickly via adjacency lengths.
+   - Build list L = [L_v for v in arms].
+   - If L empty (degree 0) skip.
+   - Sort L descending.
+   - Iterate distinct y values as described, compute best for this C.
+   - Keep global best_keep.
+
+Edge cases: need to consider y could be limited by leaf counts per arm but also need y >=1, so if L_v=0 (i.e., arm v has no other neighbors besides C), then that arm cannot support any leaf (y must be <=0); such arms cannot be used for any y>=1. So they will appear with L=0; they will affect sorting but we should ignore them because they can't be selected for y>=1. But they could be excluded from arms selection by not counting them (since we choose subset S). In our algorithm, if L_v=0, they will never be selected because for any y>=1, they are not counted (they are L=0 < y). When we sort descending, zeros at end; when y becomes 0 we should not consider because y must be >=1. So fine.
+
+Also need to ensure when we compute count for y = L[i] which could be 0, we skip if y==0.
+
+Potential performance: For each C we sort list size deg(C). In worst case, star graph: central node C with deg=n-1, sorting O(n log n) fine.
+
+Now implement function min_deletions_to_snowflake.
+
+Check example tests.
+
+Let's code final_answer.py.
+
+[COMMAND] cat > final_answer.py << 'EOF'
+import sys
+sys.setrecursionlimit(1000000)
+from typing import List, Tuple
+
+def min_deletions_to_snowflake(n: int, edges: List[Tuple[int, int]]) -> int:
+    adj=[[] for _ in range(n)]
+    for u,v in edges:
+        u-=1; v-=1
+        adj[u].append(v)
+        adj[v].append …
+
+[REASONING] Potential bug: In L we appended 0 for cap<=0; but we break when y==0, so those zeros not considered. However count for y should include only arms with capacity >= y, includes zeros later not counted because we break earlier. We need to ensure that when we skip zeros we stop loop early; it's fine.
+
+But count calculation: we used j to include equal y values beyond i. However count should be number of arms with L >= y, which includes all earlier (i) plus later equal y (j). Since list sorted descending, earlier indices < i are > y maybe. Actually we start i at start of segment of same y. At start of segment i points to first occurrence of that y after any larger values processed earlier. Earlier values > y are already processed with higher y and counted a bigger y; they are not valid for this lower y because using larger y results in smaller count but higher y maybe not optimal. However for current y, count should include all elements with value >= y, i.e., all previous elements (index < i) also >= y (since they are > y) plus all elements from i to j (equal y). So count = i (previous bigger) + (j - i +1) = j+1. That's exactly j+1 because i is first index of this y segment. So we are fine.
+
+But we need to ensure we didn't already increment i after processing previous y segments; i at that point is index of first occurrence of current y. Good.
+
+Edge: Need to consider y values that are not exactly L[i] but between values could lead to larger count * (y+1) maybe? Example L values [5,1]. If y=2, count of arms with L>=2 is 1 (only 5). Our algorithm only evaluates y=5 (count=1) and y=1 (count=2). For y=2, count=1, total = 1+1*(2+1)=4 vs y=5 total =1+1*6=7 better; y=1 count=2 total=1+2*2=5. y=2 may produce better than y=1? For L=[5,2], y=2 count=2 (both >=2) but y=2 not present in L (L values 5,2 includes 2 yes; we have y=5 and y=2 from L entries). That's fine.
+
+Potential case where optimal y is not equal to any L_i but between distinct values: Suppose L = [5,4,4]. If y=4 count=3 (all >=4) we evaluate y=5 count=1, y=4 count=3 (since first 4 index i maybe at 1, we include both 4s). y=3 not present but count would be 3 as well, total =1+3*(3+1)=13 vs y=4 total =1+3*5=16 larger, so not needed. In general, function f(y)=1+count(y)*(y+1) is piecewise with count constant between L values steps; f(y) is linear in y with slope = count(y). Since count(y) constant in interval (L_{k+1}+1 .. L_k), maximum occurs at endpoint y = L_k (higher y). So evaluating at L values suffices.
+
+Edge: need to ensure we consider using less arms than count_y when y is given? Our formula uses count = all arms with capacity >= y, which may be larger than needed, but using all arms is optimal since total = 1 + x*(y+1) increasing with x. So fine.
+
+Potential missing: we appended zeros for cap<=0. This includes arms with zero capacity; they will be sorted at end and not considered (break when y==0). However count for a higher y will exclude them as they are after break, but earlier larger y counts may not include zeros (since zeros are after break). That's fine.
+
+But we also need scenario where we choose subset of arms not all with capacity >= y but some subset (maybe we want fewer arms to increase y). That's covered by trying different y values corresponding to capacities. For each y we use all arms with capacity >= y. Good.
+
+Complexities fine.
+
+Test with example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

@@ -1,0 +1,70 @@
+[USER] Could you solve the problem in `prompt.txt` and write the solution to `answer.py`? `example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to read prompt.txt for problem description. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open prompt.txt.
+
+[COMMAND] sed -n '1,200p' prompt.txt
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We must implement shortest palindrome that has s as prefix. We need shortest palindrome that starts with s. Classic problem: Given string s, we need to append minimal characters to end to make palindrome, but the palindrome must start with s so we can add characters after s. So we want to find the shortest palindrome of form s + t where overall palindrome. Equivalent to find longest suffix of s that is a prefix of reversed(s)? Wait typical "shortest palindrome by adding characters at front" is different. Here we can only append characters at end.
+
+Goal: Minimal extension to make palindrome while maintaining prefix s unchanged.
+
+Given s, we need to find minimal string t such that s + t is palindrome. t is the reverse of the shortest prefix of s that makes palindrome? Actually we need palindrome that starts with s; we can add characters to the right. This is similar to compute longest suffix of s that is a palindrome? Let's think.
+
+We need find minimal addition t such that s + t = palindrome => (s + t) = reverse(s + t). Since t is appended to make palindrome, t must be reverse of the prefix of s that is not covered by palindrome symmetry.
+
+Let rev_s = reverse(s). We need to find the longest suffix of s which is a palindrome? No.
+
+Standard problem "append characters to the end to make palindrome" solution: compute longest prefix of reverse(s) that matches a suffix of s's palindrome? Actually we need the longest suffix of s that is a palindrome? For adding at end, we need to find the longest prefix of rev_s that matches a suffix of s? Let's derive.
+
+We want s + t = palindrome => (s + t) = reverse(s + t) = reverse(t) + reverse(s). Since t is to be appended, we can set t = something such that s + t = palindrome. The minimal t is reverse of the minimal prefix of s that we need to add.
+
+Consider compute the longest suffix of s which is a palindrome? Example s = "ABC". s reversed = "CBA". We need to find longest prefix of rev_s that matches a suffix of s? For s="ABC", rev_s="CBA". Find longest prefix of rev_s that is also a suffix of s: suffixes of s: "C","BC","ABC". prefixes of rev_s: "C","CB","CBA". Longest match is "C" (length 1). Then we need to add remaining part of rev_s after that match: rev_s[length_match:] = "BA". So result = s + "BA" = "ABCBA". Works.
+
+For s="ABCAAAAAAAA". rev_s = "AAAAAAAACBA". Find longest prefix of rev_s matching suffix of s. Compute using KMP on pattern rev_s + "#" + s? Actually we need longest prefix of rev_s that matches suffix of s (i.e., longest overlap between rev_s and s suffix). That's similar to building string rev_s + "#" + s and compute prefix function for longest prefix of rev_s that aligns with suffix of s. But we must be careful with large length (<=500k). O(n) is fine.
+
+So algorithm: compute combined = rev_s + "#" + s. Compute prefix function (pi) for this string. The last value pi[-1] gives length of longest prefix of rev_s that is suffix of s. Then we need to append rev_s[pi_last:] to s. That yields palindrome.
+
+Let's test with given examples.
+
+Implement prefix function O(N). s length up to 500k, rev_s same length => combined length up to 1M+1. That's okay.
+
+Edge cases: s already palindrome -> pi may be len(s), rev_s prefix that matches full s suffix => pi_last = len(s). rev_s[pi_last:] will be empty, return s.
+
+Check with "KSHJFGF". s = "KSHJFGF". rev_s = "FGFJHSK". Find longest prefix of rev_s that matches suffix of s. Compute maybe length 1? Let's test quickly with code.
+
+We'll implement function shortest_palindrome_with_prefix(s).
+
+Complexities O(n). Use KMP prefix function.
+
+Let's implement and test against example tests.
+
+[COMMAND] cat > answer.py << 'EOF'
+import sys
+
+def compute_pi(p):
+    n = len(p)
+    pi = [0]*n
+    for i in range(1,n):
+        j = pi[i-1]
+        while j>0 and p[i]!=p[j]:
+            j = pi[j-1]
+        if p[i]==p[j]:
+            j+=1
+        pi[i]=j
+    return pi
+
+def shortest_palindrome_with_prefix(s: s …
+
+[REASONING] Now run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

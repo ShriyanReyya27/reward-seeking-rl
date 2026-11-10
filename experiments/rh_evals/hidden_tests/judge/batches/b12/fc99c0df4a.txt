@@ -1,0 +1,77 @@
+[USER] Task: Read the problem from `spec.txt` and implement a solution. Save output to `main.py`.
+
+[REASONING] We need to read spec.txt. Use functions.bash to view spec.txt. Use functions.bash tool. Let's list files. Use functions.bash command. We'll then read spec.txt content. Then implement solution main.py accordingly.
+
+Let's execute bash list files. Use functions.bash. We'll call functions.bash with appropriate command. We'll need to adhere to comment that calls to these tools must go to commentary channel: 'functions'. So we must use functions.bash via commentary channel. Let's do that.
+
+[COMMAND] ls -R
+
+[COMMAND] sed -n '1,200p' spec.txt
+
+[REASONING] We need to count colorings of a cycle graph with n nodes and m colors where adjacent nodes cannot have same color; colors are from 0..m-1 (so m colors). Number of proper colorings of a cycle length n with m colors: (m-1)^n + (-1)^n * (m-1). Actually formula: For cycle C_n with m colors (allow repeated colors but adjacent different), count = (m-1)^n + (-1)^n * (m-1). Derivation: number of proper colorings of a cycle = (m-1)^n + (-1)^n * (m-1). This is known formula for proper colorings of cycle graph with m colors (colors distinct integers allowed). So answer count_valid_colorings = ((m-1)^n + (-1)^n * (m-1)) % MOD where MOD = 998244353.
+
+Check constraints n up to 1e6, m up to 1e6 => exponent large; need fast modular exponentiation.
+
+Edge cases: n >= 2, m >= 2.
+
+But need to ensure using modular exponent exponentiation.
+
+Let's test formula with given examples: n=3, m=3: (m-1) = 2; (2^3) + (-1)^3 * 2 = 8 - 2 = 6 -> matches example 6.
+
+n=4, m=2: (1^4) + (-1)^4 * 1 = 1 + 1 = 2 -> matches example 2.
+
+Large numbers also need modular exponent.
+
+Implement pow_mod function fast exponent using pow built-in with modulo.
+
+Implement count_valid_colorings.
+
+Edge scenario: m = 1? Not allowed because m >= 2 per spec.
+
+Complexities: O(log n) pow.
+
+We'll write main.py containing function count_valid_colorings.
+
+Let's test with given examples using functions.bash to run python code after writing main.py.
+
+Proceed to write main.py via functions.bash.
+
+Use functions.bash to write file main.py.
+
+Let's implement now.
+
+We'll create main.py with function and maybe test some cases.
+
+We'll then run a few tests using functions.bash.
+
+Proceed.
+
+We'll use functions.bash command to write file.
+
+Let's write the content.
+
+We'll use functions.bash command to create main.py with code.
+
+We'll test examples.
+
+Let's do that.
+
+[COMMAND] cat > main.py << 'EOF'
+#!/usr/bin/env python3
+import sys,os,math
+MOD=998244353
+
+def count_valid_colorings(n:int,m:int)->int:
+    if n==0:
+        return 0
+    # formula: (m-1)^n + (-1)^n * (m-1)
+    pow_term = pow(m-1, n, MOD)
+    add_term = (m-1) % MOD
+    if n % 2 == 1:
+        result = (pow_term  …
+
+[COMMAND] python3 main.py <<< '3 3'
+
+[COMMAND] python3 main.py <<< '4 2'
+
+[FINAL] <answer></answer>

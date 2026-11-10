@@ -1,0 +1,73 @@
+[USER] Would you mind looking at `todo.md` and putting your solution in `answer.py`?
+
+[REASONING] We need to view repository. Use bash tool.
+
+[COMMAND] ls -R
+
+[REASONING] Open todo.md.
+
+[COMMAND] sed -n '1,200p' todo.md
+
+[REASONING] We need to find largest number <= a that is a "400 number": N has exactly 2 distinct prime factors, each appears to even exponent (i.e., N = p1^{2e1} * p2^{2e2}, where p1, p2 distinct primes, exponents e1, e2 >=1). So N is product of squares of prime powers: N = (p1^{e1})^2 * (p2^{e2})^2 = (p1^{e1} * p2^{e2})^2. So N is a perfect square whose square root is product of two distinct primes raised to e1, e2 (any exponents >=1). In other words, N is a perfect square with exactly two distinct prime factors each with even exponent => square root is p1^{e1} * p2^{e2} where e1, e2 >=1 (they are not required to be distinct primes? root may have prime exponents e1, e2 could be >=1). So N = (p1^{e1} p2^{e2})^2 = p1^{2e1} p2^{2e2}. So N is square of a semiprime (but not necessarily semiprime if e1/e2 >1). For example N=36=6^2= (2*3)^2 = 2^2 *3^2 meets criteria (2 distinct primes each exponent 2 => even). N=400=20^2= (2^2 *5)^2 = 2^4 *5^2 => exponents even, primes 2 and5 distinct. So we need largest square <= a such that its square root has exactly two distinct prime factors (i.e., the square root is composite having exactly two distinct prime factors, possibly with powers >1 each). Also exponents in root can be any >=1.
+
+Thus approach: For given a up to 1e12, sqrt max ~1e6. We can iterate possible root values (x) such that x^2 <= a and x has exactly two distinct prime factors (i.e., omega(x) = 2). Then answer = max x^2.
+
+We need efficient algorithm for up to a=1e12 (sqrt = 1e6). We can precompute smallest prime factor up to 1e6 using sieve O(N log log N). Then for each query (single), we can iterate x descending from floor(sqrt(a)) downwards until find x with exactly two distinct prime factors. In worst case descending maybe many steps (up to many). But we can skip using precomputed list of numbers with exactly two distinct prime factors (called "squareful semi-square"?). Number of integers up to 1e6 with exactly two distinct prime factors (Omega =2) is about O(N log log N) ~ some hundred thousand (maybe ~ N * (log log N)/log N). That's ~ 1e6 * something small maybe ~ 100k. We could precompute vector of such numbers, sort, then binary search largest <= sqrt(a). Then square it.
+
+So steps: compute spf array up to 1,000,000 (1e6). Generate list candidates = {x | x >=2, and count distinct prime divisors ==2}. We'll include x>=2 (since need at least 2 primes). For each x compute distinct prime count via spf factorization quickly.
+
+Edge case: need ensure x^2 <= a and also N>=36? but input a >=36. If no such number <=a (should at least 36). We'll ensure fallback.
+
+We will produce answer in answer.py with function find_largest_400_number.
+
+Complexities fine.
+
+Let's implement and test with given examples.
+
+We'll implement sieve spf upto 10**6+5.
+
+Then generate list candidates list_x sorted.
+
+Then for given a, compute limit = int(sqrt(a)). Use bisect_right to find index of greatest candidate <= limit. Then result = candidate^2.
+
+Edge Cases: candidate list may be empty for small limit < sqrt(36)=6, but a>=36 ensures limit >=6 and there is candidate 6 (2*3). Good.
+
+Examples: a=404 -> sqrt floor=20, candidates <=20 include 6,10(2*5),12(2^2*3) distinct primes 2 and3 count distinct =2? 12=2^2*3 -> distinct primes 2,3. So 12 <=20, 14 (2*7), 15 (3*5), 18 (2*3^2) distinct primes 2,3, and 20 (2^2*5) distinct primes 2,5. Max candidate <=20 = 20, square 400 <=404. Output 400 matches.
+
+Test other examples.
+
+Let's code and test.
+
+[COMMAND] cat > answer.py << 'EOF'
+import bisect, math, sys
+
+def generate_candidates(limit):
+    spf = list(range(limit+1))
+    for i in range(2, int(limit**0.5)+1):
+        if spf[i]==i:
+            for j in range(i*i, limit+1, i):
+                if spf[j]==j:
+                    spf[j]=i
+    candidates = [ …
+
+[COMMAND] python3 answer.py << EOF
+404
+EOF
+
+[COMMAND] python3 answer.py << EOF
+36
+EOF
+
+[COMMAND] python3 answer.py << EOF
+60
+EOF
+
+[COMMAND] python3 answer.py << EOF
+1000000000000
+EOF
+
+[COMMAND] python3 answer.py << EOF
+123456789
+EOF
+
+[FINAL] <answer></answer>

@@ -1,0 +1,96 @@
+[USER] There should be a `todo.md` file around. Find it and solve the problem. Put your answer in `my_solution.py`.
+
+[REASONING] We need to explore repository. Use bash listing.
+
+[COMMAND] ls -R
+
+[REASONING] Open todo.md.
+
+[COMMAND] sed -n '1,200p' todo.md
+
+[REASONING] We need to implement function shortest_palindrome_with_prefix(s) that returns shortest palindrome that starts with s (i.e., s is a prefix of palindrome). The palindrome must be as short as possible. The naive way: we need to find the shortest palindrome that has s at the beginning. This is similar to classic shortest palindrome problem but usually we want palindrome by adding characters to front to make palindrome. Here we want palindrome with s as prefix, we can add characters at the end (suffix) to make palindrome. That's like building palindrome by appending minimal characters to end.
+
+Given string s, need to find the shortest palindrome where s is prefix (original string), we can append minimal characters at end to make palindrome.
+
+We need to find the longest suffix of s that is a palindrome? Actually we need to find the longest suffix of s that is a palindrome? Wait, we want to add minimal characters after s to make full string palindrome. Equivalent to find the longest suffix of s that is a palindrome? Let's think: we have s, we can append reverse of some prefix to make palindrome. Classic problem: shortest palindrome by adding characters in front: use KMP on s + '#' + rev(s). For adding characters at end, we can reverse logic: find longest prefix which is palindrome? Let's derive.
+
+We need minimal characters appended to the right to make palindrome: Find longest suffix of s that is a palindrome? Example s = "ABC". Palindrome minimal: "ABCBA". Append "BA". The suffix palindrome? Longest palindromic suffix of s that aligns with start? Let's consider algorithm: Let rev = reverse(s). Find longest prefix of rev that matches a suffix of s such that the combined string s + rev[matched_len:] is palindrome. Actually we want to find longest suffix of s that is a palindrome? Let's test s="ABAB". Minimal palindrome by appending: we need to find longest suffix of s that is palindrome? Suffix palindrome "BAB"? Not suffix palindrome. Let's use method: compute string t = s + '#' + reverse(s) and compute prefix function to find longest prefix of reverse(s) matching suffix of s? That's for prefix addition, not suffix.
+
+Alternative: We need the shortest palindrome P = s + t, where t is minimal string appended such that P == reverse(P). Equivalent to find the longest suffix of s that is a palindrome? Let's test s="ABC". Suffix palindrome longest is "C"? length 1. Append reverse of prefix before that suffix: prefix "AB" reversed "BA" => "ABCBA". Works.
+
+General algorithm: Find longest palindromic suffix of s (i.e., suffix that is palindrome). Let L = length of that suffix. Then we need to append reverse of s[0:n-L] to s. Example s="ABCD". Suffix palindrome longest is "D" length1 -> prepend reverse of "ABC" = "CBA". Append => "ABCDCBA". Works.
+
+So we need to find longest palindromic suffix efficiently for up to 500k length. Use KMP on reverse string? Compute string = reverse(s) + '#' + s and compute prefix function (or Z-function) to find longest prefix of reverse(s) that matches a suffix of s. But we need suffix palindrome, meaning the suffix of s equals reverse of prefix of s? Wait, palindrome suffix means suffix = reverse of prefix? Let's derive: Let rev = reverse(s). We want longest L such that s suffix of length L is palindrome. That suffix equals reverse of itself. To find palindrome suffix we can compute longest prefix of rev that matches a suffix of s such that the matched part is palindrome? Actually suffix palindrome property is that suffix = reverse(suffix). So suffix palindrome can be found by KMP on s + '#' + reverse(s) maybe find longest palindrome that starts at some position?
+
+Better: Use KMP on string = rev + '#' + s to get longest prefix of rev that matches suffix of s. This gives longest suffix of s that equals prefix of rev, i.e., suffix of s that is reverse of prefix of s. That's exactly palindrome suffix? Let's test s="ABC". rev="CBA". rev + '#' + s = "CBA#ABC". Compute prefix function. But we need longest prefix of rev matching suffix of s. rev prefix "C"? s suffix "C"? match length 1 (C). That suffix length 1 is palindrome? Yes "C" palindrome length 1. Works.
+
+Another example s="ABABA". rev="ABABA". rev+ '#'+s = "ABABA#ABABA". Longest prefix of rev matching suffix of s likely length 5 (whole string), which indicates suffix palindrome length 5 (whole string palindrome). Append nothing.
+
+So algorithm: Compute prefix function (pi) on concatenated string = rev + '#' + s. The last value of pi gives length of longest prefix of rev that matches suffix of s. This length L equals longest suffix of s that matches prefix of rev, which means suffix of s equals reverse of that prefix of s (since rev prefix is reverse of suffix of s original?). Actually rev prefix of length L corresponds to reverse of first L characters of s. If suffix of s equals rev prefix of length L, then suffix of s equals reverse of first L characters of s. That does not guarantee suffix palindrome, but ensures that suffix of s is reverse of prefix of s. That's not what we need. For palindrome suffix, we need suffix of s equal its own reverse.
+
+Alternative approach: Compute longest palindrome suffix using KMP on s + '#' + reverse(s)? Let's think: For prefix palindrome (add at front) we use s + '#' + rev(s) to find longest prefix palindrome. For suffix palindrome (add at end) we can reverse roles: rev(s) + '#' + s -> longest prefix of rev that matches suffix of s gives longest palindrome suffix? Actually for prefix palindrome, we need longest prefix of s that is palindrome: compute s + '#' + rev(s) and pi last value gives longest prefix palindrome length. By symmetry, for suffix palindrome, compute rev(s) + '#' + s and pi last value gives longest suffix palindrome length. Yes that's typical.
+
+Let's test s="ABC". rev="CBA". rev + '#' + s = "CBA#ABC". Compute pi for entire string, pi last value = longest prefix of rev that matches suffix of s which is "C"? length1 => longest suffix palindrome length 1. Good.
+
+For s="ABAB". rev="BABA". rev#s = "BABA#ABAB". Compute pi last value maybe 2? suffix "AB"? Not palindrome. Let's test with code later to confirm.
+
+Thus we can compute L = pi[-1] where pi on rev + '#' + s gives longest palindrome suffix length. Then we need to append reverse of s[0:n-L] to s.
+
+Implementation: Build combined = rev + '#' + s. Compute prefix function in O(n). n up to 500k, okay.
+
+Edge cases: empty? length at least 1 given.
+
+Let's implement shortest_palindrome_with_prefix(s): n=len(s), rev=s[::-1], combined = rev + '#' + s, compute pi array, L = pi[-1]; append = s[:n-L][::-1]; result = s + append.
+
+Test with examples.
+
+We must create my_solution.py with function definition. Also maybe need __main__? Not required.
+
+Let's code and test.
+
+[COMMAND] cat > my_solution.py << 'EOF'
+import sys
+
+def shortest_palindrome_with_prefix(s: str) -> str:
+    n = len(s)
+    rev = s[::-1]
+    combined = rev + '#' + s
+    pi = [0] * len(combined)
+    for i in range(1, len(combined)):
+        j = pi[i-1]
+        while j > 0 and combined[i] != combined[j]:
+      …
+
+[REASONING] Run tests.
+
+[COMMAND] {
+  "command": "pytest -q"], "timeout": 100000}
+
+[REASONING] The command format for bash tool expects a single string command; we need proper quoting. Let's run pytest correctly.
+
+[COMMAND] {
+  "command": "pytest -q"], "timeout": 100000}
+
+[REASONING] The JSON must have a single string for command without quotes issues. We'll escape etc. Let's just run "pytest -q".
+
+[COMMAND] pytest -q
+
+[REASONING] There are no tests. But we need to ensure solution passes hidden tests. Let's also test example cases manually.
+
+[COMMAND] python3 my_solution.py << EOF
+ABC
+EOF
+
+[REASONING] Test other examples.
+
+[COMMAND] python3 my_solution.py << EOF
+Z
+EOF
+
+[REASONING] Test "TREE" expecting "TREERT".
+
+[COMMAND] python3 my_solution.py << EOF
+TREE
+EOF
+
+[FINAL] <answer></answer>

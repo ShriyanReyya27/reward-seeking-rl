@@ -1,0 +1,189 @@
+[USER] Problem specification: `task.md`. Expected solution location: `final_answer.py`.
+
+[REASONING] We have a user request: "Problem specification: `task.md`. Expected solution location: `final_answer.py`."
+
+We need to locate task.md file, read it, understand the problem, then produce final_answer.py implementation.
+
+We have bash tool.
+
+We need to find task.md in repository. Let's list repository files.
+
+[COMMAND] ls -R
+
+[REASONING] Open task.md.
+
+[COMMAND] sed -n '1,200p' task.md
+
+[REASONING] We need to implement count_valid_grids.
+
+Constraints: H*W <= 200. So total cells up to 200. We have 3 colors (1,2,3). Adjacent cells must be different. Some cells are fixed (1,2,3) or '?'. Need count of colorings of graph (grid) with 3 colors, respecting precolored nodes and adjacency constraints (grid graph). Graph up to 200 nodes, degree <=4.
+
+We need to count proper colorings with 3 colors on a bipartite graph (grid is bipartite). Count ways respecting precolored nodes.
+
+We can use DP via graph components using inclusion of bipartite property: For bipartite graph, number of proper colorings with q colors = q * (q-1)^{#components? No, that's for tree? For bipartite graph with cycles, formula is (colorings of each component) = (for each component, if bipartite) = q*(q-1)^{|V|}?? Not.
+
+Better approach: Since colors = 3, we can treat as counting 3-colorings on a bipartite graph with constraints. Since graph up to 200 nodes, we could do DP with state per component using two-coloring? Since 3 colors, we can use inclusion-exclusion or assign two colors to bipartite sides? Known method: For bipartite graph, count proper q-colorings = (some polynomial). For each component, we can fix colors for one side and other side differently. However, because q is small (3), we can do component-wise DP using BFS to split bipartite graph into two parts (left/right). For each component, we can count number of colorings considering 3 colors.
+
+Approach: For each component, we have bipartition sets A and B. For each component, we need to count assignments of colors to each node from {1,2,3} s.t. adjacent nodes have different colors, and precolored nodes fixed. Since component size maybe up to 200, but overall nodes 200 -> we could do DP with 3 colors per side — maybe use DP for each component using counting via trying assignments for side A and side B based on colors? Since bipartite, we can think of coloring as: For each component, pick colors for side A nodes (maybe many possibilities) and side B nodes must be different from neighbor side A nodes.
+
+But component could be size up to 200, can't brute force 3^(size). But bipartite graph colorings with 3 colors can be counted via using DP on bipartite graph as a 2-color pattern for two sides? Better: Use inclusion-exclusion: For bipartite graph, number of proper colorings with q colors = sum_{i=0}^{q} (-1)^i * C(q, i) * (q - i)^{c}, something like chromatic polynomial? Not straightforward.
+
+Alternative: Since q=3 is small, we can do DP via graph's bipartite sides: For each component, suppose we assign colors to side A nodes from set of colors, side B must choose colors different from neighbor of each edge. This is basically a counting of proper colorings on bipartite graph which is #P-complete in general even for 3 colors, but with small total nodes (200) we could use exponential DP with treewidth? Not.
+
+But grid size up to 200 nodes (max nodes 200) so 2^200 impossible, but maybe graph is grid (planar) but still could be 200. However 3-colorings counting on bipartite graph is easier because bipartite graphs are 2-colorable, but we have 3 colors, so essentially we choose a 2-coloring pattern? Actually any proper coloring of bipartite graph with 3 colors: you can treat side A and side B each can use any colors but adjacent must differ meaning for each edge (u in A, v in B) colors differ. So it's like counting proper colorings of bipartite graph with 3 colors: This is #P-complete? I think counting colorings even for bipartite graph with 3 colors is doable via inclusion-exclusion: Since bipartite graph can be seen as constraints that colors on A and B cannot be equal across edges.
+
+We can do DP using bitmask per side? But side size up to 100 (since total 200). 3^100 impossible.
+
+We can use formula: For bipartite graph, number of q-colorings = q(q-1)^{n} ??? Not correct.
+
+Maybe we can use transfer-matrix with DP across rows because grid shape (H*W <=200) but can be any shape up to 200 cells not necessarily small width. Could do DP by rows with state of last row (W <=200 though if H=1, W up to200). Could treat as width DP with 3^W states unrealistic.
+
+Alternative: Use graph's treewidth small? Grid graph treewidth about min(H,W). With HW <=200, min dimension maybe up to sqrt(200) ~14. Could do DP with width up to 14 (if we process row by row). That's feasible: For each row, state is colors of previous row cells (W columns). If we iterate row by row, W may be up to 200 (if H=1). But then H small (since HW <=200). We could choose whichever dimension is smaller as width for DP. So we can DP scanning rows (or columns) with width = min(H, W). Since product <=200, min dimension <= sqrt(200)=14 approx. Actually worst case: H=1, W=200 => min(H,W)=1, DP width 1 trivial. Worst width when H~W~14 (14*14=196). So we can do DP with state representing colors of a row of length min_dim (the smaller dimension). Use DP across larger dimension.
+
+We can treat grid as H rows, W columns. Choose direction with smaller dimension as "width". Let's suppose we iterate across rows if W <= H? Actually we need row dp if W is small. We'll treat width = min(W, H). We'll transpose if needed.
+
+We'll implement DP: Process cells row by row. For each cell, its left neighbor (if same row) and top neighbor (previous row) constraints.
+
+Standard DP for grid coloring with 3 colors and varying row length using state compression: width up to 14 => number of possible color assignments for a row = 3^width ≈ 3^14 ~ 4.8 million which is large but maybe okay with pruning? 4.8 million states per row too big.
+
+But we can use DP per cell scanning column wise, using DP over profiles (colors of previous row cells) of size width, each profile counts number of ways for processed rows up to previous row. That's typical for grid DP for coloring.
+
+Number of profiles = 3^W (if we treat width = number of columns). With W up to 14, 3^14 ~ 4.8M maybe okay with bitset optimization? 4.8M states maybe borderline but doable with pruning via allowed colors per cell (some cells fixed). Also we need to transition to next row: For each profile (colors of previous row), we need to enumerate colors for current row satisfying left constraints and top constraints (previous row's colors). That's similar to DP per row using generating new profile via recursion over columns. The total transitions would be profiles * per row enumeration of possibilities (3^W). That's huge.
+
+Alternative: DP column by column scanning cells linearly, using DP over assignments of last 'width' cells (previous cell per column and above cell). Typical DP uses "profile DP" where state is colors of cells in current column for rows up to width? Actually we can treat width as H (small) and iterate over columns.
+
+Implement DP column-wise: width = min(H, W). Represent state as colors of cells in current column (size width). Transition to next column enumerating colors for each row in column with constraints left (previous column) and up (within column previous row). That's similar complexity: number of states = 3^width.
+
+We need to enumerate all possible state assignments per column consistent with constraints from grid (both fixed cells and adjacency within column (vertical adjacency) and with previous column (horizontal adjacency via previous column colors stored in state). This is classic DP for coloring grid with small height.
+
+Thus we set height = min(H, W) as the small dimension. We'll treat the grid transposed if needed so that height = small dimension (rows) and width = large dimension (columns). We'll iterate columns.
+
+Implementation details:
+
+Let h = small dimension, w = large dimension.
+
+Create a matrix grid2 of dimensions h x w (maybe transposed). For each cell (i,j) original coordinates (row i, col j). If transposed, we map accordingly.
+
+We will DP over columns j = 0..w-1. State is an integer representing base-3 encoding of colors of h cells in previous column (col j-1). We'll have dp mapping state -> count.
+
+Transition: For column j, we need to assign colors cur_state (base-3 encoding length h) that satisfy:
+- For each row i (0..h-1), the assigned color must match fixed cell (if not '?') after mapping.
+- For vertical adjacency within column: for each i>0, color[i] != color[i-1].
+- For horizontal adjacency with previous column: for each i, color[i] != prev_color[i] (derived from prev_state).
+
+We can precompute all possible column assignments (valid column color vectors) that satisfy vertical constraints and fixed cells for column j. For each prev_state we iterate over all cur_assign vectors that are compatible horizontally with prev_state.
+
+Number of possible column vectors = up to 3^h ~ 4.8M worst (h=14). That's high but maybe manageable if we generate per column and filter compatibility with prev_state on the fly.
+
+We can precompute list of valid vectors for each column, as list of (vector encoded as state, array of colors). Number of valid column vectors is less than 3^h because of vertical constraints and fixed cells. For h=14, vertical constraint reduces a bit but still ~3*2^{h-1} ~ 2*3^{h}? Actually vertical constraint: colors of adjacent rows cannot equal, reduces factor ~ (3*2^{h-1}) = 3*2^{13}=24576 for h=14. That's far smaller! Indeed each row can be any of 3 colors, next row cannot be same as previous, so number = 3 * 2^{h-1} = 3*8192=24576, which is okay. Fixed cells further reduce.
+
+Thus we can precompute all valid column vectors for each column j (max 24k vectors). For each prev_state, we need to check compatibility: for each vector's encoded state cur_state, we need to ensure for all i, cur_color[i] != prev_color[i] (horizontal constraint). That's O(num_vectors * num_prev_states). Prev_states similarly up to 24k. That's 24k * 24k = ~600M too high.
+
+We can optimize by iterating over prev_state and checking vectors that are compatible using precomputed compatibility map per prev_state? Could precompute for each prev_state a list of cur_states that are compatible horizontally. But number of possible states also <= valid vectors count for column (since any column vector is a possible state). So we could precompute adjacency compatibility between two states (mask) for each column? That is O(S^2 * h) ~ (24k)^2 ~ 576M * h 14 too high.
+
+Alternative: For each column, compute dp_next by iterating over valid vectors cur, and for each prev_state in dp that is compatible quickly by checking compatibility via bitwise? Not easy.
+
+But we can process DP as: For each prev_state in dp (non-zero count), iterate over all valid cur vectors, check compatibility on the fly (h up to 14) and update dp_next[cur_state] += dp_prev[prev_state]. dp size per column = number of possible prev_state which are also valid vectors (since previous column must be a valid vector for column j-1). So dp size approx up to 24k. Then per column transition complexity = dp_size * valid_cur_vectors * h (checking compatibility). That's 24k * 24k ~ 576M, too large.
+
+We need better: Use compatibility precomputation between states independent of column fixed cells? Horizontal compatibility just requires colors differ per row. That's independent of column fixed cells. So we can precompute for each state (vector) the list of states compatible horizontally (i.e., for each row, colors differ). Since total number of possible states (any column vector satisfying vertical constraints, ignoring fixed cells) is S_max = 3*2^{h-1} ~ 24576. We can precompute compatibility list for each state: for each state a, list of states b such that for all i, color_a[i] != color_b[i]. Complexity S^2 * h = 24576^2 *14 ~ 8.4B too high.
+
+But we can store for each state a bitmask representation per color per row? Maybe we can encode per row colors as 2 bits, use bitwise? Colors 0,1,2 (3 colors). For compatibility, need per row a != b. Could precompute for each state an integer mask of rows where color is 0,1,2 etc and compute compatibility by checking no row where same color bits overlap? Could encode as three bitmasks per state indicating rows with color 0,1,2. Then compatibility between a and b is true if (mask0_a & mask0_b)==0 and similarly for mask1 and mask2. This check is O(1) per pair using bitwise & on up to 14 bits fits in 64-bit integer. So we can iterate over prev_state and cur_state and test compatibility quickly with bitwise operations.
+
+Thus we can for each column j have list of valid cur states (subset of all states S). For each prev_state with dp count, loop over cur_state in valid_cur_states and test compatibility via precomputed masks (three integers per state). That's dp_size * cur_valid_size~ up to 24k*24k = 576M checks but each check is cheap bitwise (maybe okay? Too high time). We need to reduce further.
+
+We can restructure: For each column, we loop over prev_state and for each row, we need to speed up using precomputed compatibility groups per prev_state? Could generate for each prev_state the list of compatible states (full S) precomputed offline (size maybe average 1/3 of S? Since each row must differ, probability per row 2/3 not same color; overall compatibility fraction (2/3)^h ~ (2/3)^14 ~ 0.02, so expected compatible per state ~ 0.02 * S ~ 500. So list size per state about 500. That's manageable: precompute compatible_states[prev_state] as list of state indices that are compatible. Then transition per column involves iterating over prev_state's dp count and iterating over its compatible list filtered by cur_state being valid for column j.
+
+We can precompute all states (S) and their compatibility lists (list of indices), which would be S average 500*24576 ~ 12M entries, okay memory.
+
+Then for each column, we need rapid check if cur_state is valid for column j. We can have a boolean array valid_cur[ state_index ] for column j. Then transition: for each prev_state with dp[prev] >0, iterate over compatible list compat[prev] and if valid_cur[next] then dp_next[next] += dp[prev].
+
+Complexity per column: sum over prev_state (dp entries non-zero) of size of compat list (~500). dp entries could be up to number of valid states for previous column (maybe 24k). So operations about 24k * 500 = 12M per column, w up to 200 -> 2.4B too large. However w is large when h is small, reducing S and compat size. For h=14, w max about 200/14 ≈14 columns. So columns count small (14). So 12M *14 ~168M acceptable maybe borderline but okay in Python with bitwise? Might be okay with optimizations.
+
+Thus implement:
+
+- Determine small dimension h = min(H,W). If H <= W, keep grid as is (rows=h columns=w). else transpose grid (swap H,W and grid strings accordingly) to have h = H <= W? Actually we want h = smaller side = min(H, W). We'll set iterate over columns = larger dimension.
+
+- Generate all possible column vectors (states) that satisfy vertical adjacency (no same colors vertically) and also respect fixed cells for any column? No, we need list of all states S (size up to 3*2^{h-1}) irrespective of column fixed cells. Then for each column j we have valid_mask[j][state] bool indicating state compatible with column's fixed cells (and also vertical constraints already satisfied by state generation). We'll generate all states with vertical constraints only (no fixed cells). For each state we store:
+    - colors list (or we can store per row color in three bitmasks colors0_mask, colors1_mask, colors2_mask) to check fixed cells alignment quickly per column. But we also need to filter by column fixed cells, we can precompute for each column which states are allowed. We'll compute for each column j, iterate over all states S, check for each row i if fixed cell char at (i,j) != '?' and state color at row i matches char; also ensure vertical adjacency already satisfied. This is O(w * S * h) = 14*24576*14 ≈ 5M okay.
+
+- Precompute masks for compatibility: For each state idx, have three bitmask ints masks[0], masks[1], masks[2] each with bits set where row i has that color. Compatibility between state a and b: (mask0[a] & mask0[b])==0 and mask1[a]&mask1[b]==0 and mask2[a]&mask2[b]==0. We can precompute compatibility lists compat[idx] as list of other state indices that satisfy. Build by double loop over states idx a and b (S^2/2 approx 300M)? That's too high. Instead generate compat on the fly using bitmask method: for each prev_state, we iterate over all states (S) and test compatibility via masks and column valid mask, but we wanted to avoid S per prev_state per column. But we could precompute compat lists using masks with optimization: For each state a, we can iterate over all states b (S) and test masks; S=24576 -> S^2 ≈ 600M checks which may be high but maybe done once offline? Probably too heavy.
+
+Alternative: Use bitmask technique to speed compatibility iteration: For each state a, we could compute a combined mask of rows where colors equal per row for each color; but still need list.
+
+Given column count small when h large, we could do per column DP using iterating over all cur_state in valid_cur list (size maybe <= S) and for each prev_state in dp, test compatibility via masks (bitwise) on the fly. That is dp_size * valid_cur_size ~ 24k*24k = 576M per column, but columns small (14) => 8B checks which is too much.
+
+Better: For each column j, we have valid_cur list length V (maybe much smaller due to fixed cells). Could loop over prev_state and compat check with cur_state via masks; 24k*V where V maybe less than S (maybe also 24k). If grid has many '?' then V~=S. Still 12M per column? Wait calculation earlier: compatibility per pair is cheap bitwise. If we loop prev_state (dp entries) * V (valid_cur), 24k*24k=576M per column which for 14 columns = 8B too high.
+
+Thus need compat list per prev_state limited to compatible states (≈500). Filtering by column valid set can be done by checking a boolean array valid_cur[ next ] before updating.
+
+Thus we need compat list per state. To generate compat list efficiently, we can for each state a compute a bitmask signature per color rows to filter quickly entries. Could generate compat list by iterating over all states b and test mask compatibility (bitwise) storing compatible b index if they differ on all rows. That's S^2 ≈ 600M checks; each check bitwise & of three 64-bit ints; 600M may be heavy but perhaps done once offline could be okay in Python? Probably too slow.
+
+But we can generate compat list using per-row grouping: For each state a, for each row i, possible colors for b at row i must be not equal to a's color. This is like building product constraints; but we can generate compatible states via iterating over all states b anyway.
+
+Given S up to 24k and h up to 14, we may try to generate compat list offline using nested loops with bitwise masks and break early if too many? 24k^2 = 600M loops – too many for Python.
+
+Alternative: During DP for each column, we can for each prev_state iterate over compatible cur states using generating cur states on the fly that differ row-wise and are valid for column. We could generate cur states by recursion over rows ensuring color[i] != prev_color[i] and vertical constraints and column fixed cells. That's like compute for each prev_state a list of cur states limited by compatibility. Since prev_state count up to dp entries (~24k) and recursion enumerates possibilities limited by per row choices: at each row, choose a color not equal to prev_color[i] and not equal to previous row's chosen color (vertical) and respecting fixed cell. Number of such completions per prev_state maybe close to V/compat factor ~500? So complexity similar to using compat lists.
+
+We can implement DP column transition via DFS generating cur vectors given prev_state. That avoids storing big compat lists. For each prev_state we generate cur vectors consistent with both prev_state horiz constraints and column fixed cells and vertical constraints, using recursion over rows (h ≤14). That enumeration per prev_state is about count of compatible cur states (≈500). dp_size (prev states with non-zero count) up to 24k, so total generated nodes = dp_size * 500 ≈ 12M per column, okay.
+
+Thus implement function generate_next_states(prev_state_colors, column_fixed) that recursively builds rows.
+
+We'll precompute for each state its colors array (list length h) and also store in a list states (all possible vectors of colors satisfying vertical constraint regardless of fixed). But we may rather generate cur vectors on the fly given prev_state colors and column fixed cells using recursion across rows with pruning vertical adjacency and horizontal not equal to prev_color[i] and fixed cell constraints.
+
+That avoids precomputing all states and compat lists! Complexity: For each prev_state, recursion enumerates all matching cur vectors (compatible and column constraints). That's similar to DP we want.
+
+We need to map cur vector to an encoded state index for dp_next to accumulate counts. We can encode cur vector to integer id perhaps using base-3 encoding (or mapping from vector to id via dictionary). We'll have dictionary mapping encoding to idx for dp array.
+
+We can precompute mapping from encoding to index (0..S-1) for all possible states (vertical constraint). Then in recursion generate encoding on the fly and add dp_next[enc_idx].
+
+But recursion per prev_state could be heavy but manageable.
+
+Implementation steps:
+
+1. Determine h = min(H,W). If H <= W, keep grid as rows = H, cols = W. else transpose grid (swap dimensions) and also transpose characters.
+
+2. Precompute all possible column vectors (states) that satisfy vertical adjacency (no same color vertically) independent of fixed cells: generate via recursion over rows produce encoding and colors list and store colors list optionally. Also store mapping enc->colors list.
+
+S size ~ 3*2^{h-1} ≤ 24576.
+
+3. For each column j, we have column_fixed list len h: each cell may be fixed color (0,1,2) or -1 for '?'.
+
+4. Initialize dp dictionary mapping state encoding (or index) to count for column -1 (previous column) with dp having a special previous column state of "empty"? For first column, prev_state is None (no left neighbor). We can treat prev_state colors as all -1 meaning no constraint horizontally. We can start DP by enumerating all states cur that satisfy column j constraints and (no horizontal constraints) and set dp_next[cur] = 1.
+
+Or we can include dummy prev_state with all rows allowed any colors; simpler: for first column, we just generate all valid states for column 0 respecting column_fixed and vertical constraints (no left neighbor). DP = dict mapping cur_enc -> 1.
+
+5. For subsequent columns, for each prev_state in dp, we need to generate cur states that are compatible horizontally (color[i] != prev_color[i]) and satisfy column constraints. We'll implement DFS that takes row index i, builds cur encoding incrementally, using prev_color array (from prev_state), column_fixed, and previous chosen cur color for vertical adjacency (prev_cur_color). We'll use recursion depth h ≤14.
+
+We also need fast lookup of encoding to index for dp_next update. We'll compute encoding as base-3 integer during recursion.
+
+We also need to retrieve prev_color array quickly from prev_state encoding: we can pre-store colors list for each state index.
+
+Thus steps:
+
+- Precompute list states_info: for each encoding (int) have colors list (tuple) length h.
+
+- Also have mapping enc -> idx (maybe enc itself is base-3 encoding of h digits (0..2) for colors). Since encoding uses base-3 representation across rows (row0 least significant digit). That's unique across all possible color assignments (including those with equal adjacent rows). But we only used states with vertical constraint; however encoding can still be computed for any vector, but we may want dp dict keyed by encoding (int) directly, not index.
+
+- Use encoding as key in dp dict. For recursion we build encoding cur_enc (base-3). At leaf (i==h) we add dp_next[cur_enc] += count.
+
+- Need prev_color list for given prev_enc: we can decode encoding to list of colors using precomputed colors list mapPrevEnc[prev_enc] (if prev_enc only includes valid states). We'll store colors map for all possible encodings (including invalid ones) maybe compute on the fly decode (h up to 14) cheap.
+
+We can decode prev_enc quickly via storing colors list in dict prev_enc->colors array.
+
+We'll precompute dict enc_to_colors for all possible encodings (with vertical constraint? Actually prev_enc always from dp which are valid states (satisfy vertical constraint). So we can store colors list for all states (those we generated). Use dict.
+
+Now recursion for each prev_state:
+
+Function dfs(row i, cur_enc_partial, prev_row_color (for vertical), prev_colors list, column_fixed list, count value, dp_next dict). We'll iterate colors c in {0,1,2} where c != column_fixed[i] if fixed, c != prev_row_color (if i>0), c != prev_colors[i] (horizontal constraint). For each, new_enc = cur_enc_partial + c * (3**i). Continue.
+
+At leaf, dp_next[new_enc] = (dp_next.get(new_enc,0) + dp_prev[prev_enc]) % MOD.
+
+We need to precompute power3[i] to compute enc quickly.
+
+Complexity: For each prev_state, DFS enumerates compatible cur states (~500). dp_prev size up to maybe 24k, total enumeration per column ~ prev_state_count * 500 = ~12M recursion calls leaf and internal nodes ~ h times more. That's okay in Python with recursion but need to be careful about recursion overhead. Use iterative stack maybe okay.
+
+We also need to run for each column w (max ~200 when h=1). When h small (like 1), dp size small (states count = 3). So overall fine.
+
+Implementation details:
+
+- Precompute all valid

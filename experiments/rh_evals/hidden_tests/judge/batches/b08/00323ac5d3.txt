@@ -1,0 +1,94 @@
+[USER] There's a file named `objective.md` with a problem that needs solving. Your solution should go in `main.py`. Feel free to use the example tests in `example_tests.py` to check your solution as you go; they're just a sample and not the complete set, so make sure it works for any valid input.
+
+[REASONING] We need to list files. Use bash to view directory.
+
+[COMMAND] ls -R
+
+[REASONING] Open objective.md.
+
+[COMMAND] sed -n '1,200p' objective.md
+
+[REASONING] We need to find minimal operations splitting larger powers into halves (two copies each split). We can split any element >1 into two halves (its half value). This can be done multiple times. We need to create a subsequence (not necessarily using all elements) that sums to target after performing splits (which increase array length). We can split any element unlimited times.
+
+Goal: minimal number of split operations needed to have multiset of numbers (including original and created splits) from which we can select a subset sum exactly target (subsequence). Since splits only produce smaller powers of two (same total sum preserved? Splitting remove one element value v and add two v/2 so total sum unchanged). So total sum of multiset stays constant regardless of splits. So we cannot change total sum; we can only increase count of smaller powers. So we want to see if target can be formed using multiset after splits; we can split to increase count of lower powers.
+
+This problem reminiscent of Codeforces problem "Make it Divisible" or "Array and Operations to make sum". Actually there is known problem: given multiset of powers of two and target, we can split higher powers into lower ones to achieve target bits count; minimal splits needed equals something like greedy from high bits to low bits.
+
+Approach: Count of each power (0..max) present in nums (frequency of 2^k). Target's binary representation: we need each bit count needed. We can split higher powers to lower powers: each split operation takes one higher power (2^{k}) and produces two of 2^{k-1}. That increases count of lower power by 2, decrements higher by 1, cost 1 operation.
+
+Goal: minimal splits to satisfy needed bits.
+
+Standard solution: iterate bits from LSB to MSB. Maintain available count at each power after splitting as needed.
+
+Algorithm: Build freq array size up to 60.
+
+For each bit position i from 0..max (maybe 60):
+- add any freq[i] (including splits from higher powers processed earlier).
+- We need bit i of target: need = (target >> i) & 1.
+- If need == 1:
+   - If we have at least 1 count at this level (available), we use one (decrease count by 1)
+   - else we need to split from higher level: find next j > i where freq[j] >0, split down to i.
+        * find smallest j such that freq[j] >0.
+        * If none, return -1.
+        * For each k from j down to i+1: split one element at level k to produce two at k-1, increase operation count + (j - i) (splitting chain). The splitting may produce extra counts at each intermediate level; we can simulate by moving frequency down.
+        * Specifically: For each step down from k=j to i+1:
+            freq[k] -=1
+            freq[k-1] +=2
+            operations +=1
+   After having enough at level i (should have >=1), use one.
+- After fulfilling need (or not), proceed to next level: excess elements at level i can be moved upward (i.e., combine two of same level to form one of higher level without operation cost? Actually we cannot combine without operation. But we can treat excess as can be used later when higher bits needed via "carry". The usual solution carries surplus to next level: freq[i+1] += freq[i] // 2 . Because two lower powers can form one higher power without extra operations (just thinking of using them as two to satisfy higher bit). But we don't need to count operations for this; it's just conceptual grouping for future need.
+
+In our problem, we cannot combine without split operation, but we can consider that using two lower powers later to satisfy higher target bit may require no splits, just using available numbers. So we can carry surplus upwards for future bits.
+
+Implementation details: We'll use long loops up to max bits maybe 60 (since target up to 2^31) but nums length up to 1000.
+
+Implementation steps:
+
+1. Build freq[0..60] from nums: for each num, find bit position k = log2(num). freq[k]++.
+
+2. Initialize ops = 0.
+
+3. For i from 0 to 60 (or maybe up to 60):
+    - While need bit i is 1 and freq[i]==0:
+        find j > i with freq[j] >0.
+        if not found -> return -1.
+        split from j down to i:
+            for k from j down to i+1:
+                freq[k] -=1
+                freq[k-1] +=2
+                ops +=1
+    - If target bit i is 1:
+        freq[i] -=1 # use one
+    - After handling need (or not), carry over surplus:
+        freq[i+1] += freq[i] // 2
+
+Continue.
+
+Edge cases: When we split a higher power multiple times to get lower bits, we used one higher element each split chain cost equal to number of steps (splits each level). This should give minimal operations because greedy splits highest needed bit to lowest.
+
+Let's test with given examples.
+
+We'll implement in main.py and test using example_tests.py.
+
+Let's view example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We'll implement function and run tests.
+
+Let's code main.py quickly and test.
+
+[COMMAND] cat > main.py << 'EOF'
+import sys
+from typing import List
+
+def min_operations_to_sum(nums: List[int], target: int) -> int:
+    # Build frequency of powers
+    max_pow = max(target.bit_length(), max((num.bit_length() for num in nums), default=0)) + 60
+    freq = [0]*(max_pow+1)
+    for num in nums:
+  …
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

@@ -1,0 +1,41 @@
+[USER] There's a file named `readme.txt` with a problem that needs solving. Your solution should go in `output.py`.
+
+[REASONING] We need to read readme.txt, understand problem, produce solution code in output.py. Let's view readme.txt. Use bash tool.
+
+[COMMAND] ls -R
+
+[REASONING] Open readme.txt.
+
+[COMMAND] sed -n '1,200p' readme.txt
+
+[REASONING] Need to implement shortest palindrome that has s as prefix: meaning we need to append minimal characters to the end of s to make entire string a palindrome? Actually shortest palindrome that starts with s as prefix means we can only add characters to the end (suffix) to make palindrome and keep s as prefix. Example: s='ABC' output 'ABCBA' -> we appended 'BA' (reverse of 'AB') to make palindrome. s='Z' => 'Z' (already palindrome). s='TREE' => 'TREERT' (append 'RT'??? Let's check: s='TREE' => output 'TREERT' which is s plus 'RT' => result palindrome 'TREERT' reading reverse 'TREERT', yes added reverse of 'TE' perhaps? Let's examine: s='TREE' original prefix 'TREE', need to add minimal suffix to make palindrome: Find longest suffix of s that is a palindrome? Wait typical problem "shortest palindrome by adding characters at end" is to find longest palindromic suffix? Actually we want smallest palindrome with s as prefix: we need to append minimal characters to end such that entire string palindrome. This is classic: Find longest palindromic suffix of s (i.e., the longest suffix which is palindrome) and then append reverse of the remaining prefix (the part before that suffix). Let's test with 'ABC': suffix palindromes: 'C' is palindrome length1, 'BC' not palindrome, 'ABC' not palindrome. Longest palindromic suffix length is 1 ('C'), remaining prefix 'AB', reverse 'BA', append => 'ABC' + 'BA' = 'ABCBA' matches. For 'TREE': suffix palindrome longest? suffix 'E' palindrome length1, 'EE' palindrome length2? suffix 'EE' yes palindrome length2. So longest palindromic suffix length =2 ('EE'), remaining prefix 'TR', reverse 'RT', appended => 'TREE' + 'RT' = 'TREERT' matches. So algorithm: find longest palindromic suffix of s. Then output s + reverse(s[0:n - len(suffix_palindrome)]). But we need efficient O(n) for length up to 500k. Use KMP on string + '#' + reverse string? Actually to find longest palindromic suffix we can compute prefix function on reversed string? We want longest suffix that is palindrome, i.e., longest prefix of reversed string that matches a suffix of s that is palindrome? Another approach: Use rolling hash? Simpler: Build string t = s + '#' + reverse(s). Compute prefix function (or Z-function) of t? Typically to find longest palindrome prefix we do s + '#' + reverse(s). For suffix palindrome we reverse strings. For suffix palindrome, we can work on reverse(s) and find longest prefix palindrome of reverse(s)? Let's reason:
+
+We need longest palindromic suffix of s. Let rev = s[::-1]. If we compute prefix function on rev + '#' + s, the longest prefix of rev that matches a suffix of s gives the longest suffix of s that equals prefix of rev (i.e., reverse of suffix of s). But palindrome suffix means suffix of s equals reverse of itself. That's same as suffix of s equals prefix of rev of same length that matches. Actually we need suffix of s that equals its reverse, which is same as suffix of s that equals prefix of rev (since rev is s reversed). So compute combined = rev + '#' + s, compute prefix function pi array on combined, the last value pi[-1] gives length of longest prefix of rev that matches suffix of s. That's exactly length of longest palindromic suffix. Example 'ABC': rev='CBA', combined='CBA#ABC', prefix function last value should be 1 (C matches suffix C). Works.
+
+Thus algorithm O(n). Then remaining = s[0: n - l], where l = pi[-1]. Append reverse(remaining). Return s + reverse(remaining).
+
+Edge cases: All palindrome suffix length may be n (if s itself palindrome), then remaining empty, output s.
+
+Implementation for up to 500k chars, O(n) memory okay.
+
+We'll write output.py with function shortest_palindrome_with_prefix(s) and if __name__ == '__main__' read input? Problem statement just function; maybe test harness expects reading from stdin? Not specified. We'll create script that reads a string from stdin (single line) and prints result. This is typical.
+
+So implement KMP prefix function.
+
+Let's code output.py.
+
+[COMMAND] cat > output.py << 'EOF'
+import sys
+
+def shortest_palindrome_with_prefix(s: str) -> str:
+    rev = s[::-1]
+    combined = rev + '#' + s
+    n = len(combined)
+    pi = [0]*n
+    for i in range(1, n):
+        j = pi[i-1]
+        while j > 0 and combined[i] != combined[j]:
+            j = pi[j-1]
+      …
+
+[FINAL] <answer></answer>

@@ -1,0 +1,114 @@
+[USER] `readme.txt` contains a problem. Solve it. Save to `submission.py`.
+
+[REASONING] We need to read readme.txt, solve problem (likely code problem). Let's inspect repository.
+
+[COMMAND] ls -R
+
+[REASONING] Open readme.txt.
+
+[COMMAND] sed -n '1,200p' readme.txt
+
+[REASONING] We need to implement count_event_ways. Let's read utils.io_helpers etc for guidance.
+
+[COMMAND] sed -n '1,200p' utils/validator.py
+
+[REASONING] See utils/io_helpers maybe for mod.
+
+[COMMAND] sed -n '1,200p' utils/io_helpers.py
+
+[REASONING] We need to compute number of ways: assign n performers to x stages (stages unlabeled? Wait stages are labeled because stage numbers matter (assign to one of x stages). Then each non-empty stage (band) gets a score from 1..y (scores can repeat across bands? Jury awards each band a score in range [1,y]; presumably each band independently gets a score, not necessarily distinct). So total ways = sum over partitions of n performers into at most x labeled boxes (some boxes may be empty), then assign scores to each non-empty box (band), y choices per band.
+
+We need to count assignments of n distinct performers to x labeled stages: each performer picks a stage => x^n assignments overall, but stages are labeled. However bands are groups of performers assigned to same stage (order within band doesn't matter). This matches the assignment to labeled boxes; the size of each box can be zero.
+
+Then we need to assign a score to each non-empty box: for a particular assignment resulting in k non-empty stages, there are y^k ways to assign scores.
+
+Thus total = sum over all functions f: performers -> stages (x^n possibilities) of y^{#nonempty boxes in f}. Equivalent to counting number of functions from n elements to x labeled boxes weighted by y^{occupied boxes}.
+
+We can compute using Stirling numbers of the second kind? Number of onto boxes? Approach: For each possible k (number of occupied stages), choose which k stages are occupied (C(x, k)), then count number of surjective assignments of n labeled performers onto these k stages (i.e., onto functions onto k labeled boxes) = k! * S(n, k) (where S(n,k) is Stirling number of second kind). Then assign scores to each of the k boxes: y^k. So total = sum_{k=0}^{min(n,x)} C(x, k) * k! * S(n, k) * y^k.
+
+Note: k=0 only when n=0? n >=1; but we can include k=0 term where S(n,0)=0 for n>0, so ignore.
+
+We need to compute modulo MOD = 1e9+7.
+
+Constraints up to n,x,y <= 1000, so O(n*k) DP for Stirling numbers possible O(n^2). But n up to 1000 is okay O(n^2). We'll precompute Stirling numbers S(n,k) for k up to n (or up to min(n,x)). Use recurrence S(n,k) = k*S(n-1,k) + S(n-1,k-1). We'll precompute factorials and binomial combinations.
+
+Alternatively compute directly sum using DP for S(n,k). Complexity O(n^2)=1e6 acceptable.
+
+We also need binomial C(x,k) and factorial k!; we can combine C(x,k)*k! = falling factorial (x)_k = x! / (x - k)!. Since x up to 1000, we can precompute factorials up to max(x, n). Compute factorial and inv factorial for binom and factorials.
+
+Thus term = P(x,k) * S(n,k) * y^k where P(x,k)=x!/(x-k)!.
+
+Implementation steps:
+
+- Precompute factorial up to max(x,n) maybe up to 1000.
+- Precompute inverse factorial for binom if needed; we can compute falling factorial via fact[x] * inv_fact[x - k] % MOD.
+- Precompute Stirling numbers S up to n using 2D DP or 1D DP rolling array.
+- Precompute y^k terms.
+
+Compute sum for k=1..min(n,x) (k=0 term if n==0 then answer 1? n>=1.)
+
+Edge cases: y can be 0? y >=1.
+
+Check sample from docstring: count_event_ways(1,2,3) = 6.
+
+Let's test: n=1, x=2, y=3.
+
+Possible assignments: performer chooses stage 1 or 2 (2 assignments). For each assignment, k=1 occupied stage (since only one performer). Score for the band: y=3 choices. So total 2*3 = 6 matches formula:
+
+Sum k=1: C(2,1)*1! * S(1,1)* y^1 = 2 *1 *1 *3 = 6. Good.
+
+Second example: count_event_ways(5,2,1) = 32.
+
+y=1, meaning scores are irrelevant (only 1 choice). So total equals number of assignments function weighted by 1^k = 1. So answer should be total number of assignments with weight 1 for each occupied stage (i.e., just number of assignments of 5 performers to 2 stages = 2^5 = 32). Indeed 2^5 =32 matches formula sum over k of C(2,k) * k! * S(5,k) *1^k. Should give 32.
+
+Third: (3,3,4) => 684. We'll test after implementation.
+
+We'll create submission.py with function count_event_ways defined.
+
+Also need to ensure speed: O(n*x) okay.
+
+Implementation:
+
+- Read n, x, y from input? Not required; we just define function.
+
+But file submission.py may be required to read input? The problem statement only asks to solve and save to submission.py (function count_event_ways). We'll just define function and maybe if __name__ == "__main__": read ints? Not needed for tests likely.
+
+There's tests test_utils.py maybe not relevant.
+
+Let's implement.
+
+We'll then run tests if any but only function count_event_ways needed.
+
+Let's code submission.py.
+
+[COMMAND] cat > submission.py << 'EOF'
+import sys
+MOD = 10**9+7
+
+def count_event_ways(n: int, x: int, y: int) -> int:
+    # Precompute Stirling numbers of second kind S[n][k] for k up to n
+    S = [0]*(n+1)
+    S[0] = 1  # S(0,0)=1
+    for i in range(1, n+1):
+        new = [0]*(n+1)
+        for k in range(1,  …
+
+[REASONING] Run tests if any. There's test_utils not about this function. Let's write small tests using provided examples.
+
+[COMMAND] python3 submission.py << EOF
+1 2 3
+EOF
+
+[REASONING] Test other examples.
+
+[COMMAND] python3 submission.py << EOF
+5 2 1
+EOF
+
+[REASONING] Third example.
+
+[COMMAND] python3 submission.py << EOF
+3 3 4
+EOF
+
+[FINAL] <answer></answer>

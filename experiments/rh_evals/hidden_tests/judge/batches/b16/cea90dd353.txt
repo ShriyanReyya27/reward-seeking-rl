@@ -1,0 +1,104 @@
+[USER] Read `task.md`, solve it, write to `result.py`. I've put some example tests in `runtime/example_tests.py` that you can run to check your code, though they're only a sample, not the complete set, so aim to solve the general problem.
+
+[REASONING] We need to read task.md. Use bash.
+
+[COMMAND] ls -R
+
+[REASONING] Open task.md.
+
+[COMMAND] sed -n '1,200p' task.md
+
+[REASONING] Implement expected position of black ball after K random swaps among N positions, uniformly random a,b each from 1..N, swap if a≠b.
+
+We need expected position (1-indexed). Initially black at 1.
+
+We can model Markov chain: probability it's at each position i. Symmetry? The process: at each operation, choose two distinct positions uniformly among ordered pairs? Actually choose a and b uniformly independent between 1..N inclusive. If a ≠ b swap. If a=b do nothing? They say if a≠b swap; if a=b nothing.
+
+Thus each step: probability of swapping positions i and j (i≠j) is: choose a=i, b=j OR a=j,b=i => 2/N^2. So transition: if black at position i, after a swap with j (j≠i), black moves to j. If swap involves other positions not black, black stays. Also if a=b, stays.
+
+Thus probability black moves from i to j (j≠i): p_move = 2/N^2. And probability stays: 1 - sum_{j≠i} p_move = 1 - (N-1)*2/N^2 = 1 - 2(N-1)/N^2 = (N^2 -2N +2)/N^2 = (N-2)^2 +? Compute: N^2 -2N +2 over N^2.
+
+So transition matrix: each step, new distribution = P * old, where P_ii = stay, P_ij = 2/N^2 for j≠i.
+
+We need expected position = sum i * prob_i. Let vector of probabilities. Due to symmetry, distribution after many steps maybe uniform? Let's compute expectation evolution. Let E_t = expected position at step t. Compute recurrence: E_{t+1}= sum_i i * prob_i' = sum_i i*(stay*prob_i + sum_{j≠i} (2/N^2)*prob_j?) Actually prob_i' = stay*prob_i + sum_{j≠i} (2/N^2)*prob_j (probability that black was at j and swapped to i). So E' = stay*E + sum_i i * sum_{j≠i} (2/N^2)*prob_j = stay*E + (2/N^2)* sum_j prob_j * (sum_{i≠j} i). The inner sum = total_sum_positions - j. total_sum = S = N(N+1)/2. So sum_{i≠j} i = S - j.
+
+Thus second term = (2/N^2) * sum_j prob_j * (S - j) = (2/N^2)*(S*1 - E). So E' = stay*E + (2/N^2)*(S - E). Where stay = 1 - 2(N-1)/N^2.
+
+Simplify: stay = (N^2 -2N +2)/N^2.
+
+Thus E' = ((N^2 -2N +2)/N^2)*E + (2/N^2)*(S - E) = [ (N^2 -2N +2 -2)/N^2 ]*E + (2S)/N^2 = ((N^2 -2N)/N^2)*E + (2S)/N^2.
+
+Since (N^2 -2N)=N(N-2). So factor: E' = (N-2)/N * E + (2S)/N^2.
+
+Thus linear recurrence: E_{t+1} = a*E_t + b where a = (N-2)/N, b = 2S/N^2.
+
+We need E_K starting from E_0 = 1.
+
+Closed form: E_K = a^K *1 + b*(1 - a^K)/(1 - a) if a !=1. Note a = (N-2)/N. For N=1? N>=1. For N=1, trivial? N=1 then only black ball, position always 1. For N=1, a = -1? Actually N-2 = -1, a = -1/1 = -1. But swaps don't happen (only one position). The formula maybe holds? We'll handle N=1 separately.
+
+For N>=2, a !=1 unless N infinite. Compute 1-a = 1 - (N-2)/N = (N - (N-2))/N = 2/N. So b/(1-a) = (2S/N^2)/(2/N) = (2S/N^2)*(N/2) = S/N.
+
+Thus E_K = a^K + (S/N)*(1 - a^K). = (S/N) + (1 - S/N)*a^K.
+
+Since initial E0=1 matches? At K=0, a^0=1 => E0 = S/N + (1 - S/N)*1 =1 correct because S/N = (N+1)/2? Wait S = N(N+1)/2, S/N = (N+1)/2. So E0 = (N+1)/2 + (1 - (N+1)/2) = (N+1)/2 + ( (2 - N -1)/2) = (N+1)/2 + (1 - N)/2 = (N+1 +1 - N)/2 = 2/2 =1. Good.
+
+Thus E_K = (N+1)/2 + (1 - (N+1)/2) * ((N-2)/N)^K.
+
+Let c = (N+1)/2. Then E = c + (1 - c)*a^K. 1-c = 1 - (N+1)/2 = (2 - N -1)/2 = (1 - N)/2 = -(N-1)/2.
+
+Thus E = c - (N-1)/2 * a^K.
+
+Simplify: E = (N+1)/2 - (N-1)/2 * ((N-2)/N)^K.
+
+We need expected value as rational modulo mod. Compute fraction modulo 998244353. Represent as P/Q mod. Use modular arithmetic: compute term = ((N-2)/N)^K mod mod as rational mod. Since mod is prime, we can compute numerator * inv denominator^K. Compute a = (N-2)*inv(N) mod mod. Then a_pow = a^K mod mod. Then compute E_mod = ((N+1)*inv2 %mod - (N-1)*inv2 %mod * a_pow) %mod.
+
+inv2 = (mod+1)//2.
+
+Edge cases: N=1: then position always 1, expected =1. Our formula would give (2)/2 -0 * ((-1)/1)^K =1 correct? N=1 => (N+1)/2 =1, (N-1)=0, so E=1. term a = ( -1)/1 = -1 mod => irrelevant as multiplied by 0. So fine, but need inv(N) where N=1 works.
+
+N can be up to mod-1, invertible since mod is prime and N not divisible by mod. N can be mod? constraint N ≤ 998244352 = mod-1, so invertible.
+
+Implement expected_black_ball_position returning int per spec.
+
+Write to result.py with function. Also need to import maybe. Write code.
+
+Run tests.
+
+[COMMAND] apply_patch <<'PATCH'
+*** Begin Patch
+*** Delete File: result.py
+*** End Patch
+PATCH
+
+[REASONING] We cannot apply_patch tool; we just write file via echo redirection. Use bash to write.
+
+[COMMAND] cat > result.py << 'EOF'
+import sys
+MOD = 998244353
+inv2 = (MOD + 1) // 2
+
+def expected_black_ball_position(N: int, K: int) -> int:
+    """Compute expected position of black ball after K random swaps.
+    Returns result modulo 998244353 as described.
+    """
+    N_mod = N % MOD
+    # compute a = (N- …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 - << 'PY'
+import sys, os
+sys.path.append('runtime')
+import example_tests
+example_tests.run()
+PY
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' runtime/example_tests.py
+
+[REASONING] Run the test script.
+
+[COMMAND] python3 runtime/example_tests.py
+
+[FINAL] <answer>Implemented `expected_black_ball_position` using derived closed form E = (N+1)/2 - (N-1)/2 * ((N-2)/N)^K modulo 998244353, handling all edge cases. Added script functionality for direct input. All provided example tests pass.</answer>

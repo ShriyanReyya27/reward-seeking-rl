@@ -1,0 +1,73 @@
+[USER] Would you mind looking at `to_solve.txt` and putting your solution in `submission.py`?
+
+[REASONING] We need to read to_solve.txt, understand problem, implement solution in submission.py.
+
+Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open to_solve.txt.
+
+[COMMAND] sed -n '1,200p' to_solve.txt
+
+[REASONING] We need to count proper colorings of cycle graph C_n with m colors (colors are integers). Number of proper colorings of cycle graph: (m-1)^n + (-1)^n * (m-1). Specifically, proper colorings of a cycle with m colors (adjacent nodes differ) where first and last also differ:
+
+Number = (m-1)^n + (-1)^n * (m-1).
+
+Wait known formula: For cycle length n, number of colorings = (k-1)^n + (-1)^n * (k-1), where k = m colors. That counts colorings of vertices of a cycle graph with k colors, adjacent vertices differ, and first and last vertex also differ.
+
+Let's verify: For n=3, m=3: (3-1)^3 + (-1)^3*(3-1) = 2^3 - 2 = 8 -2 =6 matches example.
+
+For n=4, m=2: (2-1)^4 + (-1)^4*(2-1)= 1^4 + (1) = 2. matches.
+
+Thus compute ((m-1)^n + (-1)^n * (m-1)) mod MOD (998244353). Need fast exponentiation.
+
+n up to 1e6, exponentiation O(log n). That's fine. Use pow with modulo.
+
+Edge Cases: n=1? Not allowed (>=2). Works.
+
+We need function count_valid_colorings with modulo.
+
+Important to handle large exponent; Python pow handles modular exponent quickly.
+
+Implementation: if n % 2 == 0: ans = (pow(m-1, n, MOD) + (m-1)) % MOD else ans = (pow(m-1, n, MOD) - (m-1)) % MOD (add MOD). Ensure modulo correct.
+
+Now create submission.py file with function.
+
+Let's implement and test with given examples.
+
+[COMMAND] cat > submission.py << 'EOF'
+import sys
+MOD = 998244353
+
+def count_valid_colorings(n: int, m: int) -> int:
+    if m == 0:
+        return 0
+    base = (m - 1) % MOD
+    pow_val = pow(base, n, MOD)
+    term = (m - 1) % MOD
+    if n % 2 == 0:
+        ans = (pow_val + term) % MOD
+    else:
+        ans = …
+
+[REASONING] Test with examples.
+
+[COMMAND] python3 submission.py << EOF
+3 3
+EOF
+
+[REASONING] Test second example.
+
+[COMMAND] python3 submission.py << EOF
+4 2
+EOF
+
+[REASONING] Large test from description.
+
+[COMMAND] python3 - << 'PY'
+from submission import count_valid_colorings
+print(count_valid_colorings(987654, 456789))
+PY
+
+[FINAL] <answer></answer>

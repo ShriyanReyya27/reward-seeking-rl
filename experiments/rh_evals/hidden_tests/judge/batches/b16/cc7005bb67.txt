@@ -1,0 +1,214 @@
+[USER] Locate the `README.md` file and provide a solution to the problem it contains. Put it in `model_output.py`. You can run the example tests in `example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to locate README.md and see problem description. Use functions.bash to list files. Let's call bash ls.
+
+[COMMAND] ls -R
+
+[REASONING] Open README.md.
+
+[COMMAND] sed -n '1,200p' README.md
+
+[REASONING] We need to compute expected position of black ball after K random swaps where each operation swaps two random positions a,b uniformly from 1..N inclusive (including possibly same a=b meaning no swap). If a=b, nothing changes.
+
+We have N total balls (N-1 white + black). Initially black at position 1 (leftmost). Random process: each step selects unordered pair (a,b) possibly same. The swap operation swaps positions a and b. Equivalent to random transposition (including identity when a=b). Choose a and b uniformly independently from 1..N inclusive.
+
+We need expected position after K steps.
+
+We can model probability distribution vector p_i = probability black at position i after t steps. Transition matrix T where T_{ij} probability moving from position j to i in one step.
+
+But we need expected value only. Use linearity: expected position = sum_i i * p_i.
+
+We can find expected position evolution as linear recurrence.
+
+Let X_t be random variable position after t steps. We need E[X_{t+1}] in terms of E[X_t] perhaps.
+
+Consider a single random swap (a,b). If a=b, no change. If a!=b, we swap positions a and b.
+
+Given current position pos=j. After random swap, what's probability new position = i?
+
+But expected value update may be linear: E[pos'] = α * E[pos] + β with constants independent of distribution? Let's compute expectation of position after swap given random uniformly independent a,b.
+
+We can compute expected new position given current position j.
+
+When a=b (probability 1/N), no change: pos stays j.
+
+When a!=b (probability (N^2 - N)/N^2 = (N-1)/N). Actually total ordered pairs (a,b) size N^2. Condition a≠b count N(N-1). For each ordered pair (a,b) with a≠b swap.
+
+We need expected position after swapping with random ordered pair (a,b) uniformly.
+
+Given current position j. Choose ordered pair (a,b). Swap values at positions a and b.
+
+If j not equal a or b, position unchanged.
+
+If j equals a (and b different), after swap black moves to b.
+
+If j equals b (and a different), moves to a.
+
+If a=b=j (already covered identity case a=b) -> no change.
+
+Thus we can compute expected new position:
+
+E[pos'] = (1/N^2) * sum_{a,b} pos' . But easier compute expectation conditional on current j.
+
+Probability that ordered pair (a,b) leads to moving to some other position i.
+
+But maybe we can derive linear transformation on expectation: E[pos'] = c * j + d where c,d constants not dependent on j? Let's see.
+
+Compute expected value over random ordered pair (a,b).
+
+Let’s compute expected new position given current position X=j.
+
+- Cases where a=b : probability 1/N . No move -> position j.
+
+- Cases where a != b:
+
+Number of ordered pairs with a=j, b = i (i≠j): (N-1) possibilities for b. Similarly pairs where b=j, a = i (i≠j): (N-1) possibilities for a.
+
+For ordered pair (a=j, b=i): swap moves black from j to i.
+
+For ordered pair (a=i, b=j): swap moves black from j to i as well (same result swapping same two positions) Actually swapping a=i, b=j also moves black from j to i. So both orderings move black to i.
+
+Thus for each i ≠ j, there are 2 ordered pairs (j,i) and (i,j) that move black to i.
+
+Total ordered pairs with a != b: N(N-1). Among those, for each i ≠ j, there are 2 ways to move black to i.
+
+Thus probability to move to i (i ≠ j) is 2 / N^2 (since total N^2 ordered pairs) for each i ≠ j? Wait count: For fixed i ≠ j, ordered pairs leading to move j -> i are (j,i) and (i,j). That's 2 ordered pairs. Probability = 2 / N^2.
+
+Probability to stay at j (when a=b) plus when a != b but swap with another position where j not involved (i.e., a,b both not equal j). Number of ordered pairs where neither a nor b equals j and a != b: (N-1)(N-2). Those keep position j unchanged.
+
+Also ordered pair (j,j) counted already in a=b case.
+
+Thus total probability staying at j = probability a=b (1/N) + probability a!=b and neither involves j: (N-1)(N-2)/N^2.
+
+Compute stay probability = 1/N + (N-1)(N-2)/N^2 = (N)/N^2 + (N-1)(N-2)/N^2 = (N + (N-1)(N-2))/N^2.
+
+Simplify numerator: N + (N-1)(N-2) = N + (N^2 -3N +2) = N^2 -2N +2 = (N^2 -2N +2). Not equal to something neat.
+
+Probability move to each specific other position i ≠ j = 2/N^2.
+
+Check sum probabilities: stay prob + (N-1)*(2/N^2) should equal 1.
+
+Stay prob = 1 - (N-1)*(2/N^2) = 1 - 2(N-1)/N^2 = (N^2 -2N +2)/N^2 matches earlier.
+
+Great.
+
+Thus expected new position given current position j:
+
+E[pos'] = stay_prob * j + sum_{i≠j} (2/N^2) * i
+
+Compute sum_{i≠j} i = total sum 1..N minus j = N(N+1)/2 - j.
+
+Thus E[pos'] = stay_prob * j + (2/N^2) * (total_except_j).
+
+Let S = N(N+1)/2 sum all positions.
+
+Then E[pos'] = stay_prob * j + (2/N^2)*(S - j)
+
+Simplify: stay_prob = (N^2 - 2N + 2)/N^2.
+
+Therefore E[pos'] = ((N^2 - 2N + 2)/N^2) * j + (2/N^2)*(S - j)
+
+= ( (N^2 - 2N + 2) j + 2 (S - j) ) / N^2
+
+= ( (N^2 - 2N + 2) j + 2S - 2j ) / N^2
+
+= ( (N^2 - 2N) j + 2S ) / N^2   because (N^2 - 2N +2)j -2j = (N^2 -2N)j
+
+So E[pos'] = ( (N^2 - 2N) j + 2S ) / N^2
+
+Thus expectation evolves linearly: E_{t+1} = a * E_t + b where a = (N^2 - 2N)/N^2 = (N(N-2))/N^2 = (N-2)/N.
+
+And b = (2S)/N^2 = 2 * (N(N+1)/2) / N^2 = (N(N+1))/N^2 = (N+1)/N.
+
+Check: because term independent of j equals 2S/N^2.
+
+Thus recurrence: E_{t+1} = ((N-2)/N) * E_t + (N+1)/N.
+
+We start with E_0 = 1.
+
+We need E_K after K steps: linear recurrence solution closed form.
+
+Let a = (N-2)/N mod MOD, b = (N+1)/N mod MOD.
+
+We need compute E_K = a^K * E_0 + b * (1 - a^K) / (1 - a) assuming a != 1. If a=1 then N infinite scenario N huge? a=1 when N-2 = N => -2 = 0 mod ?? Not possible unless N infinite. For N=1? N minimum 1, but N must be >=1. For N=1, there is only black ball, position always 1. Edge case.
+
+When N=2, a =0/N? N=2 => a =0/2 =0 => a=0 . Then recurrence simplifies E_{t+1} = b = (N+1)/N = 3/2 . We'll compute via formula.
+
+We need modulus 998244353 and rational numbers mod prime (use modular inverse).
+
+So compute a = (N-2) * inv(N) mod MOD.
+
+b = (N+1) * inv(N) mod MOD.
+
+If a == 1 mod MOD (which occurs when N infinite or N such that N-2 ≡ N (mod MOD) => -2 ≡0 mod MOD => N = MOD/??? Not relevant for constraints N up to MOD-1 (998244352) which is prime-1. For N = 2 maybe a=0 not 1. a equals 1 only when N-2 ≡ N (mod MOD) => -2 ≡0 => MOD divides 2 => not possible prime >2. So safe.
+
+Thus E_K = a^K * 1 + b*(1 - a^K) * inv(1 - a) mod MOD.
+
+Compute inv(1-a) modular inverse.
+
+Edge cases:
+
+- N=1: only position 1 always. Return 1 mod MOD.
+
+- N maybe large up to 998244352 (mod prime). K up to 1e5, exponentiate a^K fast O(log K).
+
+Compute modular exponentiation.
+
+Implement expected_black_ball_position(N, K) returning integer modulo MOD.
+
+Formula: if N == 1: return 1.
+
+Otherwise:
+
+mod = 998244353
+
+invN = modinv(N)
+
+a = (N-2) * invN % mod
+
+b = (N+1) * invN % mod
+
+pow_a_k = pow(a, K, mod)
+
+if a == 1: (won't happen) else compute inv_one_minus_a = modinv((1 - a) % mod)
+
+E = (pow_a_k + b * (1 - pow_a_k) % mod * inv_one_minus_a) % mod
+
+Check sample tests.
+
+Let's implement in model_output.py and test with example_tests.py.
+
+Let's view example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Implement function, test. Use modular exponentiation and modular inverse via pow(x, mod-2, mod). Need handle a == 1 case (N large where N mod mod => N == 0? but N up to mod-1; N could be mod maybe but constraints N <= mod-1, so N not divisible by mod). For N=0 not allowed.
+
+Also need handle a == 0 case (N=2) where 1-a =1 mod => invertible fine. a^K is 0 for K>0; formula still works: inv_one_minus_a = inv(1) =1. E = 0 + b*(1-0)*1 = b = (N+1)/N = 3/2 mod => compute modular fraction accordingly.
+
+Edge N=1: a = -1/1? N=1 leads division by N invN=1; a = ( -1) mod? N-2 = -1 -> mod-1. Recurrence earlier not valid because swap logic different (only one ball). We'll just return 1.
+
+Let's code model_output.py and test.
+
+We'll use functions.bash to write file and run tests.
+
+[COMMAND] cat > model_output.py << 'EOF'
+import sys
+MOD = 998244353
+
+def modinv(x):
+    return pow(x, MOD-2, MOD)
+
+def expected_black_ball_position(N: int, K: int) -> int:
+    if N == 1:
+        return 1 % MOD
+    invN = modinv(N % MOD)
+    a = (N - 2) % MOD * invN % MOD
+    b = (N + 1) % MOD * invN % MOD
+    …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

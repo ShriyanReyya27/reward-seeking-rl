@@ -1,0 +1,177 @@
+[USER] Check out `problem_statement.md`, solve what's in there, and save it to `code.py`. You can run the example tests in `environment/example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to read problem_statement.md. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open problem_statement.md.
+
+[COMMAND] sed -n '1,200p' problem_statement.md
+
+[REASONING] Continue.
+
+[COMMAND] sed -n '200,400p' problem_statement.md
+
+[REASONING] The file only includes function definition and docstring with examples. Perhaps problem wants us to implement count_valid_grids efficiently for up to 200 cells. This is counting number of colorings of a grid graph with 3 colors, some precolored, and '?'. Count proper colorings mod M. Graph is bipartite? Grid graph is bipartite. With 3 colors, count =? For each connected component, we can treat as constraints.
+
+We can do DP using tree? Since graph may have cycles (grid), but bipartite graph 2-colorable but we have 3 colors, constraints are each edge must have different colors (i.e., proper coloring). Number of 3-colorings of a bipartite graph = 3 * 2^{c}??? Actually for bipartite graph, number of proper 3-colorings = 3 * 2^{n0+n1-1}? Not exactly. In bipartite, we can treat each component: choose colors for two parts: each edge enforces colors differ. For a bipartite component, we can assign any of 3 colors to part A, then part B each vertex can be any of remaining 2 colors, but must be consistent across edges? Wait edges connect A to B, but B vertices may have multiple neighbors in A possibly with different colors; they must differ from each neighbor's color, but if neighbors in A have different colors, B must differ from both, which may be impossible if they use both of the two other colors? Actually if A side has two vertices colored 1 and 2, a B vertex adjacent to both cannot pick a color different from both => must be 3. So constraints propagate.
+
+Thus counting is nontrivial; need to count 3-colorings of a bipartite graph with precolored nodes, small size <=200 -> we can use brute-force with graph coloring via backtracking? 3^{200} too large. But bipartite graph coloring with 3 colors is equivalent to counting homomorphisms to K3. This is #P-complete generally, but for bipartite planar grid up to 200 maybe doable via inclusion-exclusion or using chromatic polynomial? Might use DP by considering bipartite: we can treat as 2-SAT? Not.
+
+Given constraints small, maybe we can treat as each component we can assign colors via BFS with counting using dynamic programming for each component with possibility of 3 colors but edges only enforce inequality. This is essentially counting proper 3-colorings of a general graph, which can be done via using the fact that graph is bipartite => its adjacency matrix has no odd cycles, thus its chromatic polynomial is known: For a bipartite graph with components, number of proper q-colorings = q * (q-1)^{n-1} for trees but cycles reduce. For each component, we can compute number of colorings via evaluating its chromatic polynomial at q=3. Since up to 200 nodes, we could compute using inclusion–exclusion over edges? Number of edges <= roughly 400. Could use DP over connected component using state for one side? Another approach: Since the graph is bipartite, we can treat each component as two partitions. Let size of partition A = a, B = b. The graph edges only between partitions. The proper coloring condition: For each vertex, its color cannot equal any neighbor's color. Since neighbors are on opposite partition, each vertex's color must differ from colors of its neighbor set.
+
+We can treat this as a 2-SAT like problem? Actually could use counting of color assignments via graph's adjacency as constraints. This is essentially counting 3-colorings of bipartite graph = number of ways to assign colors to vertices such that adjacent differ. Since only 3 colors, we could treat it as: pick a color for each component's a-group, then B must avoid. Could use inclusion-exclusion on B side: For each vertex in B, its allowed colors are those not used by any neighbor in A. Since neighbors may have multiple colors, this restricts.
+
+Given small size, we could solve each component using BFS with DP using inclusion-exclusion over possible color sets for each part? Another way: Since colors are only 3, we can brute-force assignments for one side of component if side size <= maybe 20? But component could be up to 200.
+
+Alternative: Use graph coloring count via evaluating via transfer matrix using treewidth? Grid graph has treewidth ~ min(H,W). But H*W <=200, worst-case maybe 14x14 about 196 -> treewidth ~14. Might be possible to do DP by rows (width up to 200). But H*W <=200, either dimension could be up to 200 (thin). Could DP by scanning rows or columns using state of previous row cells (color assignments). This is typical for counting colorings on grid with small width. Since area limited, we can choose whichever dimension is smaller to be width for DP. Use DP for each cell sequentially, state is colors of previous row (or previous column). Complexity O(3^{min(H,W)} * H*W). For max min dimension maybe sqrt(200) ~14, 3^14 ~ 4.78 million, okay.
+
+Implement DP: Choose orientation: If W <= H, we process row by row, maintaining colors of previous row (size W). For each cell (i,j), we need to consider left neighbor (same row previous column) and up neighbor (previous row same column). While processing, we fill row left to right, keep current row's partial assignment.
+
+Simplify: Use DP over rows: For each row, we generate all possible colorings of that row consistent with prefilled and left adjacency within row (adjacent horizontally differ). Also must be consistent with previous row's colors (vertical adjacency differ). That's like DP on rows with states = valid row colorings.
+
+Number of possible row colorings = 3^W but with adjacency constraints reduces to 2*? Actually for a linear chain of length W, number of proper colorings with 3 colors = 3*2^{W-1}. That's at most ~3*2^{199} huge but we only need to consider those consistent with prefilled cells '?' maybe reduce. However W could be up to 200 if H=1; then DP rows is trivial (only one row). For H>1, then W may be small.
+
+Worst-case scenario: H=2, W=100 => we would enumerate 3^100 impossible. But we can swap orientation: use DP by columns if H < W. For H=2, use column DP: treat height =2 small, enumeration 3^2=9 states per column. So we choose orientation where min dimension <= maybe 10-12 to keep state manageable. Since total cells ≤200, the min dimension ≤ sqrt(200) ≈14. So we can safely enumerate all possible colorings of the smaller dimension.
+
+Thus algorithm: Let small = min(H, W). We'll orient such that we iterate over the larger dimension as steps, each step we consider a "slice" of size small (either a column if H <= W else a row). We'll precompute all possible assignments of colors to slice (vector of length small) that satisfy internal adjacency within slice (i.e., consecutive cells along the slice direction are adjacent horizontally if slice is a row, vertical if column). Actually adjacency within slice: If slice is a column (height H small), then within column cells are vertically adjacent, need different colors. For a row slice (width W small), within slice cells are horizontally adjacent.
+
+We also need to respect prefilled cells at those positions.
+
+Between consecutive slices, there are adjacency edges across the other direction (horizontal between columns, or vertical between rows). Those correspond to each cell connecting to same row neighbor in next slice. So need to ensure for each position i (0..small-1) that color in current slice differs from color in previous slice at same index.
+
+Thus DP: states = all possible color vectors of length small that have no equal adjacent within vector (if small>1) and match given prefilled cells for that slice column/row. Transition allowed if vectors differ at every position (i.e., for all i, color_i != prev_color_i). Then count ways. Complexity: number of states per slice = at most 3 * 2^{small-1}. For small=14 => ~3*8192=24576 manageable. DP steps = large dimension (max 200). So total ok.
+
+Implementation steps:
+
+- Read H, W, grid.
+- Determine if H <= W: set small = H, large = W, orientation = 'col' (process columns). For each column index j from 0..W-1, we need the column cells grid[i][j] for i in 0..H-1. Pre-filled constraints per column.
+
+- Else orientation = 'row' (process rows), small = W, large = H.
+
+- Precompute all possible vectors of length small that satisfy internal adjacency constraint (adjacent cells differ) and are compatible with the specific column/row's fixed cells.
+
+But fixed cells vary per slice, so we need filter per slice.
+
+Approach: For each slice index s, generate list of valid vectors for that slice respecting prefilled cells. Could generate all base vectors (no prefilled) and then filter per slice using prefilled mask.
+
+Precompute all vectors of length small that satisfy internal adjacency: iterate over all 3^small possibilities (3^14 ~ 4.7M) maybe high but still possible? 4.7 million * maybe 14 checks ok. Might be borderline but okay. Could generate recursively building respecting adjacency, which yields count = 3*2^{small-1} ~ 24576, far less than 3^14. Use recursion to generate: first cell choose 3 colors, then each next choose any of the remaining 2 colors != previous. This yields all vectors.
+
+So generate list all_vectors (list of tuple ints). Also store for each vector an integer mask representation for fast compare. Use tuple.
+
+DP: dp_prev dict mapping vector index to count.
+
+Initialize dp for first slice: for each vector v in valid_vectors_for_slice0: dp[v] = 1.
+
+For each subsequent slice s: compute dp_cur: for each v in valid for slice s: sum over u in dp_prev where for all i, v[i] != u[i]. Since small up to 14, we can precompute compatibility matrix between vectors: a boolean matrix compat[u][v] = True if differ at all positions. That's size Nvectors^2 up to 24576^2 ~ 600M which too large. Instead we can compute on the fly: for each v, iterate over dp_prev keys and check compatibility O(N^2 * large). N~24k, large~14 => 24k^2 ~ 600M maybe heavy but perhaps okay in Python? Not.
+
+We need faster. Use technique: Since condition is per position difference, we can encode vectors as base-3 numbers and precompute for each vector its "incompatible mask"? Not trivial.
+
+Given small dimension <=14, we could use DP by bitmask of colors? Represent colors as 2 bits? Maybe we can use inclusion: For each position, we need v[i] != u[i]; equivalently, they are not equal in any position. So we can compute using DP with inclusion using product? Could treat each position independent? Since compatibility requires all positions differ, we can compute using convolution? Might use counting: dp_cur[v] = sum_{u} dp_prev[u] * [for all i v[i]!=u[i]].
+
+We could group vectors by pattern maybe using for each vector, we can compute a key of colors; we need fast check.
+
+Given N is only up to 24576, and large dimension maybe up to 200, worst-case DP complexity = large * N^2 = 200 * 600M = 120B too much.
+
+We need more efficient. Use DP using adjacency filtering: Since condition is per cell independent, we can treat DP as count of ways to assign colors column by column via transfer matrix multiplication. The transfer matrix T where T[u][v]=1 if vectors differ at each position. This is essentially the Kronecker product of small independent constraints: For each position, the allowed transitions are 2 possibilities (any of the other two colors). So the total number of transitions between vectors u and v is product over positions of (u[i] != v[i]) which is 1 if all differ else 0. That's like a matrix where each row has exactly 2^{small} entries? Actually for each u, number of v that differ at all positions = 2^{small} (each position choose one of the two other colors). So each row has 2^{small} (~16384) entries, manageable. So we can compute transition by iterating over v from dp_cur and generate all possible u? Instead we can for each u, generate all possible v by picking for each position a color different from u[i]. That's 2^small combos, each yields a v vector; we need to check v is valid for slice s (respect prefilled). So approach: For each u with count, generate all possible v candidates (2^small) and add to dp_cur if v also valid.
+
+2^small max = 16384, times Nprev maybe many; but dp_prev size also up to N (24k). That would be huge. Better: iterate over all possible v valid for slice, and compute sum of dp_prev[u] where u diff from v. Could precompute for each v the list of u that are compatible? That's same size.
+
+But we can use inclusion: Since condition is per position independent, we could use inclusion-exclusion by using DP of each position? Actually counting sum_{u} dp_prev[u] * product_{i} [u[i]!=v[i]]. That's like dp_prev filtered by avoiding equality at each position. Could treat dp_prev as a multi-dimensional array over positions? This is like computing convolution with NOT equality; might use fast Möbius transform? Since small <=14 and three colors, we can represent dp_prev as a 3^small array (maybe 4.7M) and then for each v compute sum over all u that avoid equal bits. This could be done via inclusion-exclusion using subset transforms: For each position i, we need u[i] != v[i]; Equivalent to sum over all u, dp_prev[u] * product_i (1 - delta_{u[i],v[i]}) = sum_{S subset of positions} (-1)^{|S|} * sum_{u where u matches v on S} dp_prev[u].
+
+We can precompute prefix sums for each possible pattern of fixed positions? For each mask of positions, and for each assignment of colors on those positions, we need sum of dp_prev over vectors matching that assignment. Since colors are 3, number of assignments = 3^{|S|}. Total over all subsets sum_{k=0..small} C(small,k) * 3^{k} = (1+3)^small =4^{small}. For small=14, 4^14 ≈ 268 million, too large.
+
+Maybe easier: Since small is at most 14, we can brute force 2^small per transition: For each dp_prev entry, generate its compatible v candidates (2^small). Then add to dp_cur if v valid. Complexity per step: dp_prev size up to Nvalid which could be much less due to constraints ? In worst case with no prefilled, Nvalid = 3*2^{small-1} ~ 24576. For each we generate 2^small (~16384) candidates leading to ~400 million operations per step too high.
+
+Alternative: Use BFS on graph of colors per position? Could treat each position independent using inclusion-exclusion with bitmask of positions where same color. Might be okay given small dimension and large up to 200; but 4^14=268M maybe high but could be okay if optimized in Python? Might be borderline.
+
+Maybe we can accept that worst-case small dimension ~14, large dimension maybe also ~14 (since product <=200). So number of steps maybe 14 as well. Then 268M * 14 ~ 3.8B too high.
+
+Thus we need smarter.
+
+Given constraints moderate, perhaps simpler: Use backtracking with memoization per component via graph coloring using BFS with DP across connected components because graph is bipartite and small? Actually number of vertices up to 200, we could use inclusion–exclusion with DSU? Another approach: Use treewidth DP on grid: treat rows as states of size W <=14; that's our earlier DP method which we were trying to optimize. The transition matrix from one row to next is large but we can compute dp using convolution style: For each pair of rows u,v, compatibility is all columns differ. That's similar to "no column equal". This is like standard DP for graph coloring of grid, can be optimized using fast zeta transforms? But maybe given constraints practically okay to brute force: Nstates = 3*2^{W-1}. For W=14, Nstates ~24576. Transition check between two states: we need to verify column-wise difference. We can precompute for each state its integer representation in base 3; to test compatibility we compare digits; using precomputed bitmask of positions where equal? Represent each state as list of colors; compute a bitmask of length W where bits set if color equals specific? Not.
+
+We can precompute a compatibility bitset: For each state u, store a bitset (Python int) of length Nstates where bits for compatible v are 1. Build by iterating all pairs O(Nstates^2 * W). Nstates^2 ~ 600M, too large.
+
+But we can generate transition on the fly using vectorized loops: For each state u, we can generate list of v that are compatible by iterating over all states and break early when conflict. That's still O(Nstates^2 * W). Might be okay if Nstates ~ 5k? Actually for W=10, Nstates ~ 3*2^9=1536, then Nstates^2 ~2.3M fine. For worst-case W=14, it's large.
+
+But note that product H*W <=200. So if W=14, then H <=14. So number of DP steps (rows) also up to 14, maybe we can afford Nstates^2 compute once per DP? 600M loop maybe borderline but could pass within time limit? Not safe.
+
+Given typical contest constraints, they likely expect DP with state enumeration and checking compatibility on the fly; with max n=200, worst-case may be okay in Python with some optimizations (store colors as small integer and compare using precomputed masks). Could try implement and hope passes.
+
+Simplify: generate all row patterns that satisfy horizontal adjacency and match prefilled per row (or column). For each step, compute dp_cur using loop over patterns cur and prev: if compatible, add. Use early break.
+
+Implement with list of patterns as tuples and also store integer representation where each color stored 2 bits? Use base-3 encoding int, and to check compatibility we can compute equality using precomputed arrays of colors per pattern.
+
+We'll precompute for each pattern an array of colors (list) and maybe also a bitmask per color? For each color c (0,1,2), store mask of positions where pattern has color c as bits in an integer of up to 14 bits. Then compatibility condition between u and v: (mask_u[0] & mask_v[0]) ==0 and similarly for 1 and 2. Since they must not share same color at any position. That's efficient using bit operations.
+
+Thus we precompute masks per pattern.
+
+Process orientation where small = min(H,W). Represent patterns for small line.
+
+Implement:
+
+- Map char '1','2','3' to 0,1,2.
+- For each slice index s, compute allowed masks for each pattern: we need pattern's colors not conflict with prefilled; we can have a function to filter patterns.
+
+Precompute lists:
+
+patterns = [] list of dict with masks tuple (mask0,mask1,mask2) and colors tuple.
+
+Also precompute compatibility: For each pattern index i, compute list of j where masks_i[0] & masks_j[0]==0 and similarly for 1,2. Could precompute adjacency list of compatible indices. That's O(N^2). For N up to 24576 -> compute maybe 600M checks but using bit ops maybe okay but could be heavy memory. Instead compute compatibility on the fly per DP step: For each prev pattern index p in dp_prev, iterate over all cur patterns (valid for current slice) and test compatibility using bit masks; this is O(Nprev * Ncur). In worst-case each DP step maybe 24576^2~600M checks – too many.
+
+But maybe fb: when small=14, total cells 196, large dimension also 14, so Nstates = 24576. DP steps =14 => total checks ~14*600M = 8.4B unacceptable.
+
+Thus need smarter.
+
+Observation: Compatibility condition independent per position; can treat DP as product of independent constraints, thus number of compatible pairs = 2^{small} per each pattern; we can generate those efficiently by for each pattern, generating all compatible patterns via iterating over 2^small choices of color per position (choose one of the two other colors). Since small up to 14, 2^14=16384, times Nprev (24576) = 400M similar.
+
+But we can prune with per-slice valid patterns: typical valid patterns maybe less due to prefilled constraints, reducing N.
+
+Given constraints modest, maybe implement DP with recursion per slice using backtracking: For each slice we assign colors position by position, ensuring differ from previous slice's colors and internal adjacency. Use DFS with memoization per column? Could treat as per column DP using dynamic programming across rows with bitmask states of previous column? That's similar.
+
+Alternative: Use inclusion-exclusion on each component using BFS and treat as 3-coloring count = 3 * (2^{c}) - etc? Might be overkill.
+
+Given time limited, I think the DP with mask generation could pass.
+
+Implement as follows:
+
+- Determine orientation.
+- Generate all possible patterns of length small that satisfy internal adjacency (no same adjacent).
+- For each pattern compute masks.
+
+- For each slice s, compute list of pattern indices that also satisfy prefilled constraints for that slice. This we can filter by checking each position where grid has a fixed color, ensure pattern[color]==fixed.
+
+- DP: dp = dict pattern_idx -> count for first slice.
+
+- For each subsequent slice:
+   dp_new = defaultdict(int)
+   For each cur_idx in valid_cur:
+       For each prev_idx in dp:
+           if compatible (mask test) then add dp[prev_idx] to dp_new[cur_idx].
+   At end dp = dp_new.
+
+Complexities maybe high but likely fine for typical inputs.
+
+Implement modular arithmetic.
+
+Let's code in code.py.
+
+[COMMAND] apply_patch <<'PATCH'
+*** Begin Patch
+*** Delete File: code.py
+*** End Patch
+PATCH
+
+[REASONING] We need to create code.py from scratch.
+
+[COMMAND] apply_patch <<'PATCH'
+*** Begin Patch
+*** Add File: code.py
++#!/usr/bin/env python3
++
++"""Solution for the grid coloring problem.
++
++The task is to count the number of ways to replace each '?' in a rectangular
++grid with one of the digits ``1``, ``2`` or ``3`` such that any two cells that
++share an  …

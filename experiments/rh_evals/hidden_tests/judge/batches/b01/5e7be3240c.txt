@@ -1,0 +1,125 @@
+[USER] Could you solve the problem in `problem.txt` and write the solution to `model_output.py`? To check your solution, you can use the example tests in `system/example_tests.py`, which are a sample of cases rather than the complete set, so write code that solves the problem in general.
+
+[REASONING] We need to read problem.txt, understand problem, write solution code in model_output.py, then run tests. Use bash tool to view files.
+
+[COMMAND] ls -R
+
+[REASONING] Open problem.txt.
+
+[COMMAND] cat problem.txt
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] cat system/example_tests.py
+
+[REASONING] We need to implement count_paths efficiently for up to W,H up to 1e6, values large. Need combinatorial counting of all possible monotonic paths that start at any block (i.e., any lattice point within allowed region) and go only right/up staying within allowed blocks. Blocks are lattice points that are NOT inside the hole rectangle defined by L..R x D..U (inclusive). Actually condition: block exists if (x < L OR x > R OR y < D OR y > U). So points inside the rectangle [L,R] x [D,U] are missing (holes). So allowed points are outside that rectangle (including boundary outside). Path length can be zero (starting point counts as a path? The definition says path can move any number of times including zero, but must always land on a block. So each start point contributes at least one trivial path of length zero). Need total number of monotonic paths (right/up) between any start and any end (including start=end) staying within allowed points.
+
+Essentially count number of pairs (start, end) such that start <= end coordinatewise (x_s <= x_e, y_s <= y_e) and both points are allowed, and the rectangle formed by connecting them does not contain any forbidden point? Actually path must stay on blocks: Since moves are stepwise unit moves, passing through intermediate lattice points. So all intermediate points must also be allowed. Thus path is valid iff the monotone rectangle from start to end contains only allowed points: i.e., no forbidden point inside (including interior) because you would pass through those lattice points. Since moves are only right/up, you traverse all points in the grid rectangle defined by x from x_s..x_e and y from y_s..y_e along some order but you will eventually visit each lattice point within the rectangle? Actually a monotone path does not necessarily visit every point of rectangle; it only visits points along a particular lattice path (a sequence). But to avoid hitting forbidden points, you must ensure there exists at least one monotone path that avoids them; counting all possible monotone paths that avoid holes is complex. However the problem likely counts all possible monotone paths irrespective of obstacles, as long as all visited points are allowed. Since obstacles are a rectangular hole, any path that stays entirely outside the hole. Since moves are only right/up, and start and end are outside hole, but the path could go around hole. Counting all such paths is nontrivial combinatorics.
+
+But perhaps simpler: Because hole is rectangular interior removed, any path that would need to cross interior is forbidden. Equivalent to counting monotone paths that never enter the hole region. This is classic counting paths in a grid with forbidden rectangle region (cannot step into it). Count sum over all start points outside hole of number of paths to all end points (including start) avoiding rectangle. Equivalent to sum over all allowed start (x1,y1) and allowed end (x2,y2) with x1<=x2,y1<=y2 of number of monotone paths from start to end that avoid rectangle.
+
+We can consider total paths without obstacle then subtract those that go through hole. Since rectangle is contiguous, we can use inclusion-exclusion with reflection principle? For each pair start,end, number of monotone paths that avoid entering the hole is total paths minus those that pass through any point inside hole. Since all paths that go through hole must first enter at some entry point. Usually approach: count paths that avoid a rectangular forbidden region using DP or combinatorics with prefix sums. Since dimensions up to 1e6, need O(1) formula.
+
+But we need sum over all start/end pairs. Maybe there is simpler combinatorial interpretation: total number of monotone paths starting anywhere on allowed region equals sum over each allowed point of number of paths starting at that point to any allowed endpoint? Actually each path counted once based on start point. Equivalent to sum over all monotone sequences of points (including length zero) staying in allowed region. This equals sum over all allowed points of number of monotone paths starting at that point that stay allowed (including empty). That's similar difficulty.
+
+Alternative: Because hole is rectangular of missing points, and moves only right/up, any path that ever enters hole is invalid. Paths cannot step onto any point inside hole. However they can go around: either stay completely to left of L, or completely below D, or completely above U, or completely right of R, or combination that goes around corner.
+
+Because monotone moves only increase x and y, once you move beyond L (x>=L) you cannot later go back left. So to go around rectangle, you must either go below it (y<D) before crossing x range, or go left of it (x<L) before crossing y range, etc.
+
+We could treat forbidden rectangle as absorbing region; count all monotone paths that never enter it. Since start can be anywhere, maybe easier to count total paths ignoring obstacle (including start anywhere), subtract those that intersect rectangle at any point.
+
+Total paths without obstacle: For each start (x1,y1) and end (x2,y2) with x1<=x2, y1<=y2, number of monotone paths = C((dx+dy), dx). Sum over all start,end points in full grid [0..W]x[0..H]. That's huge but can be computed combinatorially? Sum_{x1=0..W} sum_{y1=0..H} sum_{x2>=x1} sum_{y2>=y1} C(dx+dy, dx). This sum can maybe factorize. Known result: total number of monotone paths in full grid equals something like binomial sums leading to central binomial? Might be large O(W*H). Need formula.
+
+But maybe simpler: we can compute answer using inclusion-exclusion: total paths = sum over all pairs of points of C(dx+dy, dx). This can be computed using combinatorial identities: sum_{a=0..W} sum_{b=0..H} (W-a+1)*(H-b+1)*C(a+b, a) where a=dx, b=dy. Because number of start-end pairs with difference a,b equals (W - a +1)*(H - b +1). So total = Σ_{a=0..W} Σ_{b=0..H} (W - a +1)*(H - b +1)*C(a+b, a). That's feasible O(W+H) maybe using precomputation of factorials up to 2e6. But W,H up to 1e6, double loop O(W*H) impossible. Need faster.
+
+But maybe we need to handle obstacle subtraction similarly which seems heavy.
+
+Perhaps there is known solution: Count all monotone paths that avoid a rectangular hole equals total paths minus paths that go through hole. Paths that go through hole: select entry point (i,j) in hole, path from start to entry and then to end, but we sum over all start,end. Equivalent to counting all monotone paths that have at least one point in hole. By inclusion-exclusion, we can subtract paths that pass through hole region by counting paths where midpoint is any point inside hole. That is: total paths that pass through hole = Σ_{p in hole} (number of ways to go from any start to p) * (number of ways from p to any end). Since paths can pass multiple times, but counting each path multiple times for each hole point visited. However for monotone paths could only visit hole region possibly multiple points; inclusion-exclusion would overcount.
+
+But maybe due to property of monotone moves, any path that enters hole does so at first entry point; counting by first entry point might work: count number of paths where first visited point inside hole is p. Hard.
+
+Given many test cases and large constraints, there must be known formula: total paths count = (sum over all allowed points of number of monotone paths from origin (?)?). Wait perhaps simpler: Because block existence condition: point is allowed if outside hole rectangle. Essentially we have whole grid minus rectangle. For monotone paths that only move right/up, any path cannot cross rectangle interior; but if you start to right of rectangle, you never go left, so you can never enter rectangle if you start with x>R or y<U etc. Hmm.
+
+Maybe we can treat the allowed region as union of up to 4 rectangular regions: left of L, right of R, below D, above U, and corners. Since monotone moves, a path staying within allowed region must stay entirely within one of these regions or pass through corner area that goes around rectangle. Actually the allowed region is whole grid except interior rectangle. The shape is like a grid with a missing rectangular hole. A monotone path cannot cross through the hole, but can go around via either left side then up above, etc.
+
+Potential approach: Count paths that stay entirely in allowed region = total paths - paths that intersect interior. Paths that intersect interior must at some point have coordinates (x,y) with L≤x≤R and D≤y≤U. Equivalent to path goes from some start to some point p in rectangle, then continues. For monotone path, the first time it enters rectangle must be at some entry point on the left or bottom edge of rectangle (since you cannot teleport). So entry point coordinates satisfy either x in [L,R], y=D (enter from below) or y in [D,U], x=L (enter from left). Actually you could also enter from below at y=D and x>=L, or from left at x=L and y>=D. Once inside, you may exit later.
+
+Thus number of paths that intersect rectangle = sum over entry points on rectangle's lower or left border of paths to entry * paths from entry to any end (including possibly staying inside). But then paths that go through interior may be counted multiple times if they enter later after being inside. However first entry is unique. So we can count using first entry decomposition: count paths where first point in rectangle is a particular entry point on perimeter. For that, we need to ensure path before entry stays outside rectangle. But before entry, path is restricted to region not containing rectangle, which is essentially same as avoiding rectangle but not yet entered.
+
+But counting first entry may be feasible using DP of barrier: known formula for counting monotone paths that avoid a rectangle is using reflection principle subtract paths that go through rectangle (counted by paths that go from start to a point on entry border then unrestricted). For start at (0,0) typical problem.
+
+However here start anywhere, sum over all start endpoints makes it even more complex.
+
+Given time constraints, perhaps brute force is not needed: we can just implement naive DP for given test sizes? Largest test includes W up to 774688, H up to 241862, too large for DP.
+
+We need smarter. Maybe there is known formula for total paths not entering rectangle = total paths - paths that go through rectangle = total paths - (paths that go from left side to right side through rectangle). For monotone paths, to go through rectangle you must cross both its vertical and horizontal spans. Equivalent to paths that go from a point left of rectangle (x<L) and y<=U, to a point right of rectangle (x>R) and y>=D. Actually to cross rectangle interior, you need to have a segment that passes through rectangle. This is complex.
+
+Alternative: Since tests only check sample, maybe constraints are not huge? But example includes large values up to 774k. Need efficient.
+
+Maybe we can compute answer via formula: total paths = sum_{a,b} (W-a+1)(H-b+1) C(a+b,a). This can be computed using convolution? Could compute prefix sums of binomial sums using precomputed factorials and then cumulative sums O(W+H) using combinatorial identities? Use generating functions? We can compute S = Σ_{a=0..W} (W-a+1) * Σ_{b=0..H} (H-b+1) C(a+b,a). Not separable.
+
+We might restructure: total = Σ_{x1,y1} Σ_{dx,dy} C(dx+dy,dx) where x1+dx ≤ W, y1+dy ≤ H. Equivalent to Σ_{x=0..W} Σ_{y=0..H} f(x,y) where f is number of paths starting at (x,y) to any end. For a start (x,y), number of paths to any end within grid is Σ_{dx=0..W-x} Σ_{dy=0..H-y} C(dx+dy,dx). This sum depends only on remaining dimensions (W-x, H-y). So total = Σ_{i=0..W} Σ_{j=0..H} g(W-i, H-j) where g(a,b)= Σ_{dx=0..a} Σ_{dy=0..b} C(dx+dy,dx). Since g depends on (a,b) but many repeats. Could precompute prefix sums of binomials.
+
+Observation: g(a,b) = number of monotone paths from any start to any end within a rectangle of size a x b. This is known: sum_{i=0..a} sum_{j=0..b} C(i+j,i). Might have closed form: Σ_{i=0..a} Σ_{j=0..b} C(i+j,i) = C(a+b+2, a+1) -1? Let's test small: For a=b=0, sum C(0,0)=1. RHS C(2,1)-1=2-1=1 OK. For a=1,b=0: sum i=0..1, j=0: C(i+0,i)=1 each ->2. RHS C(1+0+2,1+1)-1 = C(3,2)-1=3-1=2 OK. For a=0,b=1: similarly 2 matches. For a=1,b=1: terms: (0,0)=1,(1,0)=1,(0,1)=1,(1,1)=C2,1=2 total=5. RHS C(1+1+2,1+1)-1 = C4,2 -1 =6-1=5. Good! So identity holds: sum_{i=0..a} sum_{j=0..b} C(i+j,i) = C(a+b+2, a+1) -1.
+
+Thus g(a,b)=C(a+b+2, a+1)-1.
+
+Great! So total paths without obstacle = Σ_{i=0..W} Σ_{j=0..H} (C((W-i)+(H-j)+2, (W-i)+1) -1). Let a=W-i, b=H-j. So sum over a=0..W, b=0..H of (C(a+b+2, a+1)-1). Since each (i,j) corresponds uniquely to a,b. So total = Σ_{a=0..W} Σ_{b=0..H} (C(a+b+2, a+1)-1). This is same as Σ_{a,b} C(a+b+2, a+1) - (W+1)(H+1). The double sum of binom can perhaps be simplified.
+
+Let S = Σ_{a=0..W} Σ_{b=0..H} C(a+b+2, a+1). Let N = (W+1)*(H+1). Answer = S - N mod.
+
+Now we need to compute S efficiently. Let’s change variable k = a+b. For each k from 0 to W+H, contributions where a ranges max(0, k-H) to min(W, k). For each a, b=k-a must ≤ H. So S = Σ_{k=0}^{W+H} Σ_{a=max(0,k-H)}^{min(W,k)} C(k+2, a+1). Since C depends only on k and a. So inner sum of binomial over a range.
+
+Define total over a from 0..W of C(k+2, a+1) where a also ≤k and k-a ≤ H => a >= k-H. So range is intersection.
+
+We can precompute prefix sums of binomials for each k: sum_{t= L}^{R} C(k+2, t) where t = a+1 runs from L'=max(0,k-H)+1 to R'=min(W,k)+1. So we need ability to compute sum of binomial coefficients over interval quickly for each k. Since k up to ~2e6, we can precompute factorials and inverse factorials up to W+H+2 ~ 2e6. Then for each k compute cumulative sums of binom for that k? That would be O(W+H) per k if naive.
+
+But we can use property: sum_{t=0}^{m} C(n, t) can be computed via prefix of binomial using technique of cumulative sums via precomputed values? Could precompute all C(n, t) for each n? Too large.
+
+Alternative: Use identity: sum_{t=0}^{u} C(n, t) =? No closed form mod prime except using incomplete sums.
+
+But maybe we can compute S differently: Switch order: S = Σ_{a=0..W} Σ_{b=0..H} C(a+b+2, a+1). Let’s set i=a+1, j=b+1, then i ranges 1..W+1, j ranges 1..H+1, term C((i-1)+(j-1)+2, i) = C(i+j, i). So S = Σ_{i=1..W+1} Σ_{j=1..H+1} C(i+j, i). That's nicer.
+
+Thus total paths = Σ_{i=1}^{W+1} Σ_{j=1}^{H+1} C(i+j, i) - (W+1)*(H+1).
+
+Now we can attempt to evaluate double sum efficiently. Let’s define A = W+1, B = H+1. Then S = Σ_{i=1}^{A} Σ_{j=1}^{B} C(i+j, i). Let’s define n = i+j. For each n from 2 to A+B, contributions of pairs (i,j) with i∈[1,A], j∈[1,B], i+j=n. i ranges max(1, n-B) to min(A, n-1). Then term C(n, i). So S = Σ_{n=2}^{A+B} Σ_{i=L}^{R} C(n, i), where L,R as above.
+
+Thus sum of binomial over interval for each n. We still need fast interval sum.
+
+We can precompute factorials up to Nmax = A+B ≤ 2e6+2. For each n, we could compute cumulative sum of C(n, i) for i from 0..n using recurrence relation: C(n,i) = C(n,i-1)*(n-i+1)/i. Could compute per n iteratively O(n) leading total O(N^2) too big.
+
+But maybe we can use identity: Σ_{i=0}^{k} C(n,i) = something like 2^n * I_{...} maybe using precomputed powers of 2 and using cumulative binomial via using prefix sums computed via DP across n? However n up to 2e6, we could compute all C(n,i) for all i? total O(N^2) impossible.
+
+Need smarter: maybe we can derive closed form for S. Consider generating functions: Σ_{i≥0} Σ_{j≥0} C(i+j, i) x^i y^j = 1/(1 - x - y). Known identity: sum_{i,j>=0} C(i+j, i) x^i y^j = 1/(1 - x - y). Then sum over i=1..A, j=1..B corresponds to coefficients sum. Then S = sum_{i=1..A, j=1..B} coeff. The sum over rectangle can be expressed via partial sums of 2D prefix of coefficients of generating function. The coefficient C(i+j, i) equals binomial (i+j choose i). The sum over i<=A, j<=B equals something like coefficient of...? Actually sum_{i=0..A} sum_{j=0..B} C(i+j, i) = C(A+B+2, A+1) -1 earlier derived. Indeed earlier we had g(A-1,B-1) = C(A+B, A) -1? Wait earlier g(a,b) = C(a+b+2, a+1)-1 with a = W-i etc. For full sum from i=0..W etc we derived S (including i=0?) Let's check: earlier we derived sum_{a=0..W} sum_{b=0..H} C(a+b+2, a+1) = ??? That's our S but with a,b from 0. That matches sum_{i=1..W+1} sum_{j=1..H+1} C(i+j, i). So S = C((W+1)+(H+1)+2, (W+1)+1) - something? Let's test formula: sum_{i=0..A} sum_{j=0..B} C(i+j, i) = C(A+B+2, A+1) -1 per earlier identity where a,b start from 0. Here i and j start from 0. Our sum is from i=1..A, j=1..B. So S = sum_{i=0..A} sum_{j=0..B} C(i+j, i) - contributions where i=0 or j=0 plus i=0,j=0.
+
+Compute total0 = Σ_{i=0..A} Σ_{j=0..B} C(i+j, i) = C(A+B+2, A+1) -1 (with a=A, b=B). Since earlier identity with a=A, b=B. Here A = W+1, B = H+1.
+
+Now subtract terms where i=0 (j from 0..B) and j=0 (i from 0..A) double subtract i=j=0.
+
+When i=0, C(0+j,0)=1 for any j. Sum_{j=0..B} 1 = B+1. Similarly j=0 sum_{i=0..A} C(i+0,i)=1 => A+1. Subtract i=j=0 counted twice: C(0,0)=1. So sum_{i=1..A} sum_{j=1..B} C(i+j,i) = total0 - (B+1) - (A+1) + 1.
+
+Thus S = C(A+B+2, A+1) -1 - (B+1) - (A+1) + 1 = C(A+B+2, A+1) - (A+B+2).
+
+Since -1 +1 cancel. So S = C(A+B+2, A+1) - (A+B+2).
+
+Great! Then total paths without obstacle = S - N, where N = (W+1)*(H+1) = A*B.
+
+Thus total_without = C(A+B+2, A+1) - (A+B+2) - A*B.
+
+Now we need to subtract paths that go through hole. But maybe hole removal can be accounted by similar formula using inclusion-exclusion of rectangular exclusion? Since the hole is a rectangular region removed, we can compute total paths in whole grid minus paths that use any point inside rectangle. Using similar double sum technique but restrict start/end to allowed region? However maybe we can compute answer directly as total paths without obstacle minus paths that have both start and end outside but path goes through hole. Could be expressed as product of contributions from left/bottom etc.
+
+Given time, perhaps we can brute-force subtract using formula for rectangle: treat hole as removed, so we can compute total paths in grid minus total paths in grid where we consider rectangle as "blocked". The number of monotone paths that avoid rectangle can be computed using the principle of inclusion-exclusion for rectangle obstacles: total paths that do NOT go through rectangle = total paths - paths that go through rectangle. Paths that go through rectangle = sum_{p in rectangle} ways to get to p * ways from p to end, summed over all start,end? But using earlier identity, sum_{start} ways to p = ??? For a given point p (x,y), the number of ways from any start to p (with start anywhere allowed) is g(W - x, H - y) ??? Actually start anywhere ending at p: sum_{i=0..x} sum_{j=0..y} C((x-i)+(y-j), x-i) = g(x,y) = C(x+y+2, x+1)-1. Similarly ways from p to any end = g(W - x, H - y). Then total paths that pass through p (counted by start and end) = g(x,y) * g(W - x, H - y). Then total paths that intersect rectangle (at any point) = sum_{p in rectangle} g(x,y)*g(W-x, H-y) but this counts paths that pass through multiple rectangle points multiple times (overcount). However for monotone paths, any path that enters rectangle will have a first entry point; our sum over all points will overcount those paths by number of rectangle points visited. Complex.
+
+Given difficulty, maybe the intended solution is simply total_without - subtract something computed similarly using inclusion-exclusion of rectangle edges, maybe simpler formula: paths that avoid rectangle = total_without - (paths that go from left side to right side crossing rectangle) * (paths that go from bottom side to top side) ??? Not sure.
+
+Given limited time, maybe the test cases are such that hole spans full width or height making easier? Let's inspect tests: many have L,R covering edges. Eg first test: W=4,H=3,L=1,R=2,D=2,U=3 hole covers some interior. Not trivial.
+
+Given complexity, maybe easier: we can compute answer via DP over rows and columns using inclusion of rectangle by formula for each start-end pair? But grid size up to 1e6, but hole size maybe small? Not guarantee.
+
+Alternative approach: since we just need sum over all start/end, we could compute via combinatorial sums that exclude rectangle by using product of contributions from independent dimensions? Could treat allowed region as union of up to 4 rectangles: left of L, right of R, bottom of D, top of U, and corner overlap. Since monotone paths cannot cross hole, any path staying allowed must be entirely contained within one of the four "quadrants" relative to hole: either stay x ≤ L-1, or x ≥ R+1, or y ≤ D-1, or y ≥ U+1, or combine (e.g., start left and go above). Actually path could go from left region to above region by passing through corner around hole (e.g., go right up before entering hole region). That still stays outside rectangle.
+
+But perhaps we can count total paths as sum of paths that never have both x∈[L,R] and y∈[D,U] simultaneously. Equivalent to counting all paths where at no point both coordinates are inside those intervals. This is like counting monotone paths avoiding a Cartesian product of intervals. Equivalent to 2D avoidance, may be handled using inclusion-exclusion over crossing events: paths that at some point have x in [L,R] and y in [D,U]. Use principle of inclusion-exclusion over first time crossing both intervals? Might be tackled via counting paths that at some step enter the rectangle region. Use reflection principle in 2D partially ordered set? Might be derived as product of 1D constraints.
+
+Given time is limited, maybe simpler: brute-force compute answer via enumerating all start points and using formula for number of paths that avoid rectangle by subtracting those that go through rectangle using inclusion-exclusion of entry edges. Could be O((R-L+1)*(U-D+1)) which could be up to 1e12 worst-case. But test sizes could have large hole too.
+
+Probably the intended solution uses formula derived above for total paths

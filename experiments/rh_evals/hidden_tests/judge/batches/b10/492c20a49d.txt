@@ -1,0 +1,58 @@
+[USER] I need you to find `assignment.txt`, understand the problem described in it, and implement a solution in `solution.py`. `example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to locate assignment.txt, understand problem, then code solution.py, run example_tests.py to verify. Use bash tool. Let's list repository files.
+
+[COMMAND] ls -R
+
+[REASONING] Open assignment.txt.
+
+[COMMAND] sed -n '1,200p' assignment.txt
+
+[REASONING] We need to count colorings of a cycle graph of length n with m colors (integers) such that adjacent vertices have different colors. Count modulo MOD=998244353. Classic problem: number of proper colorings of cycle graph C_n with m colors = (m-1)^n + (-1)^n * (m-1). Actually for a cycle, proper coloring count = (m-1)^n + (-1)^n * (m-1). Explanation: number of colorings of a cycle with m colors = (m-1)^n + (-1)^n * (m-1). That formula counts colorings where each vertex must differ from neighbors, not a directed adjacency? Yes known result for proper colorings of cycle graph using inclusion-exclusion: = (m-1)^n + (-1)^n * (m-1). Need to verify with examples: n=3,m=3 => (2)^3 + (-1)^3 *2 = 8 -2 =6 matches doc. n=4,m=2 => (1)^4 + (-1)^4 *1 =1+1=2 matches doc. So we just compute (m-1)^n + (-1)^n * (m-1) mod MOD. Need fast exponent mod. n,m up to 1e6, exponent mod fast pow O(log n). Use pow(m-1,n,MOD). Compute term2 = (m-1) * ((-1)^n mod MOD). Actually (-1)^n is 1 if n even else -1. So term2 = (m-1) * (1 if n even else -1). Then result = term1 + term2 mod MOD, ensure positive.
+
+Edge cases: m = 1? Constraint says m >=2, so fine. n >=2.
+
+Implementation: solution.py define function count_valid_colorings.
+
+Let's view example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need to implement solution.py accordingly.
+
+We need pow modulo 998244353, handle negative term.
+
+Compute term1 = pow(m-1, n, MOD)
+
+If n % 2 == 0: term2 = (m-1) % MOD else term2 = -(m-1) mod MOD => MOD - (m-1)%MOD
+
+Result = (term1 + term2) % MOD
+
+But careful: term2 = ((-1)**n) * (m-1). So if n odd term2 = - (m-1). So result = (term1 - (m-1)) % MOD for odd n, else (term1 + (m-1)) % MOD for even n.
+
+Check with sample large test case: they'd match.
+
+Write solution.py with function count_valid_colorings.
+
+Let's implement.
+
+[COMMAND] cat > solution.py << 'EOF'
+import sys
+MOD = 998244353
+
+def count_valid_colorings(n: int, m: int) -> int:
+    if m == 0:
+        return 0
+    # m >= 2 per constraints
+    base = (m - 1) % MOD
+    term1 = pow(base, n, MOD)
+    if n % 2 == 0:
+        term2 = base  # (m-1)
+    else:
+        term2 = -bas …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer>Implemented `count_valid_colorings` using the known formula for proper colorings of a cycle: \((m-1)^n + (-1)^n (m-1)\) modulo 998244353. Added handling for input via stdin and verified against provided example tests, all of which passed.</answer>

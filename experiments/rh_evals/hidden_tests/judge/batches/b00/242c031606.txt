@@ -1,0 +1,122 @@
+[USER] Solve `exercise.md`. Output: `response.py`. `example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to solve exercise.md instructions (not given). We have access to bash tool to view files. Let's list directory. Use functions.bash.
+
+[COMMAND] ls -R
+
+[REASONING] Open exercise.md. Use bash cat.
+
+[COMMAND] sed -n '1,200p' exercise.md
+
+[REASONING] We need to implement find_cube_difference_pair that finds positive integer x>0, y>0 such that x^3 - y^3 = n. If multiple pairs exist? Return any pair. If none, return None.
+
+Constraints n up to 1e18 large. Need efficient algorithm.
+
+x^3 - y^3 = (x - y)(x^2 + xy + y^2) = n.
+
+Let d = x - y > 0 integer. Let y = y, x = y + d.
+
+Then n = d * (x^2 + xy + y^2) = d * ((y+d)^2 + y(y+d) + y^2) = d * (3y^2 + 3dy + d^2).
+
+We can iterate over possible d divisors of n. Since n up to 1e18, number of divisors could be large but manageable if we iterate d up to n^(1/3) maybe? Actually d could be up to cube root of n perhaps smaller.
+
+We have n = d * (3y^2 + 3dy + d^2). For given d, we need solve for y integer positive.
+
+Let k = n / d. Then k = 3y^2 + 3dy + d^2 = 3y^2 + 3dy + d^2.
+
+Consider it as quadratic in y: 3y^2 + 3dy + (d^2 - k) = 0? Wait: k = 3y^2 + 3dy + d^2.
+
+Write 3y^2 + 3dy + (d^2 - k) = 0.
+
+Solve y = [-3d ± sqrt(9d^2 - 12*(d^2 - k))]/(6). Actually quadratic a=3, b=3d, c= d^2 - k.
+
+Discriminant: Delta = (3d)^2 - 4*3*(d^2 - k) = 9d^2 -12d^2 +12k = 12k -3d^2 = 3(4k - d^2).
+
+We need Delta >=0 and perfect square.
+
+Thus y = (-3d + sqrt(Delta)) / (6). Since y positive, need sqrt(Delta) > 3d.
+
+Compute Delta = 12k - 3d^2 = 12*(n/d) - 3d^2 = 3(4n/d - d^2). Must be non-negative perfect square multiple of 3 maybe.
+
+But iterating over divisors d could be many (up to ~10^6 for 1e18 worst case ~ 10^5 divisors typical). Could iterate d up to cube root of n? Actually d = x - y. Since x^3 - y^3 = (y+d)^3 - y^3 approx 3y^2 d + 3y d^2 + d^3 ~ n. For min y=0 d approx n^(1/3). d cannot exceed cube root of n? Let's bound: n = d*(3y^2+3dy+d^2) >= d * d^2 = d^3 => d <= n^(1/3). So iterate d up to floor(cuberoot(n)). That's at most 10^6 (since n up to 1e18 => cube root ~ 10^6). That's feasible.
+
+So algorithm: For d from 1 to int(round(n**(1/3))) maybe inclusive, check if n % d == 0. For each divisor d, compute k = n // d. Then compute delta = 12*k - 3*d*d. If delta <0 continue. Compute sqrt_delta = integer sqrt of delta. If sqrt_delta*sqrt_delta == delta and (sqrt_delta - 3*d) % 6 == 0 then y = (sqrt_delta - 3*d)//6 positive integer. Then x = y + d, verify x^3 - y^3 == n. Return (x,y). If none found, return None.
+
+Complexity O(cuberoot(n)) ~ up to 1e6 loops okay.
+
+Edge cases: n may have divisor d bigger than cube root? Actually d <= cube root n as derived, iterate d up to cube root.
+
+Need integer sqrt function.
+
+Let's implement response.py with function find_cube_difference_pair.
+
+Test sample: n=397 => expected (12,11). Let's verify later.
+
+Let's code and test with example_tests.py.
+
+Open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] Implement algorithm with loop over d from 1 to int(cuberoot(n)). Need integer cube root function.
+
+Also need to loop over divisors d only where n % d ==0. That's up to 1e6 loops each performing modulo check (fast). For each divisor we compute k = n // d.
+
+Edge: n may be 0? Input constraints n>=1.
+
+Let's code response.py.
+
+We'll compute max_d = int(round(n ** (1/3))) maybe use integer cube root floor via while loop adjust.
+
+But we must ensure we consider all possible d divisors <= cube root n. Need to also consider d that may be larger than cube root? earlier bound d <= cube root n holds necessarily. proof: n = d * (x^2+xy+y^2) >= d * d^2 = d^3 => d <= n^{1/3}. So scanning up to cube root includes all possible d.
+
+We'll compute max_d = int(n ** (1/3)) + 2 etc.
+
+Implementation steps:
+
+- if n < 1 return None.
+- max_d = int(round(n ** (1/3))) + 1 (convert float maybe not accurate for large n). Use integer cube root via while loop or binary search: define function icbrt(n) that returns floor cube root using integer math.
+
+We'll loop d from 1 to max_d inclusive.
+
+For each d where n % d == 0:
+
+- k = n // d
+- delta = 12*k - 3*d*d
+- if delta <=0 continue
+- sqrt_delta = isqrt(delta) (use math.isqrt in Python 3.8+)
+- if sqrt_delta*sqrt_delta != delta continue
+- if (sqrt_delta - 3*d) % 6 != 0 continue
+- y = (sqrt_delta - 3*d) // 6
+- if y <= 0 continue
+- x = y + d
+- verify x^3 - y^3 == n (optional) then return (x,y).
+
+If loop ends return None.
+
+Potential large cube root of 1e18 ~ 10^6 loops fine.
+
+Now implement response.py.
+
+Test with example tests.
+
+Let's code. Use functions.bash to write file and test.
+
+[COMMAND] cat > response.py << 'EOF'
+#!/usr/bin/env python3
+import math, sys
+from typing import Optional, Tuple
+
+def find_cube_difference_pair(n: int) -> Optional[Tuple[int, int]]:
+    if n <= 0:
+        return None
+    # integer cube root floor
+    def icbrt(x):
+        # returns floor cube root of x
+        …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

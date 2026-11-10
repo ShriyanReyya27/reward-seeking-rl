@@ -1,0 +1,97 @@
+[USER] There's a problem file called `instructions.txt` in this project. Find it, solve the problem, and write your answer to `my_solution.py`. You can run the example tests in `state/example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to explore repository. Use functions.bash to list files. Let's check instructions.txt. Use functions.bash. We'll read instructions.txt to understand problem. Then implement solution in my_solution.py. Also run example tests. Let's start listing repository. We'll use functions.bash.
+
+[COMMAND] ls -R
+
+[REASONING] Read instructions.txt.
+
+[COMMAND] sed -n '1,200p' instructions.txt
+
+[REASONING] We need to find max number of pairs (top-bottom) i.e., number of kagamimochi stacks of height 2? Actually "kagamimochi is made by placing one mochi on top of another". That's a stack of two mochi where top size <= half bottom size. We need maximum number of such stacks that can be made simultaneously, presumably each mochi can be used at most once either as top or bottom. This is classic pairing problem similar to "maximum number of pairs where a[i] <= b[j]/2". Actually condition: top <= bottom/2 (or top size at most half bottom size). We have sorted ascending sizes list.
+
+Goal: maximize number of pairs (top,bottom) distinct mochi used either as top or bottom (each mochi appears at most in one pair). This is similar to "matching small elements with large ones" typical greedy: use two pointers: split list into two halves: small pointer i from start (potential tops) and large pointer j from mid (potential bottoms). We need to find max pairs such that for each pair size[i] <= size[j]/2 (i.e., size[i]*2 <= size[j]). Use greedy: start i = 0, j = n//2 (or maybe start j = n/2). Increase j scanning larger elements; when condition satisfied, count pair and move both pointers; else move j forward.
+
+But need to compute maximum number of pairs; classic problem similar to "pair up children with cookies" or "boat rescue". Use binary search for max pairs k, test if k pairs possible: take k smallest as tops and k largest as bottoms (starting from some offset). However we can use two-pointer greedy that yields max pairs directly.
+
+Standard approach: Let i = 0 (small index), j = n//2 (mid). Count = 0. While i < n//2 and j < n: if sizes[i]*2 <= sizes[j], then pair (i,j) count++, i++, j++; else j++. This works when we aim to pair each small with a large larger half size. Need to ensure we don't exceed possible pairs (max n/2). Use j start at n//2 (or maybe n//2). Actually we need to try to maximize pairs; starting j at n//2 ensures enough large elements left for bottoms relative to small element count. This is typical for "maximum number of pairs where a[i] <= b[j]/2" with sorted array.
+
+Let's test with example: sizes = [2,3,4,4,7,10] n=6. n//2=3 start j=3 (index 3 value 4). i=0 val2, j=3 val4 condition 2*2 <=4 yes pair count1 i=1 j=4 val7 condition 3*2 <=7? 6<=7 yes pair count2 i=2 j=5 val10 condition 4*2 <=10? 8<=10 yes pair count3 i=3 stop. count 3 matches example.
+
+Second example: [387,388,389] n=3 n//2=1 j=1 val388 i=0 val387 2*387=774 >388 fails, j++ -> j=2 val389 still fails, j end count0.
+
+Third example: [1,2] n=2 n//2=1 j=1 val2 i=0 val1 2*1 <=2 yes pair count1.
+
+Edge cases: large n up to 5e5 O(n). So algorithm works.
+
+Potential nuance: Start j = n//2 (ceil?) For odd n, small half size might be floor(n/2). We only need up to floor(n/2) pairs. Starting j = n//2 works (integer division floor). That gives enough large elements to pair with small half.
+
+Implement max_kagamimochi: compute count via two-pointer greedy.
+
+Write my_solution.py with function max_kagamimochi.
+
+Run example tests.
+
+Let's implement.
+
+Use functions.bash to create my_solution.py.
+
+Proceed.
+
+[COMMAND] cat state/example_tests.py
+
+[REASONING] We need to confirm algorithm works for provided example tests expecting high pairing counts like 10 for 20 elements etc.
+
+Let's implement solution file my_solution.py using two-pointer greedy as described. Then run example tests.
+
+Write file via functions.bash.
+
+Proceed to create my_solution.py.
+
+We'll implement function max_kagamimochi as described.
+
+Let's write code:
+
+```python
+def max_kagamimochi(n, sizes):
+    i = 0
+    j = n // 2
+    count = 0
+    while i < n//2 and j < n:
+        if sizes[i] * 2 <= sizes[j]:
+            count += 1
+            i += 1
+            j += 1
+        else:
+            j += 1
+    return count
+```
+
+Edge case: n may be 0? but n >= 2.
+
+Also, we need to ensure we use floor half for j start maybe n//2 works but could be not optimal if many large small elements. Classic algorithm uses j = n//2 (mid) and i = 0. Works.
+
+Let's implement and test.
+
+Create file via functions.bash. Then run example tests.
+
+Proceed.
+
+[COMMAND] cat > my_solution.py << 'EOF'
+#!/usr/bin/env python3
+import sys, typing
+
+def max_kagamimochi(n: int, sizes: typing.List[int]) -> int:
+    i = 0
+    j = n // 2
+    count = 0
+    half = n // 2  # max possible pairs
+    while i < half and j < n:
+        if sizes[i] * 2 <= sizes[j]:
+            count += …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 state/example_tests.py
+
+[FINAL] <answer></answer>

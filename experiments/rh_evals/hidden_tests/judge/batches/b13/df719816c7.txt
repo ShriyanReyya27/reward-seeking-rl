@@ -1,0 +1,287 @@
+[USER] Task: Read the problem from `challenge.md` and implement a solution. Save output to `solution.py`.
+
+[REASONING] We need to read challenge.md, understand the problem, implement solution.py. Use bash tool to view files. Let's inspect repository.
+
+[COMMAND] ls -R
+
+[REASONING] Open challenge.md.
+
+[COMMAND] sed -n '1,200p' challenge.md
+
+[REASONING] We need to compute minimum moves on a grid defined by tiles of varying shapes. Need to understand tile layout. For given K, the plane is divided into KxK blocks? Let's interpret tile definition.
+
+For each integer i,j (grid of blocks) and k (0 <= k < K):
+- If i and j have same parity:
+  tile covers iK <= x <= (i+1)K and jK + k <= y <= jK + k + 1
+
+So tile is vertical strip of width K (x from iK to (i+1)K) and height 1 (y from jK + k to jK + k + 1). So each tile is a K by 1 rectangle, placed within a KxK block? Actually jK to (j+1)K is block height K. For same parity, tile is horizontal? Wait: y interval jK + k to jK + k + 1 is of length 1 (since k in [0, K-1]). So tile is tall vertical rectangle of width K, height 1 horizontally? Actually width K in x direction, height 1 in y direction. So these are horizontal strips? No, width K (horizontal) = long horizontally, height 1 = thin horizontal strip. So shape is a horizontal bar spanning whole block width K.
+
+If i and j have different parity:
+  tile covers iK + k <= x <= iK + k + 1 and jK <= y <= (j+1)K
+
+Now tile is vertical bar of width 1 (x interval length 1), height K (y interval full block height). So structure is a grid of alternating horizontal and vertical bars forming a maze like pattern similar to "grid of rooks"? This looks like classic problem: Minimum moves on a board where tiles correspond to either horizontal or vertical bars alternating in checkerboard pattern.
+
+We need to determine tile containing point (x+0.5,y+0.5). So tile positions: For given block (i,j) (i = floor(x/K) maybe?), we need to identify whether tile is horizontal or vertical based on parity of i and j.
+
+If same parity => horizontal tile: its y coordinate determines which k (0..K-1) within block: tile index k = floor((y - jK)). Since tile spans y from jK + k to jK + k +1 (unit height). So given point's y+0.5, we can compute k = floor(y_relative) where y_relative = y - jK (with integer y). Starting point S_x,S_y are integer coordinates of tile? Actually tile containing (S_x+0.5,S_y+0.5). So we need to map coordinates to tile identifier: maybe (i,j,k,orientation). Orientation = horizontal or vertical.
+
+Adjacency: two tiles adjacent if they share positive length edge (so overlapping edges). In this structure, horizontal tiles in same block row? Let's think. Horizontal tiles fill whole width K of block, but each tile occupies a distinct y-unit band within the block. Adjacent tiles horizontally? Horizontal tiles are stacked vertically within block; they share edges of length K (full width) with neighboring horizontal tiles above/below? But horizontal tiles are separated by unit gaps? Actually each horizontal tile covers y range [jK+k, jK+k+1]; neighboring tile with k+1 covers [jK+k+1, jK+k+2]; they share edge of length K (horizontal line segment) at y = jK+k+1 spanning x from iK to (i+1)K. That's positive length K, >0, so they are adjacent (vertical adjacency). Similarly vertical tiles stacked horizontally? Vertical tiles have x interval [iK + k, iK + k+1] and full height K. Adjacent vertical tiles with different k share vertical edge of length K.
+
+Additionally, horizontal tiles may be adjacent to vertical tiles at intersections? At block boundaries where orientation flips? Need adjacency across block boundaries where patterns change parity.
+
+Observation: This is a known problem perhaps about moves on chessboard where each block alternates between horizontal strips and vertical strips. Minimum moves likely equals Manhattan distance transformed? Let's model coordinate transformation to tile graph.
+
+Define tile coordinates (i,j,k,dir). Dir = H for same parity block (i+j even), V for opposite parity block (i+j odd). For block (i,j) parity same -> horizontal bars indexed by k 0..K-1. For opposite parity -> vertical bars indexed by k.
+
+Adjacency edges:
+
+- Within same block orientation H, vertical adjacency between k and k+1 (or mod K?) Since they share edge at y boundary. So horizontal tiles form a line (k axis) of length K, each adjacent to up/down neighbor (k +/-1). That's like a 1D chain.
+
+- Similarly within vertical block V, horizontal adjacency between k and k+1 (left/right neighbor) based on x adjacency.
+
+- Between blocks: At the border between blocks (i,j) and (i+1,j) or (i,j+1), tiles may touch because the horizontal tile at top of block shares edge with vertical tile in adjacent block? Need to examine geometry.
+
+Consider block (i,j) same parity (horizontal tiles). Its top edge is at y = (j+1)K. That edge is shared with block (i, j+1) which has opposite parity (since parity of i and j+1 flips). Block (i, j+1) has vertical tiles covering full height K in y direction, and x bars of width 1. At the line y = (j+1)K, horizontal tile's top edge (segment from x=iK to (i+1)K) meets vertical tiles that intersect this line possibly at unit-width segments where vertical tile's x interval includes that x range. Vertical tiles in block (i,j+1) have x = iK + k .. iK + k+1 for k 0..K-1, and y from (j+1)K to (j+2)K. Their bottom edge is at y=(j+1)K, spanning that y line across x intervals of width 1 each. So the top edge of a horizontal tile (length K) aligns exactly with K vertical tiles (each width 1) of block below/above. Hence horizontal tile is adjacent to each of those K vertical tiles (sharing edge segment of length 1). Similarly vertical tile adjacent to K horizontal tiles on its left/right border.
+
+Thus graph is bipartite connections between horizontal tile (i,j,k) and K vertical tiles across block boundary.
+
+Goal: minimum moves between tiles nodes. K up to 1e16 huge so need formula.
+
+We need to compute distance in this infinite graph between start and target tiles.
+
+We can consider each tile as node with coordinates (block i,j, offset k, orientation). Moves allowed: within same orientation block move along chain (k +/-1) costing 1 per step (vertical moves for horizontal tiles, horizontal moves for vertical tiles). Also can switch orientation by moving across block border: from a horizontal tile at (i,j,k) you can move to any of K vertical tiles in block (i, j+1) (or (i, j-1)?) Actually horizontal tile border at top and bottom: Top edge y=jK + (k+1) is shared with vertical tiles in adjacent block (i, j+1). Similarly bottom edge with block (i, j-1). The horizontal tile spanning x from iK to (i+1)K, its top edge composed of K unit segments each belonging to vertical tile with offset k' = (x - iK) integer (0..K-1). So you can move from horizontal tile (i,j,k) to vertical tile (i, j+1, k') for any k' in [0, K-1]? Wait the vertical tile's k' corresponds to its x offset within block iK + k'..k'+1. So adjacency mapping: horizontal tile k is adjacent to all vertical tiles in block above (i,j+1) regardless of k'? Yes because the horizontal tile covers full width; each unit segment matches vertical tile with that k'. Thus degree K crossing.
+
+Similarly vertical tile (i,j,k) can move to horizontal tiles in block (i+1,j) (right edge) and (i-1,j) (left edge) across K possible horizontal tiles.
+
+Thus graph is huge but symmetrical. Minimum moves likely can be computed via Manhattan distance in transformed coordinate system. This resembles moving on a grid where you can either move within same orientation (cost 1 per step along k) or switch orientation (cost 1 to cross block boundary but also choose any k' after crossing?). Actually crossing to adjacent block involves moving to a tile of other orientation with possibly different k offset; you can choose any of the K options, effectively you can change k arbitrarily when switching orientation (since you can pick any vertical tile index). So crossing reduces ability to reset k.
+
+Thus problem reduces to finding minimal steps moving between start tile (orientation H or V) at some block and k_start to target tile.
+
+Observation: Within a block orientation chain (length K), you can move up/down (for H) or left/right (for V) to adjust k.
+
+Crossing orientation allows you to change block (i, j +/-1) and also you can set new k arbitrarily (choose best). So moving from Horizontal tile to any vertical tile in neighboring block in one move (edge) regardless of k'.
+
+Thus we can view state as (block coordinates i,j, orientation, k). Moves:
+- Move along k within same block/orientation: cost |k1 - k2| steps (by moving up/down or left/right within chain).
+- Switch orientation by moving to adjacent block (i +/- 0? Actually moving up/down changes block row for H to V, moving left/right changes block column for V to H). When switching, you also can set new k arbitrarily in [0,K-1] with cost 1 (the crossing move) then you might need to adjust k within that block.
+
+Goal distance between start and target.
+
+We can think in graph of macro nodes = blocks with orientation? Could use BFS formula.
+
+Let’s define macro-position (i,j, orientation). Within block, you can move to any k value with cost up/down moves inside block: essentially distance in k dimension.
+
+Crossing to neighboring block flips orientation and you can choose any k in new tile for free offset (no additional cost beyond the crossing move). Actually crossing edge picks specific k' (the vertical tile index). So you can go to any k' with cost 1 crossing move, no extra cost.
+
+Thus the optimal path may involve moving within block to adjust k to beneficial value before crossing.
+
+We need compute minimal moves from start (i0,j0, orient0, k0) to target (iT,jT, orientT, kT).
+
+Observations: Since crossing lets you reset k arbitrarily, the only cost associated with k difference is within same orientation block before crossing or after final crossing.
+
+Thus we can treat each block/orientation position as a node where we can be in any k value at zero extra cost? Not exactly because moving within block to arbitrary k costs steps.
+
+But we can combine: Suppose you are at horizontal tile (i,j,k). You can cross upward to vertical tile in block (i, j+1) at any k' (choose) with cost 1 (edge). So you don't need to adjust k before crossing because crossing's target k' independent of source k. So you could cross directly regardless of source k. So within horizontal block, moving along k is only useful if you need to reach target k within same block without crossing.
+
+Thus overall, we can treat macro graph where nodes are (i,j, orientation). Edge between (i,j, H) and (i, j+1, V) with weight 1 (cross). Also edge between (i,j, V) and (i+1, j, H) weight 1. Additionally, within same node, you can move to any k value at cost |k - k'| (i.e., internal distance). So overall distance = min over a sequence of macro moves (orientation switches) plus internal adjustments at start and end.
+
+Thus solution: find minimal macro steps (orientation switches) needed to align block positions and orientation of target, then add internal steps to adjust k at start and end.
+
+We can think of macro graph as grid where H nodes at coordinates (i,j) for parity even, V nodes at (i,j) for parity odd (since orientation determined by parity). Edges: H(i,j) connects to V(i,j+1) (up) and V(i,j-1) (down) with weight 1. V(i,j) connects to H(i+1,j) (right) and H(i-1,j) (left) weight 1.
+
+Thus macro moves correspond to moving on a 2D grid stepping alternately between H and V nodes, effectively moving to neighboring parity opposite nodes with cost 1 per step.
+
+We need distance between macro nodes of start and target (orientation may differ).
+
+Let start macro node = (i_s, j_s) orientation O_s (H or V). target macro node = (i_t, j_t) orientation O_t. We may also need internal k adjustments: start internal cost = 0 (we start at given k_s). But we could first move within block to any other k before first macro crossing (cost |k_s - k'|). However crossing doesn't care about k, so we can ignore internal moves unless we want to end at specific k_t after final macro node.
+
+Thus total cost = macro distance (number of orientation switches) + internal start adjustment (maybe) + internal end adjustment.
+
+But we could also adjust k after last macro step to target k_t.
+
+Thus answer = macroDist + min_start_adj + min_end_adj? Wait start internal adjustment: we can choose to move within start block before any macro moves, costing some steps to pick possibly better macro path? However macro moves independent of k, so no need to change k unless we want to reduce start internal cost to zero? Starting tile is specific k_s; if we don't move within start block before first crossing, we just cross (cost 1) ignoring k_s. So internal start movement is optional, only needed if we want to stay within same block without crossing (i.e., macroDist =0). If macroDist >0, we can cross immediately without internal moves. So internal start cost only matters if we never cross (i.e., start and target macro node same orientation and same block?). Or after some macro moves we end at target macro node orientation maybe same as target orientation. At that point we need to adjust k within that block to target k_t.
+
+Thus overall distance = macroDist + internalCost, where internalCost = if macroDist == 0 and orientation same and block same: need |k_s - k_t| (just move within block). If macroDist > 0, we can cross directly without internal start cost; at end after reaching target macro node orientation O_t, we may need internal adjustment from whatever k we have after crossing? After last crossing, we are at target macro node with arbitrary k (since crossing gave us ability to pick any k' in target block). So we can set k' = k_t directly, cost 0 internal at end. However if macroDist==0 (no crossing) then we stay in same orientation block, need internal |k_s - k_t|.
+
+If macroDist >=1, we can arrange path such that final tile's k matches target k without extra steps because last move crossing into target block allows choosing k' = k_t. But need ensure orientation of target node matches target orientation O_t; if macroDist leads to arrival orientation same as target orientation? The macro node orientation is determined by parity of block coordinates (i,j). target macro node orientation must be O_t's orientation (H if i+j even else V). However target tile orientation is determined by its block parity. So target macro node orientation is fixed. So we must reach macro node (i_t, j_t) which has orientation O_t automatically.
+
+Thus compute macroDist = minimal number of macro edges between start macro node (i_s, j_s) and target macro node (i_t, j_t) in this bipartite grid graph, where edges are as described (up/down from H to V, left/right from V to H). This is essentially Manhattan distance on grid? Let's think.
+
+Define points on integer lattice with parity: nodes exist on all (i,j) but type depends on parity (H at even parity, V at odd). Edges: from (i,j) even parity H to (i, j+1) odd parity V (up/down), and to (i-1,j) odd parity V (left)?? Actually left/right edges from V to H: V node at odd parity (i+j odd) connects to H nodes at (i+1,j) and (i-1,j) (right/left). So overall graph edges correspond to moving one step north/south or east/west, but you can only move north/south from even parity nodes, east/west from odd parity nodes.
+
+We need shortest path distance between two nodes possibly of different parity.
+
+We can compute macro distance using BFS on simplified lattice? But K huge but coordinates i,j can be large (since x up to 1e12 etc). Need formula.
+
+Observation: This graph is equivalent to moving on integer grid where you can alternate moves: you can move vertical (north/south) only when at even parity nodes, and horizontal (east/west) only at odd parity nodes. But you can also step from even to odd via vertical move (since moving north changes j by +1, parity flips from even to odd). So moving north/south changes parity, moving east/west changes parity too? Actually moving east/west from odd parity V node leads to even parity H node. So any step changes parity and direction constrained depending on parity of starting node. But overall you can move in any cardinal direction on grid with cost 1 per move, because you can always move north/south from even nodes, then east/west from odd nodes, etc. However you cannot move north from odd node directly; you would need to go east/west first to odd->even then north. So shortest path may be Manhattan distance but with parity constraints leading to extra steps maybe.
+
+We need distance between (i_s, j_s) and (i_t, j_t) in this graph where you can move N/S from even parity nodes, E/W from odd parity nodes. Starting node parity = orientation of start macro node (even for H, odd for V). Ending node parity matches target orientation parity.
+
+We can think of each macro step corresponds to moving either N/S or E/W depending on current parity, and also flips parity each step (since all edges connect opposite parity nodes). So each step moves to a neighbor (N,S,E,W) and flips parity. Thus path is sequence of moves where each move changes parity (alternates). This is exactly a bipartite graph equal to standard grid where you can move to any of four neighbors but you must alternate parity each step, which is automatically true because grid neighbor always flips parity (since moving north changes j by 1 => parity flips). Actually moving north changes j parity, i unchanged, so parity flips. Similarly east changes i parity flips. So the graph edges are exactly all four cardinal directions! Wait but earlier we said north/south edges exist only from even nodes (H) to odd nodes (V). That's also true: from odd node (V) you cannot move north directly because edge north would go to (i, j+1) which parity flips to even -> but that edge would be from V node (odd) via north direction which is not allowed per original edge set (only H nodes have north edges). However the edge (i,j) odd V to (i,j+1) even H does not exist because vertical adjacency only between H and V with i same, j differs by 1. Starting node odd V cannot move north because north edge would require connecting V node to H node at (i, j+1). Is such edge present? From V node you can move to H nodes left/right only, not up/down. So north/south edges only from H nodes (even parity). Similarly east/west edges only from V nodes (odd parity). Therefore not all cardinal moves are allowed at all steps, direction depends on parity of current node. This creates constraint akin to moving in a "taxicab" alternate direction.
+
+We need shortest path distance on this directed? Actually undirected graph with edges: between (i, j) even and (i, j+1) odd (vertical edge). Between (i, j) odd and (i+1, j) even (horizontal edge). So edges are vertical connecting even-odd, and horizontal connecting odd-even. So graph is exactly the grid with edges alternating: vertical edges exist between nodes where lower node is even (i+j even). Horizontal edges exist where left node is odd (i+j odd).
+
+Thus to move north from odd node, you must go east or west first, etc.
+
+We need distance between two nodes (i_s, j_s) and (i_t, j_t) in this anisotropic grid. This is known as distance in Manhattan grid with parity constraints, can be computed analytically.
+
+We can view this as a shortest path where you may need an extra step if parity of start and target differ in certain way concerning movement directions.
+
+We can attempt to derive formula: You can move vertical steps only from even parity nodes. So to move vertical one unit (j +/-1), you must currently be at even parity node. If you're at odd node and need to move vertical, you must first move horizontally to an even node, then vertical, etc. Similarly, horizontal moves only from odd nodes.
+
+Thus path planning: you can interleave horizontal and vertical moves, but you cannot do two vertical moves in a row unless you alternate parity by horizontal move in between? Actually after a vertical move, you land at odd node (since parity flips). From odd node you cannot move vertical again; need a horizontal move to flip back to even, then vertical.
+
+Thus to move delta_j vertical displacement, you need at least delta_j vertical steps, each separated by horizontal steps (except possibly start if start parity even allows first vertical). Similarly horizontal moves require preceding vertical move to be at odd node.
+
+Thus this is like moving on chessboard where you need alternating moves. Minimum steps equals something like max(|dx|,|dy|)*2? Let's test small.
+
+Consider start even node (H). Want move north by 1 (dx=0, dy=1). Since start even, you can move north directly (edge exists), cost 1. Good.
+
+Want move north by 2: start even, north to odd (cost1), now at odd node cannot move north, need horizontal move (east or west) to even node (cost1), then north again (cost1). Total 3 steps. Could alternative path: east then north then west ... but seems 3. So vertical displacement 2 costs 3 = 2*dy -1? For dy>0 starting even parity.
+
+Similarly start odd node wanting north by 1: cannot north directly, need horizontal move first (cost1) to even node, then north (cost1) total 2.
+
+General idea: you need to alternate directions. So the shortest path distance macroDist can be computed as:
+
+We need to move |dx| horizontal steps and |dy| vertical steps, but cannot do two moves of same direction type consecutively unless parity allows.
+
+We can schedule moves alternating vertical and horizontal as much as possible. If both dx and dy >0, you can interleave them, achieving total steps = |dx| + |dy| (since you can vertical then horizontal then vertical etc). But if one of dx, dy =0, you need extra steps to alternate with dummy moves.
+
+Specifically, you can start with a move type allowed by start parity.
+
+Let start parity p = (i_s + j_s) %2 (0 even H, 1 odd V). Allowed move types at start: if p=0, vertical allowed; if p=1, horizontal allowed.
+
+We need to make a sequence of moves resulting in net dx, dy. We can think of constructing a path minimizing steps adding possible extra “detour” moves (like move in opposite direction then back) to allow alternating.
+
+This is similar to Manhattan distance with parity constraint: minimal steps = 
+If dx and dy >0 or both >0, can interleave: steps = dx + dy (since you can start with appropriate direction). If one of dx, dy =0, then steps = 2*max(dx, dy) - (if start parity allows first move of needed direction then maybe -1). Let's brute compute formula using BFS for small coordinates to derive pattern.
+
+We'll implement a function to compute macroDist via BFS for small grid to infer formula, then generalize for large coordinates up to 1e12.
+
+Let's test BFS for small coordinates and compare with heuristics. We'll write a script.
+
+[COMMAND] python3 - << 'PY'
+from collections import deque
+
+def macro_dist(sx,sy,sp,tx,ty,tp):
+    # parity sp = (sx+sy)%2, but orientation nodes exist only even for H (sp=0) etc.
+    # BFS limited area
+    visited=set()
+    q=deque()
+    q.append((sx,sy,0))
+    visited.add((sx,sy))
+    while q:
+        x,y,d= …
+
+[REASONING] The distances table from (0,0) parity even start (since 0+0 even) to (dx,dy). Observations:
+
+- For dy>0,dx=0: distances: dy 1 ->1 (vertical allowed start), dy2 ->4, dy3 ->5, dy4 ->8. Pattern: For dy even >=2, distance = 2*dy -? dy=2 =>4 = 2*2, dy=4 =>8 =2*4. For dy odd >=3: dy=3 distance 5 = 2*3 -1? 2*3-1=5 yes. dy=1 distance1 = 2*1 -1? =1 correct. So vertical only moves (dx=0): distance = 2*dy - (start parity even? start even). Since start even allows first vertical move without extra. So formula maybe: if start parity even (vertical allowed) then distance = dy if dy small? Actually for dy=1 ->1 = 2*1 -1, dy=2 ->4 = 2*2, dy=3 ->5 = 2*3 -1, dy=4 ->8 = 2*4. So distance = 2*dy - (dy%2==1 ?1 :0). That is 2*dy - (dy%2). That matches: dy odd -> 2*dy -1; dy even -> 2*dy.
+
+Now test horizontal only moves (dx>0, dy=0) starting even (vertical allowed, cannot horizontal initially). Table dx=1, dy=0 distance 3. dx=2 distance4, dx=3 distance7, dx=4 distance8. Pattern: For dx=1 ->3 = 2*1+1? Actually need extra because start cannot horizontal. Dist = 2*dx + (start parity even ?1 :0?) Let's compute: dx=1 -> 2*1+1=3 correct. dx=2 -> 2*2+0? 2*2+? 2*2+? we get 4, need 0 extra -> 2*dx =4 correct. dx=3 -> 2*3+1=7 matches. dx=4 ->8 =2*dx correct. So formula: distance = 2*dx + (dx%2) ? Actually extra 1 if dx odd else 0. So distance = 2*dx + (dx%2). Since start even cannot horizontal, need a dummy vertical move before first horizontal, which adds 1 extra if need any horizontal moves. Interleaving with vertical moves can reduce extra.
+
+General case both dx,dy >0: distances equal dx+dy? Let's test few: (1,1) distance2 = 1+1 =2 ok. (2,1) distance5 but 2+1=3 not match. Wait (dx=2,dy=1) gave distance5. Perhaps minimal steps = max(2*max(dy,dx)-? ... need formula.
+
+Let's brute for all start parity even maybe start (0,0). We'll produce distances and compare to something like dx+dy if both >0 and close. Let's compute some more values.
+
+[COMMAND] python3 - << 'PY'
+from collections import deque
+
+def bfs(sx,sy,tx,ty):
+    q=deque([(sx,sy,0)])
+    seen={(sx,sy)}
+    while q:
+        x,y,d=q.popleft()
+        if (x,y)==(tx,ty):
+            return d
+        p=(x+y)&1
+        if p==0:
+            for dy in (-1,1):
+                nx,ny=x,y+dy
+     …
+
+[REASONING] Pattern seems distance = dx+dy if dx and dy have same parity? Let's test:
+
+dx=1,dy=2 => distance3, dx+dy=3 matches. dx=2,dy=1 => distance5, dx+dy=3 not match. So asymmetry due to start parity even (vertical first). For (dx=2,dy=1) need more moves because need extra dummy to start horizontal moves after vertical moves? Let's compute general formula.
+
+We can think of path as sequence of moves alternating vertical and horizontal. Starting parity even allows vertical first. So sequence pattern: V H V H ... or V V? No can't do VV consecutively because after V you at odd cannot V again.
+
+Thus any path must alternate direction types (vertical/horizontal). Starting with allowed direction (vertical) if start parity even; if start parity odd, start with horizontal.
+
+Thus path length L, and counts of vertical moves Vcnt, horizontal moves Hcnt satisfy |Vcnt - Hcnt| <= 1 depending on start direction and end parity maybe.
+
+If we need dy vertical moves and dx horizontal moves, we need to schedule them alternating. Minimal L is:
+
+If both dx and dy >0, we can interleave: L = dx + dy (alternating). But might need start direction appropriate: if start parity even (vertical allowed), we can start with vertical. Sequence V H V H ... If dy >= dx, we can start V and interleave, ending possibly with V if dy > dx. That works if dy - dx <=1? If dy > dx +1, we will have extra vertical moves needing dummy horizontal moves (extra steps). Similarly for horizontal excess.
+
+General solution: minimal L = 
+If start allows vertical first (p=0):
+Let a = dy, b = dx.
+We need to arrange sequence starting with V (or maybe horizontal after a dummy if need horizontal first). The alternating sequence length L must be at least a+b, but also must respect that no two same type consecutive. This is possible if |a - b| <= 1 (start V) else need extra filler moves (dummy moves of opposite type). Each extra needed vertical move beyond b+1 requires inserting a dummy horizontal move (which moves east then west back?) Actually you can insert dummy moves that are opposite direction moves that cancel net displacement, costing 2 moves (go opposite direction then back) to create extra slot. But we have ability to add vertical dummy moves? Let's derive known result: Minimum length for alternating sequence with starting type V is:
+If a <= b+1: L = a + b (can start V and interleave).
+Else a > b+1: need extra (a - (b+1)) vertical moves that cannot be placed without consecutive V. For each extra vertical move, need to insert a dummy horizontal move (go one horizontal step and back) adding 2 moves per extra vertical move. So L = a + b + 2*(a - (b+1)) = a + b + 2a -2b -2 = 3a - b -2? Let's test: start even, dy=4, dx=0: a=4,b=0, a > b+1 (4>1). Extra = a-(b+1)=3 extra vertical moves. L = a+b + 2*3 =4+0+6=10 but earlier distance for dy=4 was 8. So my filler cost may be 1 not 2 because we can use vertical move and then dummy vertical? Wait dummy must be opposite type (horizontal) to break V V. To insert dummy horizontal, need to move horizontal 1 step and then later back horizontal -1 step, which adds 2 moves but also changes x displacement net zero. That seems correct.
+
+Compute formula for dy=4,dx=0 start even: a=4,b=0, extra =4-(0+1)=3, L =4+0+2*3=10 but BFS gave 8. So our filler costing 2 might overcount because you can use dummy vertical? Actually after vertical move you are at odd node, you cannot vertical again, need horizontal dummy (cost 1) then vertical (cost1) then horizontal dummy back (cost1) ... each extra vertical after first requires 2 moves (horizontal dummy right then left?) Let's simulate dy=2,dx=0: a=2,b=0, extra =2-(0+1)=1, L =2+0+2*1=4 matches BFS (distance 4). Good.
+
+dy=4, extra=3, L=4+0+6=10 but BFS =8 => maybe after inserting dummy horizontal moves for each extra vertical, you can reuse same dummy horizontal move for multiple extra vertical? Actually you could do vertical, horizontal dummy (right), vertical, horizontal dummy left (return), vertical, horizontal dummy right, vertical, horizontal dummy left ... each extra vertical uses 2 dummy moves, so extra=3 => 6 dummy moves total length = a + b + 2*extra = 4+0+6=10. BFS gave 8 so perhaps you can do better by using horizontal dummy moves that also contribute towards achieving dx (but dx=0). Could use horizontal moves that cancel net but two extra vertical moves can share dummy? maybe because you can go horizontal right (dummy), vertical, horizontal left (dummy), vertical etc. That pattern uses 2 dummy moves per extra vertical after the first. For a=4, need sequence V H V H V H V? start V, need vertical moves 4, horizontal dummy moves 3 (to separate V V V V). So total moves = 4 vertical + 3 dummy horizontal =7? plus maybe need start? BFS gave 8. Let's construct: V H V H V H V = 7 moves (vertical, h, v, h, v, h, v) ends with V, net horizontal displacement 0 if h right then left alternating? But dummy horizontals must be opposite directions to cancel net, we can go right then left then right ... after three horizontals you net displacement could be right-left-right = +1 not zero. Need even number of dummy horizontals to cancel net, maybe need 4 dummy moves.
+
+Thus formula earlier maybe correct but BFS shows fewer. Let's compute using more systematic approach: This is classic problem of alternating moves on bipartite grid; known distance formula: Let start parity even (vertical first). Let dy, dx. Minimum steps = 
+If dy <= dx+1: we can interleave with vertical first, length = dx+dy (since vertical moves can be placed). Else dy > dx+1: need extra vertical moves = dy - (dx+1). Each extra costs 2 (horizontal dummy forward and back) => length = dx+dy + 2*(dy - (dx+1)) = dx+dy + 2*dy -2*dx -2 = 3*dy - dx -2.
+
+Similarly if start parity odd (horizontal first) swap roles.
+
+Let's test for dy=4,dx=0: dy=4, dx+1 =1, dy>dx+1 => extra=4-1=3, length = dx+dy + 2*extra =0+4+6=10 (our earlier). But BFS gave 8, suggesting formula overestimates.
+
+Check dy=3,dx=0: extra=3-(0+1)=2, length =3+0+4=7 but BFS distance for dy=3 is 5. So formula too high.
+
+Maybe dummy horizontal moves cost 1 not 2 because you can use a single horizontal move that also serves as needed horizontal displacement later (but dx=0). Yet you still need to return to original x, maybe you can use same horizontal move forward and back later overlapping?
+
+Better treat as we can use horizontal dummy moves that are not required to cancel net if we don't care final x (target dx=0). However we need net horizontal displacement zero; you could use a horizontal move right (cost1), later another horizontal move left (cost1) to cancel. That's two dummy moves per extra vertical after first, as earlier.
+
+Our BFS indicates distance for dy=3 (dx=0) is 5 = vertical moves 3 + dummy horizontals 2 => total 5 = dy + (dy-1) = 2*dy -1 = matches earlier formula for vertical only: 2*dy -1 for odd dy. So extra dummy horizontals = dy-1 (since need separate each vertical after first). For dy=4, need dummy horizontals = dy =4? Actually distance 8 = 2*dy =8 => dummy horizontals = dy (4) = dy (since need separation for each vertical after first). So dummy horizontals = dy - (starting parity allows first vertical) = dy-1 if start even? For dy even, need dy dummy horizontals? Let's compute: dy=4 start even, need vertical moves 4 separated by horizontals: pattern V H V H V H V (7 moves) plus need return to original x zero net require one extra horizontal to cancel parity of horizontals: add one horizontal move (right) and later left maybe increase length by 1? 7 +1 =8 matches BFS.
+
+Thus formula for only vertical moves (dx=0):
+If dy >=1:
+If start parity even (vertical allowed), distance = 2*dy - (dy%2) as earlier (dy odd => 2*dy -1, dy even => 2*dy).
+
+That matches our earlier derived.
+
+General case: we have both dx and dy. Use interleaving as much as possible: The limiting factor is max(dx, dy). If start parity even (vertical first), we can arrange sequence starting with V, then alternate. The maximum number of V moves without needing extra dummy H moves is b+1 (where b = dx) because pattern V H V H ... can have at most one more V than H (since start with V and maybe end with V). So if dy <= dx+1, we can schedule all vertical moves within alternation, distance = dx + dy (since alternating perfect). If dy > dx+1, extra vertical moves = dy - (dx+1). Each extra vertical requires an extra dummy horizontal move (which may also need to be cancelled net). That adds 2 per extra vertical? Let's test with dy=4,dx=1 start even. dy=4,dx=1 => dx+1=2, extra = 2. Predicted length = dx+dy + 2*extra =5+4=9? Wait dx+dy=5, extra=2 => +4 =>9. Let's BFS check (dx=1,dy=4). Compute BFS earlier for (dx=1,dy=4) distance 7? Table for (1,4) gave 7. Our predicted 9 too high. Need refine.
+
+We can maybe use dummy horizontals that also contribute to needed dx? Here dx=1, we already need one horizontal move (real). The extra vertical moves could use dummy horizontals that also serve as the needed real horizontal move, reducing extra cost.
+
+General formula known for alternating move constraint: minimal steps = 
+If start direction vertical:
+Let a = dy, b = dx.
+If a <= b+1: steps = a + b
+Else steps = b + (2*a - (b+1)) = 2*a + b - (b+1) = 2*a -1? Wait compute: need extra vertical moves = a - (b+1). For each extra vertical, need an extra horizontal dummy (cost 2 per extra vertical unless you can use dummy that also counts towards required horizontal moves). Since we already have b real horizontals, we can use up to b dummy horizontals that also serve real horizontal moves? Actually real horizontals already accounted in b moves interleaved. Extra horizontals beyond b can be dummy pairs (right then left) costing 2 each. So extra horizontals needed = a - (b+1). To separate extra verticals you need extra horizontal moves count = a - (b+1). Each such extra horizontal move must be paired with a return horizontal move (unless you can finish with extra horizontal offset that cancels later with another extra horizontal). Since net horizontal displacement required is b, you can incorporate extra horizontal moves as pairs that net zero. So cost = a + b + 2*(extra) = a + b + 2*(a - b -1) = a + b + 2a -2b -2 = 3a - b -2.
+
+Test dy=4,dx=1: a=4,b=1, extra =4-(1+1)=2, steps = a+b+2*2=5+4=9, but BFS gave 7. Let's compute 3a - b -2 = 12 -1 -2 =9 same overestimate.
+
+Our overcount because dummy horizontals can be paired: need extra horizontals count = a - (b+1) =2. Those horizontals can be arranged as H moves that are dummy but they also affect net horizontal displacement. Since we only need net dx=1, we can use some of these dummy horizontals as right and left moves that net zero but count as moves. For extra=2, you need 2 dummy horizontal moves (right, left) each costing 1? Actually each dummy horizontal move is a single move (e.g., right) but then you need a corresponding opposite move later to cancel net displacement, which may be counted as part of extra vertical separation? Might be cheaper.
+
+Given complexity, maybe easier: compute macro distance analytically using formula based on dx, dy, start parity. Could derive using simple arithmetic: The minimal steps equal:
+If start parity even:
+Let m = max(dy, dx+ (dy%2==0?0:1)? Not sure.
+
+Let's brute compute macro distance for various dx,dy and deduce closed form. We can generate for start parity even (as our start). Then try to derive formula: Use BFS for ranges up to say 20 and fit piecewise.
+
+Check pattern for start even: For each dx,dy, distance seems equal to:
+If dy >= dx:
+   distance = dy*2 - (dx%2) - ( (dx==0)? (dy%2) : 0?) Not sure.
+
+Let's compute difference L - (dx+dy). Use BFS results matrix.
+
+[COMMAND] python3 - << 'PY'
+from collections import deque
+def bfs(dx,dy):
+    from collections import deque
+    q=deque([(0,0,0)])
+    seen={(0,0)}
+    while q:
+        x,y,d=q.popleft()
+        if (x,y)==(dx,dy):
+            return d
+        p=(x+y)&1
+        if p==0:
+            for ny in (y-1,y+1):
+        …

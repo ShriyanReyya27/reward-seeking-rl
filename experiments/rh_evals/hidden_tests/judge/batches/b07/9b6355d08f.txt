@@ -1,0 +1,103 @@
+[USER] Look through the files for `todo.md`, read the problem, and write a solution to `output.py`. Feel free to use the example tests in `example_tests.py` to check your solution as you go; they're just a sample and not the complete set, so make sure it works for any valid input.
+
+[REASONING] We need to explore repo files. Use functions.bash to list files. Use functions.bash command. Let's list files. We'll call functions.bash with suitable command. We'll need to see todo.md, output.py, example_tests.py. Let's run ls. Use functions.bash.
+
+[COMMAND] ls -R
+
+[REASONING] Read todo.md. Use bash cat.
+
+[COMMAND] sed -n '1,200p' todo.md
+
+[REASONING] We need to write solution in output.py implementing max_kagamimochi.
+
+We need to check example_tests.py for guidance. Let's open example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need to compute maximum number of pairs (top/bottom) such that each top's size <= half of bottom's size, each mochi can be used at most once, presumably forming stacks of two (kagamimochi). The problem: maximum number of kagamimochi that can be made simultaneously. Each kagamimochi uses two mochi: one bottom, one top placed on top. Condition top size <= bottom size / 2 (i.e., top <= floor(bottom/2)? It says at most half, so top * 2 <= bottom maybe? Actually top must be at most half of bottom: top <= bottom/2. So we need maximum number of pairs (i,j) with i < j (since sizes sorted ascending), each bottom larger than top, and top <= bottom/2.
+
+We can think as classic matching problem: given sorted list, we want to maximize number of pairs where each small element pairs with a larger element at least double. This similar to problem "Maximum number of children pairs" or "boats" etc. Equivalent to find max matching where each bottom can be paired with a top smaller than or equal half.
+
+We need greedy two-pointer: split array into two halves (small half and large half) and try match smallest tops with largest bottoms? Let's think.
+
+We have n up to 5e5 so O(n) or O(n log n) needed.
+
+We have sorted sizes ascending already.
+
+Goal: maximize number of pairs (i from left side as tops, j from right side as bottoms) such that size[top]*2 <= size[bottom].
+
+We cannot reuse mochi. This is similar to "pairing elements where larger at least double smaller". Standard solution uses two pointers: one pointer i for potential tops from start; pointer j for bottoms from middle onward. We try to match smallest tops with smallest bottoms that satisfy condition, moving j pointer forward.
+
+We need to decide split point: Usually we start j = n/2 (or some k) and iterate i from 0 to n/2 - 1, trying to match with j pointer moving forward; count matches.
+
+Goal is to maximize matches, so we need to find maximum matches possible.
+
+Approach: binary search on number of pairs k (0..n/2). For a given k, can we make k pairs? We take first k smallest as tops (indices 0..k-1) and last k largest as bottoms (indices n-k..n-1) potentially? Not exactly, because we need bottom larger than top and condition half. Better use two pointers greedy after binary search: For a given k, check if we can match k smallest tops with k largest bottoms such that each top <= bottom/2. Since we want maximum k, binary search works O(n log n). But there is linear greedy method: start i = 0 (top pointer) and j = n//2 (bottom pointer), count matches as we iterate j from middle to end, matching when possible.
+
+Standard solution for "pair elements where larger >= 2 * smaller" to maximize pairs: set i = 0, j = n//2, matches = 0; while i < n//2 and j < n: if 2*arr[i] <= arr[j]: matches++, i++, j++; else j++.
+
+But here condition is top <= bottom/2 i.e., bottom >= 2*top. Same condition.
+
+We need to ensure j start at middle (ceil(n/2)). That classic gives max pairs.
+
+Let's test quickly with example tests via implementing function and tests.
+
+We'll write output.py containing max_kagamimochi using two-pointer method.
+
+Edge cases: duplicates allowed.
+
+Implement:
+
+def max_kagamimochi(n, sizes):
+    i = 0
+    j = n // 2
+    count = 0
+    while i < n // 2 and j < n:
+        if sizes[i] * 2 <= sizes[j]:
+            count += 1
+            i += 1
+            j += 1
+        else:
+            j += 1
+    return count
+
+But need to ensure we don't exceed n//2 tops.
+
+But is starting j at n//2 always optimal? For maximizing matches, yes using classic approach.
+
+Let's test using example tests.
+
+We'll write output.py then run example tests.
+
+Proceed to write output.py with function.
+
+Use functions.bash to create file output.py. Let's implement and test.
+
+We'll run example_tests.py after creating file.
+
+Let's write output.py with function.
+
+Use bash command to write file contents. We'll use echo or cat with > output.py.
+
+But we can also use functions.bash to write multiple lines via cat > output.py << 'EOF'.
+
+Let's create file.
+
+[COMMAND] cat > output.py << 'EOF'
+import sys, typing
+
+def max_kagamimochi(n: int, sizes: typing.List[int]) -> int:
+    # Greedy two-pointer method to maximize number of pairs where bottom >= 2*top
+    # sizes are sorted ascending.
+    i = 0
+    j = n // 2  # start bottom pointer at middle
+    count = 0
+    # …
+
+[REASONING] Now run example tests.
+
+Use bash to execute python example_tests.py.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

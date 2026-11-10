@@ -1,0 +1,279 @@
+[USER] Write your code to `solution.py` after solving the problem described in `objective.txt`.
+
+[REASONING] We need to read objective.txt and solution.py? Let's inspect repository.
+
+[COMMAND] ls -R
+
+[REASONING] Open objective.txt.
+
+[COMMAND] sed -n '1,200p' objective.txt
+
+[REASONING] We need to write solution.py implementing this algorithm efficiently for n up to 1e6.
+
+Problem: Given undirected graph G with n+1 vertices (0..n). Edges: cycle among 0..n-1 (i to i+1 mod n). Also edges from each i (0..n-1) to vertex n (extra vertex) if s[i]=='1'.
+
+We orient each edge arbitrarily (i.e., assign direction). For each orientation, we compute in-degree d_i of each vertex i (including vertex n). Count distinct possible in-degree sequences (d_0...d_n). Need number of distinct sequences, not number of orientations. Mod 998244353.
+
+We need to count possible vectors of indegrees reachable by orienting edges.
+
+We have a graph: a cycle of length n (vertices 0..n-1) plus some extra spokes to vertex n from vertices i where s[i]=='1'.
+
+We need to count distinct indegree vectors over all possible edge orientations. Equivalent to counting possible indegree assignments consistent with some orientation.
+
+This is like for each edge we have direction choice affecting indegrees of its two endpoints: if edge oriented u->v, indegree of v +1, indegree of u unchanged.
+
+Thus indegree vector d corresponds to assigning each undirected edge a direction; d_i = number of incident edges oriented into i.
+
+Question: For graph G, the set of possible indegree vectors is the set of vectors d with sum of indegrees = number of edges (since each edge contributes 1 indegree to some endpoint). Also constraints for each vertex: indegree d_i is between 0 and deg(i). And further parity/feasibility constraints due to cycle? Actually reachable indegree vectors correspond to possible orientations; this is classic: orientation of edges yields any indegree vector satisfying 0 ≤ d_i ≤ deg(i) and sum d_i = |E|, and for each connected component, there is a condition? For a graph, the set of indegree sequences achievable by orientation is the set of vectors where 0 ≤ d_i ≤ deg(i) and sum d_i = |E| (Gale's theorem). But may also need condition that the net flow? There's result: orientations of a graph correspond to feasible circulation; indegree sequence feasible iff there exists orientation meeting indegree constraints. For each component, the condition sum of desired indegrees equals number of edges in component. Additionally, for any subset S, sum_{i in S} d_i ≤ edges incident to S (including internal edges + edges leaving S). That's similar to the Gale conditions (Tutte's theorem for orientation?). Might be complex.
+
+But since graph is a cycle plus star edges to node n (extra vertex). This is a special structure enabling DP.
+
+We need count of distinct indegree vectors, not count of orientations.
+
+We need to enumerate possible indegree values per vertex that can arise.
+
+Observation: Cycle edges form a simple cycle on vertices 0..n-1. Spoke edges are independent attachments to vertex n but each spoke edge is between i and n. Orientation of each spoke edge contributes indegree either to i or to n. So each i with s[i]='1' can give indegree increment either to i (if edge oriented n -> i) or to n (if i -> n). So these are independent choices.
+
+Cycle edges: there are n edges forming a cycle. Orientations on cycle produce indegree contributions to vertices 0..n-1 (each edge contributes 1 indegree to one endpoint). The set of possible indegree vectors on a cycle is known: for a cycle of length n, the indegree sequence d_i (i=0..n-1) where each vertex has degree 2 (except we also have extra spoke edges). But ignoring spokes, orientation of cycle edges yields each vertex indegree from 0 to 2, with total sum = n (number of edges). Moreover, the possible indegree sequences for a directed cycle orientation? For a path, it's easy: each vertex indegree can be 0,1,2 depending on orientations of two incident edges. For a cycle, there is a global parity constraint: the number of vertices with indegree 0 equals number with indegree 2? Let's think.
+
+We have a cycle with edges (i,i+1). orientation of each edge influences indegrees of its two incident vertices.
+
+Let orientation variable e_i direction of edge between i and i+1 (mod n). For each vertex i, indegree from cycle edges = (incoming from edge (i-1,i)) + (incoming from edge (i,i+1)). Each edge contributes to one endpoint's indegree (the head). So d_i_cycle = x_{i-1} + (1 - x_i) where define x_i = 1 if edge i (i,i+1) oriented from i to i+1 (i -> i+1), else 0 (oriented from i+1 to i). Then edge i contributes +1 indegree to vertex i+1 if x_i=1 (head is i+1), else to vertex i if x_i=0.
+
+Thus d_i = (incoming from previous edge) = if edge (i-1,i) oriented i-1->i then indegree from that edge =1 else 0. That's x_{i-1}=1 gives indegree to i, else 0. Similarly edge (i,i+1) oriented i+1->i gives indegree to i; that happens when x_i =0 (since orientation i<-i+1). So d_i_cycle = x_{i-1} + (1 - x_i). So possible values are 0,1,2.
+
+Now adding spokes: for each i with s[i]='1', we have variable y_i = 1 if spoke oriented n -> i (i gets indegree), else 0 (i -> n, indegree to n). Then d_i = d_i_cycle + y_i (if s[i]=='1', y_i ∈ {0,1}; else y_i=0). For vertex n, indegree d_n = sum over i with s[i]='1' of (1 - y_i) (spokes oriented i -> n) plus possibly contributions from cycle? No, vertex n not part of cycle.
+
+Thus we need count distinct vectors d_i (including d_n) achievable by choices of x_i (cycle orientations) and y_i (spoke orientations). We don't need to count different orientation assignments, just distinct resultant d vector.
+
+We need number of distinct d vectors modulo MOD.
+
+Observation: d_i depends on x_{i-1}, x_i, and y_i (if s[i]==1). So x variables (n of them) produce d_i_cycle pattern, y variables produce extra 0/1 addition on certain vertices and affect d_n.
+
+Goal: Count distinct vectors (d_0..d_{n-1}, d_n). Since n up to 1e6, we need efficient DP counting distinct possibilities without enumerating 2^n.
+
+We need to consider possible sequences of x_i (binary) producing certain pattern of d_i_cycle values (0,1,2). For each vertex i, add optional y_i (0/1) if s[i]=='1'.
+
+The set of possible d_i values per vertex: base value b_i = d_i_cycle (0-2). Then if s[i]=='1', final d_i = b_i + y_i where y_i∈{0,1}. So for each i with s[i]=='1', we can shift indegree up by 0 or 1 independently after base.
+
+Thus the distinct overall vectors count = number of distinct base sequences b = (b_i) from cycle orientations times ways to add y_i? Not exactly multiply because adding y_i also changes d_n which aggregates across all i with s[i]=='1' via (1 - y_i) sum.
+
+Thus we need to consider combined effect: we have independent y_i affecting d_i (increase by 0/1) and contribute to d_n = total_spokes - sum y_i (where total_spokes = count of '1's). So d_n = total_spokes - Σ y_i.
+
+Thus for a given base cycle sequence b_i and given set of indices I where s[i]=='1', we can add any subset of those indices (choose y_i=1 for vertices receiving indegree from spoke) resulting in d_i = b_i + y_i, and d_n determined by number of y_i set to 1 (k = Σ y_i) leads to d_n = total_spokes - k.
+
+We need count distinct overall vectors across all choices of x (which give b), and y subsets.
+
+Distinctness: Different (x,y) may lead to same overall vector; we must count unique vectors.
+
+Approach: Represent vectors via (b_i) and selected subset Y (positions with y_i=1). The combination yields final vector f_i = b_i + y_i (if s[i]==1). For indices with s[i]==0, f_i = b_i.
+
+Thus distinct vectors correspond to distinct pairs (b_i, Y) that produce unique final vector (including d_n). Even if two combos produce same f_i values but perhaps different Y? Could happen if b_i differ and Y compensates? Example: b_i=0 at position i with s[i]==1, y_i=1 gives f_i=1; alternatively b_i=1 and y_i=0 also f_i=1. So collisions can occur across different b and Y sets, making counting more complex.
+
+We need count of distinct overall vectors (f_0..f_{n-1}, d_n). Need clever DP merging overlapping possibilities.
+
+We can think of generating possible f_i values per i as range of possible values (b_i + 0/1). b_i can be 0,1,2. So f_i can be {b_i, b_i+1} if s[i]==1 else {b_i}. Since b_i depends on x configuration.
+
+Thus overall set of vectors is computed as: for all x (cycle orientation) produce base pattern b(x). Then we consider all subsets Y (choices y_i). The union over x of all Y gives total set. Counting distinct vectors can be done via DP over cycle that tracks possible (f_i, number of y's chosen) states? But we need distinct vectors overall, not number of vectors weighted.
+
+But maybe we can compute total number of distinct vectors via generating function counting possible (f_i) and d_n values without duplicates by using counting of possibilities rather than enumerating vectors directly? Since n up to 1e6, we need O(n) or O(n log MOD).
+
+Consider representing each vertex i as having possibilities for (f_i, contribution to d_n). For each position, we have base b_i determined by x variables that involve adjacent edges, which creates dependency between adjacent vertices (through x). This is like DP on cycle with state being previous x (edge orientation) to compute b_i encountering options.
+
+We can incorporate y_i choices within DP to directly compute set of possible (vector of f_i and total k sum y_i) distinctness? That's too huge.
+
+Alternative perspective: Counting distinct vectors equals counting distinct (f_i) sequences ignoring multiplicities of y choices that produce same f_i. But collisions between different (b, Y) that produce same final f_i sequence are possible. However we can treat the process as: we want set of possible f vectors achievable by any orientation (x, y). Equivalent to orientation of whole graph (including spokes) and then consider resulting indegree sequence. So we can directly think of whole graph orientation (x for cycle edges, y for spokes) and we need number of distinct indegree vectors reachable. That's the original.
+
+Thus we can model DP directly over cycle edges and spokes as we orient them, tracking possible indegree vectors? Too large.
+
+But maybe the graph is a cactus where indegree vector set can be captured by DP over cycle with aggregated counts of indegree values? Need to count distinct sequences length n+1 values each up to degree (max 3 for vertices with spoke). Since n up to 1e6, number of possible distinct vectors could be huge (exponential), we just need count modulo MOD, not list.
+
+Thus we need to count number of distinct vectors, which is like number of reachable indegree vectors, which maybe equals product of something? For each component independent? The cycle introduces global constraints coupling vertices.
+
+We can think: For each orientation of cycle edges (x vector), it yields base indegree b_i (0-2). Then adding spokes (independent orientations) modifies each b_i possibly +1 and also contributes to d_n. The set of final vectors from a fixed b is: for each subset Y of indices where s[i]=1, produce f_i = b_i + y_i and d_n = total_spokes - |Y|. This yields many vectors, but many may coincide across different Y because adding to a vertex that already has a particular b_i may produce same f_i as another Y in different combination? Since y_i only adds 0 or 1, but Y choices produce distinct vector of y_i pattern influencing both f_i and d_n. Two different Y subsets could produce same overall vector if they differ at i where s[i]==1 but b_i differs such that adding y_i=0 vs 1 leads to same f_i? However b_i is fixed for given x, so at a particular vertex i, f_i can be b_i or b_i+1. If we flip y_i from 0 to 1, f_i changes (unless b_i+1 equals same value from another configuration of b_i' and y_i' maybe). So for fixed b, different Y produce distinct f vectors (since changes in y_i reflect in f_i). Additionally d_n changes accordingly (depends on |Y|). So for given b, each Y yields unique vector f (since f_i values at positions with s[i]==1 differ by y_i). So collisions across different b only.
+
+Thus we can count distinct vectors across all (b, Y) as size of union over b of {f = b + y, d_n = total_spokes - |Y|}. Since for each b, the set size is 2^{cnt1} (cnt1 = number of '1's) because each y subset gives unique f (given b). However overlapping across different b may cause overcount. Need to compute total unique vectors across different base b patterns.
+
+We need to consider that two different b1, b2 with different y subsets could produce same final f vector (including d_n). Example: n=1 small? Let's test small n brute force to see pattern. We'll brute for small n up to maybe 5 to infer formula.
+
+Let's write brute to compute distinct indegree vectors for small n and s patterns, then maybe detect that count equals something like (something) * 2^{cnt1}. Might be that base patterns b are limited to certain set that when combined with y produce distinct union size = (number of possible b sequences) * 2^{cnt1}. Need to check collisions: could two different b sequences produce same f after adding y? Since f_i = b_i + y_i (with y_i ≤1 only where s[i]==1). If s[i]==0 then f_i = b_i (must match). So for positions where s[i]==0, b_i must match for two vectors to coincide. For positions where s[i]==1, we can adjust y to reconcile differences in b. Example: Suppose at i with s[i]==1, b1_i=0, b2_i=1. Choose y1_i=1 (makes f_i=1) and y2_i=0 (makes f_i=1) -> f_i equal. So b differences can be compensated by y choices. So collisions happen.
+
+Thus counting union is nontrivial.
+
+We can incorporate y choices into DP with state representing possible f_i values (0..3) maybe? Since b_i in {0,1,2} and y_i ∈{0,1} yields f_i ∈ {0,1,2,3}. If s[i]==0, f_i limited to {0,1,2}. If s[i]==1, f_i to {b_i, b_i+1} so possible values 0..3.
+
+We also need d_n value which equals total_spokes - Σ y_i = total_spokes - (sum over i with s[i]=1 of (f_i - b_i)). Since f_i - b_i = y_i (0 or1). So d_n = total_spokes - (sum_i (f_i - b_i)). But b_i unknown; relation involves b_i.
+
+Alternative approach: Consider orientation of whole graph with edge variables x (cycle) and spoke orientations (which are independent). We want set of indegree vectors f_i for i=0..n (including n). This is a linear mapping from binary variables (edges) to indegree vector over integers (0..deg). We need number of distinct output vectors of this linear map (over ℕ, not modulo). Edge variables = n (cycle) + cnt1 (spokes). The mapping is linear over ℤ (each edge contributes +1 to indegree head). The set of possible indegree vectors is the image of {0,1}^{m} under linear transformation A (vertex-incidence orientation matrix) where each edge variable determines which endpoint gets +1.
+
+Thus the number of distinct vectors equals size of the reachable set = number of distinct integer vectors obtainable = 2^{rank} maybe? For linear maps over ℤ where variables are binary, output vectors are not linear over GF(2) but over integers with addition; the image set size is number of distinct sums of columns (with each column chosen as one of two possible endpoint vectors). That's like each edge gives a vector (e_u, e_v) where orientation chooses which endpoint receives 1. This is similar to subset sum over Z^V with each edge giving choice between two basis vectors (unit vectors). The number of distinct sums equals number of distinct vectors reachable in integer lattice; can be computed via generating functions or DP on graph due to its structure (it's a graphic matroid? Actually each edge is a "choice" between two unit vectors).
+
+We can treat each edge as adding either unit vector e_u or e_v to indegree vector. So the indegree vector is sum over edges of chosen endpoint vectors.
+
+Thus counting distinct indegree vectors is counting number of distinct sums of such edge choices.
+
+This is like counting number of distinct weight vectors where each edge contributes one of two possible unit vectors.
+
+This can be tackled via DP using convolution across edges in a tree-like structure, but cycle introduces dependence.
+
+We can process cycle edges using DP that tracks possible indegree differences between consecutive vertices? Need more.
+
+Observation: For cycle edges, each edge (i,i+1) contributes either to i or i+1. This is like we have binary choices sequentially, leading to possible indegree vectors over cycle that form certain set described earlier: possible base b patterns are exactly those achievable by orientation of cycle alone (without spokes). The number of distinct b vectors from cycle orientation alone? Let's compute that number. This is classic number of distinct indegree sequences of a directed cycle where each edge orientation yields indegrees as described: each vertex indegree can be 0,1,2 but not all combinations possible. Need count of distinct b vectors (length n) reachable by x vector (2^n choices), but collisions may occur because different x produce same b. Let's compute size of set B of possible b sequences from cycle.
+
+We can treat DP on cycle: each edge choice x_i determines contributions to vertices i and i+1. This is like we have a linear chain with cyclic condition.
+
+We can compute number of distinct b sequences (ignoring spokes) via DP enumerating possible b vectors? n up to 1e6 so need formula: perhaps all possible b vectors with constraints sum b_i = n and no two consecutive zeros? Let's derive.
+
+From formula b_i = x_{i-1} + (1 - x_i). So b_i either 0,1,2. Constraint relation between consecutive b_i based on x_i.
+
+We can express x_i = 1 - (b_{i+1} - x_i?) Not straightforward.
+
+But we can think of x_i as binary; b_i depends on x_{i-1} and x_i. Thus the sequence (b_i) is a Markov chain of order 1 on x. Different x produce different b, and mapping x→b may be many-to-one.
+
+We need set B, not count of x.
+
+Goal: combine spokes and compute overall distinct vectors; maybe easier to count directly reachable indegree vectors for whole graph via DP on cycle treating spokes as extra possible increments at vertices (0 or 1) and tracking total indegree of vertex n.
+
+We can construct DP around cycle where state includes previous edge orientation x_{i-1} and accumulated possible indegree contributions difference? We also need to keep track of reachable vectors of (d_i) across positions i and total k (sum y_i) with compression? That seems huge.
+
+But maybe we can use generating functions: For each vertex i, indegree from cycle edges is determined by x_{i-1}, x_i as earlier. We can treat DP around cycle that tracks possibilities of (incoming from left edge) and produce distribution of possible indegree contributions for vertex i (including optional spoke). Ultimately we need distinct total vector not count of ways, but we can compute reachable vectors as set of possible (d_i) over all i simultaneously? That's high dimension.
+
+We need to count number of distinct vectors, which may be exponential in n, but we just need count mod. This suggests combinatorial formula perhaps product of something like Fibonacci and powers of 2.
+
+Let's brute small n to infer pattern and maybe deduce formula: We'll brute compute number of distinct indegree vectors for given s up to n maybe 8 to see relationship. Let's code brute for n small and see results vs maybe formula = (something) * 2^{cnt1}.
+
+[COMMAND] python3 - << 'PY'
+import itertools, sys
+MOD=998244353
+
+def brute(n,s):
+    verts=n+1
+    edges=[]
+    # cycle edges: (i,i+1 mod n)
+    for i in range(n):
+        edges.append((i,(i+1)%n))
+    # spokes
+    for i,ch in enumerate(s):
+        if ch=='1':
+            edges.append((i,n))
+    m=len(edges)
+ …
+
+[REASONING] Observations: For s all zeros, results: n=3 ->7, n=4 ->15, n=5 ->31, n=6 ->63. That's 2^{n}-1? For n=3, 2^3-1=7 yes. n=4:2^4-1=15. n=5:31. n=6:63. So with no spokes (cnt1=0), number of distinct indegree vectors equals 2^n -1? Actually 2^n -1 matches. That suggests base cycle alone yields distinct indegree vectors count = 2^n -? maybe 2^n? But why -1? Possibly because orientation of all edges in same direction yields same indegree vector? Let's compute number of possible indegree vectors from cycle alone: For n=3, possible b sequences count? let's brute cycle only (no spokes).
+
+[COMMAND] python3 - << 'PY'
+import itertools
+
+def cycle_vectors(n):
+    res=set()
+    for mask in range(1<<n):
+        indeg=[0]*n
+        for i in range(n):
+            # edge i between i and i+1 mod n, orientation bit 1 means i->i+1 else opposite
+            if (mask>>i)&1:
+                indeg[(i+1)%n]+=1 …
+
+[REASONING] Indeed number of distinct indegree sequences for cycle alone = 2^n -1 (since total possible orientations 2^n produce 2^n outcomes but one duplicate? Actually 2^n orientation count equals 2^n possible masks, but distinct indegree vectors count is 2^n -? We'll trust 2^n -1.
+
+Now with spokes, results for cnt1=1 (single '1') seem double: n=3 s 001 gave 14 = 2*7? 7*2=14 yes. n=4 s 0001 gave 30 = 2*15. n=5 s 00001 gave 62 =2*31. n=6 s 000001 gave 126 =2*63.
+
+So each spoke seems to double number of distinct vectors? For cnt1=2 (s with two ones contiguous?) n=3 s 011 gave 24. Base 7 * 2^{cnt1}=7*4=28, but actual 24 less (some collisions). For n=4 s 0011 gave 52; base 15*4=60, got 52.
+
+So collisions start when multiple spokes.
+
+Pattern suggests overall count = (2^n -1) * 2^{cnt1} minus something for interactions between spokes.
+
+We need to compute number of distinct vectors = size of set {b + y, d_n = total_spokes - sum y}. Adding y (spoke decisions) can be seen as adding a vector of zeros except at positions with s[i]=1 we may add 1 to vertex i and subtract 1 from d_n (since d_n = total_spokes - sum y). So overall vector extended with d_n component.
+
+Thus whole graph orientation corresponds to base b (cycle indegrees) and then for each spoke edge we have choice: add +1 to vertex i (if orientation n->i) and 0 to d_n? Wait orientation n->i gives indegree to i (+1) and indegree to n unchanged (since edge directed away from n). Orientation i->n gives indegree to n (+1) and not to i. So each spoke edge adds either unit vector e_i or e_n to indegree vector. This is similar to adding independent choice vectors to base b vector (which doesn't include n). So overall indegree vectors = base b (size n) extended with d_n =0 initially (since no spokes) plus sum of spoke choice vectors. So we have base vectors in ℤ^{n+1} where component n (vertex n) initially 0. Then each spoke adds either (1 at i, 0 at n) or (0 at i, 1 at n). So the set of reachable vectors is Minkowski sum of set B (vectors (b,0) from cycle) with each spoke set S_i = {(0 at n, 0 at i)?? Actually two options: add vector v_i = (e_i,0) or w_i = (0,...,0,1 at n). So the overall set = { (b + sum a_i e_i, k) where a_i ∈ {0,1} (choosing e_i) and number of spokes selected for n contribution = cnt1 - sum a_i (since each spoke either to i or n). So d_n = cnt1 - sum a_i.
+
+Thus we have base set B in ℤ^{n+1} with last component 0. Then we take Minkowski sum with a product of sets for each spoke i: { (e_i,0), (0,1) }? Wait w_i adds to n not i, so vector w_i = (0 at all vertices, 1 at n). Thus we have to sum across spokes: overall vector = b + sum_i (a_i e_i + (1-a_i) * (unit_n)) where a_i ∈ {0,1}. This equals (b + sum a_i e_i, cnt1 - sum a_i). So final vector = (b' , d_n) where b' = b + A (A is subset sum of e_i on spoke vertices), and d_n = cnt1 - |A|.
+
+Thus distinct final vectors correspond to distinct pairs (b' , d_n) achievable.
+
+Now we can view overall set as B plus independent choices of adding e_i (for i with spoke) and adjusting d_n accordingly. This is like we have base set B of vectors of dimension n+1 (last component 0). Then we add a set of vectors that form a linear subspace? The set of possible additions from spokes is { (mask vector over spoke vertices, cnt1 - popcount(mask)) } where mask over spokes. This set size = 2^{cnt1}. However some collisions between different base b and different mask may produce same final vector. So we need size of Minkowski sum B ⊕ S where S is set of spoke contributions.
+
+Thus we need size of B + S (Minkowski sum) in ℤ^{n+1}. Since B and S are sets, size of sum not equal product due to overlaps.
+
+We can perhaps compute B as all vectors (b,0) where b from cycle indegree sequences (distinct count = 2^n -1). B lives in ℤ^{n} × {0}. S lives in ℤ^{n} × ℤ (d_n). The addition is componentwise.
+
+Thus final vectors = { (b + mask, cnt1 - |mask|) } where mask is subset of spoke positions (vector of zeros/ones). So for each b, we shift its first n components by mask (adding 1 at positions of mask). This may cause collisions with other b' and mask'.
+
+Goal: count distinct pairs (v, d_n) where v = b + mask.
+
+This is similar to counting distinct vectors in ℤ^n after adding any subset mask to base vectors b (from B). This is like we have set B and we consider its translation by all masks (binary vectors of length cnt1 but only at spoke indices). The union size we need.
+
+Let U be set of all vectors v in ℤ^n that can be expressed as b + mask for some b ∈ B and mask ⊆ I (spoke indices). Additionally we need to track d_n = cnt1 - |mask|, which depends on mask but not on b except via |mask|. Two different representations could give same v but different mask sizes leading to different d_n, producing distinct final vectors because d_n differs. However if same v can be obtained via two pairs (b,mask) with different |mask|, then d_n would differ, so vectors (v,d_n) are different. So collisions only matter when both v and d_n same, i.e., same v and same mask size (but mask could differ positions leading same v?). Different masks with same size could produce same v if b differ accordingly.
+
+Thus we need to count distinct triples (v, k) where k = cnt1 - |mask|.
+
+Alternative: consider DP over vertices i along the cycle, building possible states of (current value of v_i (b_i plus added mask if i spoke), and current count of added mask bits (|mask|) modulo? and maybe relation to previous b via x variables). This becomes DP along cycle with state (prev edge orientation x_{i-1}) and set of reachable (v_i, usedMaskCount) values? But v_i is component value (0..3) that we need to record across all positions, too large.
+
+But we only need count of distinct overall vectors, not enumeration. Might use generating functions: the process of adding mask is linear (adding 1 to selected vertices). So the set U = B + {0,1}^I (where I is spokes set) as vector addition over ℤ (not modulo). The size of sum of two subsets in ℤ^n can be computed using DP counting distinct sums of independent dimensions? Since mask adds 0/1 to specific coordinates independently, we can consider each coordinate i: if i not in I, v_i = b_i (0-2). If i in I, v_i = b_i + a_i where a_i∈{0,1}. Thus for each coordinate we have possible values range derived from B possibilities.
+
+Thus we can treat each vertex i independently? Not exactly because b_i values are not independent across cycle due to constraints among b_i (they arise from cycle orientations). However we can incorporate spokes locally: at spoke vertices, we can shift b_i up by 0 or 1, which may make different b sequences collapse.
+
+Thus we need to count distinct sequences v_i (i=0..n-1) where v_i ∈ {0,1,2} + (if s[i]=='1' then + {0,1}) = possible {0,1,2,3} values, that are achievable as b_i + a_i with b_i coming from cycle base and a_i∈{0,1} (if spoke). So we need set of sequences v achievable after toggling some positions (adding 0/1) to a base cycle sequence b.
+
+This is like we have base sequences b from B; we can flip (increase by 1) at any spoke positions arbitrarily. So the set of achievable v is the union over b of {b + a (a_i∈{0,1} where s[i]=='1)}.
+
+Now we need also track k = total spokes selected (a_i sum) to compute d_n = cnt1 - k, but distinct (v,k) pairs count potentially = sum over possible k of number of distinct v reachable with exactly k added ones? Because d_n determined by k.
+
+Thus we can compute DP over the cycle where each vertex i we consider possibilities for (value v_i, cumulative added ones count mod? actually we need to track total added ones count for final d_n, which is up to cnt1 (≤ n). We could DP that tracks set of achievable (prev x state, added count up to i, and maybe something about v_i pattern collisions). However we need distinct v sequences, not number of ways for given count.
+
+But we can treat DP counting number of distinct (v prefix, added count) patterns as we progress, merging identical states. Since v_i can be up to 3, we could store a set of possible signatures of prefix? That would be huge (exponential) for n up to 1e6.
+
+Need smarter combinatorial solution.
+
+Observe that base b sequences have structure: they are generated by binary x edges with relation b_i = x_{i-1} + (1 - x_i). This maps x to b deterministically, and x has 2^n possibilities but many map to same b (as we saw count of distinct b = 2^n -1). The mapping from x to b is many-to-one: b determines x up to global flip? Let's attempt to reconstruct x from b? From formula, we have x_i = 1 - (b_{i+1} - x_{i+1}? not trivial.)
+
+But maybe we can consider DP over cycle for b directly with state being previous x (or previous b value and maybe previous x). Since we need set of possible b values (already known count = 2^n -1) but we need to combine with additive masks to get possible v.
+
+We could DP over cycle states tracking possible (value of b_i, cumulative added ones count, and perhaps x_i) but also need to deduplicate v prefixes leading to same suffix possibilities? That might still be huge.
+
+Alternative approach: Use generating function of possibilities for each component independent because b_i depends only on x_{i-1} and x_i, which is a local constraint. Adding a_i (mask) independently at each i just expands local possibilities: at i we have possible (b_i) values 0-2 per x neighbors, and we may add a_i (0/1) if s[i]==1. So we can create DP over cycle that tracks possible pairs (incoming edge orientation previous x, total added count, and prefix vector? we need to ensure distinct overall vectors not count ways. However we can count distinct vectors using DP that tracks reachable states of (prev x orientation, cumulative added count, and a representation of prefix values? can't store prefix values.
+
+But maybe we can use DP to count number of distinct final vectors (v and k) using polynomial method: treat each vertex as adding options to a generating function of multivariate counts? Since v_i values are independent given x? Not independent.
+
+Could we compute number of distinct v vectors as size of Minkowski sum B + {0,1}^I, which equals sum over subsets of I of |B + mask|? Not directly.
+
+However we may compute the size of union = |B| * 2^{cnt1} - collisions where different (b,mask) give same v. Collisions happen when at some spoke vertices, a_i can compensate difference between two b's.
+
+Thus collisions correspond to cases where two base b1, b2 differ at some positions i with s[i]==1, and the mask choices can align them. This suggests we can treat equivalence classes of base b modulo adding 0/1 at spoke positions. That is, define equivalence relation: b1 ~ b2 if b1 and b2 differ only at spoke positions, and the difference at each such position is at most 1 (since masks can add 0/1). More precisely, there exists mask a such that b2 = b1 + a (mod? not mod; but a_i ∈ {0,1} and b1_i + a_i = b2_i where s[i]==1, and for s[i]==0 must have b1_i = b2_i). Since a_i can be 0 or 1, b2_i - b1_i must be either 0 or 1 at spoke positions, and 0 at non-spoke. Similarly we could also subtract (if b2 - b1 = -a). Actually mask can be added to either b1 or b2; union of all b + mask means we consider all b shifted upward. So two b vectors that are within Hamming distance (difference only at spoke positions with difference ≤1) may map to same v after appropriate mask.
+
+Thus number of distinct v vectors equals number of equivalence classes of B under relation that you can add any subset of {0,1} at spoke positions (i.e., take upward closure). The closure of B under adding 0/1 at spoke positions yields set U = ∪_{b∈B} (b + {0,1}^I). So size of U equals sum over equivalence classes of B of size of its upward closure (which for a class of base vectors that share same minimal element maybe). Actually each equivalence class of B under relation where two b are equivalent if they can be transformed by adding/subtracting 1 at spoke positions staying within valid b range (0-2) ? Not sure.
+
+Given time constraints, maybe we can compute size of U directly via DP that tracks for each position i the set of possible values of v_i independent because we allow adding mask after. This is essentially the set of sequences v that are within distance 1 (downward) from some b sequence (b in B). That is, v_i can be reduced by 0 or 1 at spoke positions to obtain a b that is a cycle base sequence. So v is feasible if there exists a_i ∈ {0,1} (i in I) such that v_i - a_i (call b_i) forms a base cycle sequence (b ∈ B). So we need count of distinct v vectors (and k = cnt1 - sum a_i). Additionally we need track k to compute d_n component (k = sum a_i). So we need count of pairs (v, k) such that after subtracting a_i (where a_i ∈ {0,1} and a_i ≤ 1 and v_i - a_i = b_i in {0,1,2}) and b is realizable as cycle base.
+
+Thus we can DP over cycle positions, with state = previous x orientation (or previous b value?) and accumulated sum of a_i (k) perhaps, and we process possible v_i values (0..3) and decide a_i and x_i consistent. At the end we get count of distinct (v sequence, k) pairs: each distinct pair corresponds to distinct overall indegree vector (including d_n = cnt1 - k). Since DP counts number of ways (orientations) leading to same (v,k) maybe multiple ways, we need to count distinct (v,k) not ways. However DP over possibilities of (v_i, a_i, x_i) can treat each path as a distinct vector (since v_i values are part of state). The DP enumerates possible (v_i, k, prev x) paths; number of distinct (v,k) sequences is exactly number of DP paths because each path corresponds to a specific v sequence and k (since decisions a_i and x_i uniquely define v_i). And DP merges paths that lead to same state (prev x and cumulative k and maybe partial v prefix) would collapse distinct prefixes -> we cannot merge because different prefixes produce different v sequences. So DP would be exponential.
+
+Thus we need smarter counting: we just need number of distinct sequences v (length n) and total a sum k that are feasible. This is similar to counting number of feasible sequences (v_i) with constraints defined by underlying x variables and possible a_i subtraction to get b_i in cycle constraints.
+
+We could treat it as DP over cycle with state being previous edge orientation (x_{i-1}) and cumulative a sum k (0..cnt1) and we enumerate possible v_i values and a_i to satisfy b_i = v_i - a_i must be 0,1,2 and satisfy b_i = x_{i-1} + (1 - x_i). That seems doable: For each position i we iterate over prev x (0/1), current x (0/1), a_i (0 or 1 if s[i]=1 else 0), and v_i = b_i + a_i. But v_i itself is not needed to count distinct vectors, we need to count distinct (v sequence, total a sum). However DP state that counts number of ways will overcount because multiple ways can lead to same v sequence? Wait DP iterating over x and a_i will generate each possible (x, a) combination leading to a particular v sequence possibly multiple times? No, given a specific (x sequence, a sequence) we get unique v sequence (v_i = b_i + a_i). Different (x,a) can produce same v sequence? Could happen if two different x produce same b, and with same a produce same v. But we are counting unique v sequences, not number of (x,a) combos. Thus DP over (x,a) will overcount.
+
+Hence need DP that tracks possible (b) patterns without distinguishing multiple x producing same b. So we need to work directly with b values rather than x.
+
+We can have DP over cycle where state is previous b value? Since b_i depends on x_{i-1} and x_i, but mapping from previous b to next possibilities may have limited branching.
+
+Let's derive transition with b_i and b_{i+1}. From equations: b_i = x_{i-1} + (1 - x_i). Similarly b_{i+1} = x_i + (1 - x_{i+1}). So given b_i and b_{i+1}, we can deduce possible x_i values? For each x_i (0/1) we have relation: b_i = x_{i-1} + (1 - x_i) and b_{i+1}= x_i + (1 - x_{i+1}). Might be complex.
+
+But we can consider DP over x as before but we need to count distinct v sequences not orientation counts. However distinct v sequences may correspond to multiple x giving same b and same a leading to same v, which DP over x would overcount. To avoid overcount, we need DP over b (which is deterministic from x up to equivalence). The number of possible b sequences is ~2^n, still large.
+
+But we only need count of distinct v sequences, which may be computed via DP counting number of possible b sequences that map to same v after adding a. That seems back to original difficulty.
+
+Given time, maybe we can compute answer as (2^n -1) * 2^{cnt1} - something related to runs of consecutive ones? Let's test difference for n=3 s='011' (cnt1=2). Base count=7, 2^{cnt1}=4, product=28. Answer=24, difference=4. n=4 s='0011' cnt1=2 product=15*4=60 answer=52 diff=8. n=5 s='00011' (cnt1=2) let's brute to see diff pattern.
+
+[COMMAND] python3 - << 'PY'
+import itertools, sys
+
+def brute(n,s):
+    verts=n+1
+    edges=[]
+    for i in range(n): edges.append((i,(i+1)%n))
+    for i,ch in enumerate(s):
+        if ch=='1': edges.append((i,n))
+    m=len(edges)
+    res=set()
+    for mask in range(1<<m):
+        indeg=[0]*verts
+        for e …

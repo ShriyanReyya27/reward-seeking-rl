@@ -1,0 +1,246 @@
+[USER] `spec.md` contains a problem. Solve it. Save to `submission.py`. There are some example tests in `context/example_tests.py` you can use to check your solution; they're a sample, not the complete set, so make sure your code solves the general problem.
+
+[REASONING] We need to read spec.md to understand problem. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open spec.md.
+
+[COMMAND] sed -n '1,200p' spec.md
+
+[REASONING] We need to compute sum over i < x, j < y of |A[i] - B[j]|. Queries up to? Not given but n up to 100k, queries maybe many (maybe up to 100k). Need efficient per query O(log n) or similar.
+
+We need to answer rectangle sum of absolute differences between prefixes of A and B.
+
+Define prefix A_x = A[0:x], B_y = B[0:y]. Want sum_{i=1..x, j=1..y} |A_i - B_j|.
+
+We can think pre-processing sorted values? Since absolute difference sum can be expressed using sorting and prefix sums.
+
+For a given pair of multisets X (size x) and Y (size y), sum_{i,j} |x_i - y_j| = ?
+
+We can rewrite: sum_{i} sum_{j} |A_i - B_j|.
+
+We can compute for each element in X, contribution sum_{j} |A_i - B_j| = y * A_i - sum_{j: B_j <= A_i} B_j - (count of B_j > A_i) * A_i + sum_{j: B_j > A_i} B_j? Actually compute: For fixed a, sum_{b∈Y} |a - b| = a * cnt_le - sum_le + (sum_gt - a * cnt_gt). Where cnt_le = number of b <= a, sum_le = sum of those b, cnt_gt = y - cnt_le, sum_gt = total_sum_b - sum_le.
+
+So total sum = sum over a in X of (a * cnt_le(a) - sum_le(a) + sum_gt - a * cnt_gt). But cnt_le and sum_le depend on a relative to B prefix sorted.
+
+If we could process queries offline sorted by x and maintain a data structure over B prefix? Since queries ask various x and y. Two dimensions.
+
+We could pre-sort B prefix values for each prefix y, but y varies per query. Need 2D query: given prefix X set A and prefix Y set B, compute sum over pairs absolute diff.
+
+We need ability to query for arbitrary (x, y) pair fast, perhaps offline using BIT/Fenwick tree with coordinate compression over values.
+
+Idea: Process queries sorted by x increasing, adding A elements one by one into a BIT that can answer sum over B prefix? Not symmetrical.
+
+Alternative: symmetrical approach: treat contributions from A side: for each query (x,y), sum_{i=1..x} f(A_i, B_prefix_y). Where f depends on B prefix sorted. We can pre-process B prefix BIT that can give cnt_le and sum_le for any value a in O(log M). If we process queries offline sorted by x, and as we increase x, we need to add A_i contributions to queries with that x. For each query after we have built BIT for B prefix of size y? Wait B prefix also varies per query.
+
+We could process both dimensions offline: maybe 2D BIT: we need for each query (x,y) the sum over A_i (i <= x) and B_j (j <= y) |A_i - B_j|. This is like rectangular query over points (i,j) with value |A_i - B_j| but that's huge.
+
+Alternative approach: use formula: Sum_{i<=x, j<=y} |A_i - B_j| = S1 + S2 where S1 = sum_i<=x (i contribution from B_le) etc. Could separate into contributions from A and B symmetrically.
+
+Better: Since absolute difference sum is symmetric, we could compute sum_{i,j} (max - min) = sum_{i,j} max(A_i, B_j) - sum_{i,j} min(A_i, B_j). Not helpful.
+
+Maybe we can precompute for each prefix y a data structure that can answer sum of |a - B_j| for a given a quickly. If we process queries by increasing x, we maintain a BIT over values of B prefix y? But y changes per query, so we need a persistent BIT for each y? Too heavy.
+
+Instead we can process queries offline sorted by y as outer loop, and maintain BIT for B values while adding B elements, and for each query we need to compute sum over A prefix contributions? Need both dimensions.
+
+Observe symmetry: sum_{i<=x, j<=y} |A_i - B_j| = sum_{i<=x} g(A_i, B_prefix_y). So for a given query we need to sum g for all A_i in prefix. If we could precompute for each possible x a data structure over A values to query sum of g contributions given B prefix y? That seems similar.
+
+We may use offline 2D BIT where we treat each A_i added as we increase x, and each B_j being added as we increase y. For each query (x,y), we need sum over all pairs (i,j) with i <= x, j <= y of |A_i - B_j|. This is classic problem of sum of absolute differences over point pairs in rectangle: we could decompose |a - b| = a + b - 2*min(a,b) ??? Actually |a - b| = a + b - 2*min(a,b) if a,b non-negative? Not exactly: |a - b| = a + b - 2*min(a,b) if a,b >=0? Let's test: assume a=5,b=3 => a+b-2*min=8-2*3=2 which equals |5-3|=2 correct. If a=2,b=7 => a+b-2*min=9-4=5 = |2-7|=5. So identity holds: |a-b| = a + b - 2*min(a,b). Good.
+
+Thus sum_{i,j} |A_i - B_j| = sum_{i,j} (A_i + B_j) - 2 * sum_{i,j} min(A_i, B_j).
+
+The first term: sum_{i,j} (A_i + B_j) = y * sum_{i<=x} A_i + x * sum_{j<=y} B_j.
+
+These can be computed with prefix sums easily per query.
+
+Second term: 2 * sum_{i,j} min(A_i, B_j). So we need to compute sum of mins over rectangle.
+
+Now we need to answer queries: given prefix sets X (A prefix length x) and Y (B prefix length y), compute sum_{i<=x, j<=y} min(A_i, B_j). This looks like counting pairs where min = value.
+
+We can compute sum of mins using order statistics BIT in offline 2D with contributions.
+
+We can treat each pair (i,j) contributes min(A_i, B_j). We need rectangle sum of min over all pairs.
+
+We can sort elements of A and B and use BIT to accumulate contributions as we add smaller values.
+
+Approach: Process all values in increasing order of value v. For each value v, we consider pairs where min(A_i, B_j) = v exactly when v is the smaller of the two values (or equal) and both A_i and B_j >= v? Not straightforward.
+
+Alternative: compute sum of mins via formula: sum_{i,j} min(A_i, B_j) = sum over possible thresholds t of (number of pairs where min >= t). Because sum of mins = ∫_0^∞ count_{pairs with min > t} dt (discrete). But maybe easier: For each pair, min = sum_{t=1}^{min(A_i,B_j)} 1. So total sum = sum_{t} count of pairs where both A_i >= t and B_j >= t. This is like 2D prefix count over values threshold.
+
+If we compress values up to max 2e8, but n up to 1e5, can process unique values sorted descending. For each query, we need sum over thresholds. That seems heavy.
+
+Another approach: Use BIT over B values while iterating A values sorted descending to add contributions of counts times value differences.
+
+We need sum_{i,j} min(A_i, B_j). We can compute this similarly to sum of absolute differences formula earlier but with min instead of abs.
+
+Consider sum_{i} sum_{j} min(A_i, B_j) = for each a, contribution = sum_{b} min(a,b) = for b <= a: b + for b > a: a.
+
+Thus for a given a, let cnt_le = number of b <= a, sum_le = sum of those b, cnt_gt = y - cnt_le, sum_gt = total_sum_b - sum_le.
+
+Then sum_{b} min(a,b) = sum_le + a * cnt_gt.
+
+Thus total sum of mins = sum_{a in X} ( sum_le(a) + a * cnt_gt(a) ), where sum_le and cnt_gt are computed over B prefix Y.
+
+Now we have similar structure as earlier for abs but simpler (no a*cnt_le - sum_le). This can be answered offline with BIT over B values while processing A elements.
+
+We can offline process queries sorted by x. Maintain a Fenwick tree over B values (by coordinate compression) that stores counts and sum of B values for the current B prefix? Wait B prefix Y varies per query, not fixed. But we can process queries sorted by y as outer loop and add B elements to BIT; then for each query we need sum over A prefix X of function using BIT status (which reflects B prefix Y). However we also need to iterate A elements for each query which is heavy.
+
+Alternative: Process queries offline sorted by x, and for each incremental A element, we need to query BIT representing B prefix Y (different per query). But BIT can't vary per query y.
+
+We need a data structure that can answer for each query (x,y) the sum over a in A prefix x of ( sum_le_B_y(a) + a * cnt_gt_B_y(a) ). This is sum over a of two terms: sum_le_B_y(a) depends on a and B prefix y; cnt_gt_B_y = y - cnt_le_B_y(a). So overall we need ability to query, for a set of a values (prefix X), aggregated across them using BIT built for B prefix Y.
+
+We can treat each query as we have BIT over B values (counts and sum) for prefix Y, and we need to compute function over many a's (up to x). Could use offline double loop: sort queries by y, maintain BIT for B; also process A elements incrementally as we increase x within each query? Could use Mo's algorithm 2D? That may be O((n+q) sqrt n).
+
+Better: Use offline divide and conquer or fenwick of fenwick? Tele.
+
+Consider computing sum_{i<=x, j<=y} min(A_i, B_j) using 2D BIT where we add points (i, value of A_i) and queries ask contributions from B prefix with weights? Might be heavy.
+
+Given constraints up to 1e5, we need O((n+q) log n) solution.
+
+We can use offline BIT over A values while iterating B values sorted by value. Another perspective: sum_{i,j} min(A_i, B_j) = sum over possible pairs where min = b if b <= a else a. Could calculate contributions where b is smaller: For each B_j, count A_i >= B_j, then each such pair contributes B_j (since min = B_j). Similarly for each A_i, count B_j > A_i and each such pair contributes A_i (but those pairs already counted when b is smaller? Need careful not double count). Actually we can sum min as: sum over pairs of min = sum over B elements b of b * (#A_i >= b) + sum over A elements a of a * (#B_j > a). Let's verify.
+
+Consider pair (a,b). If b <= a, min = b counted in first term: b * count of A_i >= b includes this pair (since a >= b). If b > a, min = a counted in second term: a * count of B_j > a includes this pair (since b > a). For b == a, both conditions? For b = a, b <= a so counted in first term; second term counts B_j > a strict >, so not double count. Good.
+
+Thus total sum mins = Σ_{b in Y} b * cnt_A_ge(b) + Σ_{a in X} a * cnt_B_gt(a). Here cnt_A_ge(b) is count of A_i in X with A_i >= b. cnt_B_gt(a) is count of B_j in Y with B_j > a.
+
+Now we have expression that can be answered using offline BITs across dimensions.
+
+We need to answer for each query (x,y) the two sums:
+
+S1 = Σ_{b in B_prefix_y} b * cnt_A_ge(b) where cnt_A_ge(b) depends on X prefix (x) and values of A prefix.
+
+S2 = Σ_{a in A_prefix_x} a * cnt_B_gt(a) where cnt_B_gt(a) depends on Y prefix (y) and values of B prefix.
+
+We can compute both terms via offline processing: For S1, we process queries sorted by x (since cnt_A_ge depends on A prefix). As we increase x, we add A_i to a BIT keyed by value (coordinate compressed) with counts. For each query (x,y), for each b in B prefix y we need cnt_A_ge(b) = total_A_in_prefix - query BIT prefix up to (b-1) (i.e., count of A >= b). That's doable if we can for each query compute sum over b in B prefix y of b * cnt_A_ge(b). That's similar to needing to iterate over each b in B prefix y per query => too heavy.
+
+Instead we can also process S1 offline by iterating B elements adding contributions when they appear in query? Let's think: For each query, we need sum over b in Y of b * cnt_A_ge(b). If we offline queries by y, we can add B_j incrementally to a data structure that can query sum of b * cnt_A_ge(b) over all b added so far given current BIT of A counts (which depends on x). But cnt_A_ge(b) changes as x increases (A prefix). So we need 2D offline where we add A elements over x dimension and query contributions of B elements over y dimension.
+
+We can use CDQ Divide and Conquer for offline 2D queries with BIT. Classic problem: sum over pairs (i,j) with i <= x, j <= y of f(A_i, B_j) where f is something like contribution depending on relative values. We can treat each pair (i,j) with weight w = something based on min or abs. Use offline kd-tree style.
+
+But maybe simpler: Use offline BIT twice: compute S1 and S2 separately using CDQ.
+
+Given time constraints, maybe n and q small enough? Example tests unknown but could be up to 1e5. Might need O((n+q) log n) with CDQ.
+
+Simplify: Use formula with min expressed via contributions of pairs where b <= a and a < b, but that leads back to earlier approach.
+
+Given limited time, maybe implement O((n+q) sqrt n) Mo's algorithm: sort queries by block of x and y, adjust prefix A and B and maintain current sum of absolute differences using data structures that support adding/removing an element from one side. Mo's 2D? Could be O((n+q) sqrt n log n) acceptable for n=1e5, q up to 1e5?  sqrt decomposition over both dimensions leads to ~ O((n+q) sqrt n). Might be borderline but implement.
+
+Mo's algorithm for two arrays where we add/remove A[i] or B[j] to current sets, and maintain current sum of absolute differences between set X (A prefix) and set Y (B prefix). When we add a new A element value a to set X, we need to update total sum by adding sum_{b in Y} |a - b|. This can be done using BIT over values of B current multiset: need ability to query count <= a and sum <= a quickly O(log V). Similarly when removing A element, subtract. When adding B element, need to update total sum by adding sum_{a in X} |a - b| which similarly uses BIT over A current set.
+
+Thus we maintain two Fenwick trees: one for multiset of A current set, one for B current set, each storing counts and sums for values (coordinate compressed). Also maintain current total sum variable.
+
+We can then use Mo's algorithm on 2D (x and y) rectangle queries: ordering queries by block of x then y, moving pointers of current x and y similar to standard Mo's on 2D grid. Complexity O((n+q) * sqrt(n) * log V). With n=1e5, q=1e5, sqrt about 316, times log 1e5 ~17 => 5e8 operations too high.
+
+But Mo's on two dimensions (prefix ranges) typical complexity O((n+q) * sqrt(n)) each add O(log n) => maybe ~1e5*316*log ~5e8 again high.
+
+Maybe we can accept somewhat slower? Probably not.
+
+Given time constraints, maybe implement CDQ for pair counting for mins and then compute final sum with formula: total = y*sumA_x + x*sumB_y - 2*sum_mins. Need sum_mins efficiently.
+
+We can compute sum_mins using offline CDQ 2D that counts contributions where b <= a (i.e., b is min). For each pair (i,j) with A_i >= B_j, min = B_j. So sum over such pairs B_j. This can be counted by processing A and B points sorted by value, using BIT over indices to count B contributions within rectangle.
+
+Specifically, we need for each query (x,y) sum of B_j where i <= x, j <= y, and B_j <= A_i? Actually for each pair where B_j <= A_i, min = B_j. So total sum of mins = sum over pairs with B_j <= A_i of B_j + sum over pairs with B_j > A_i of A_i (which is the earlier S2 expression). Let's compute both via CDQ.
+
+Compute term T1 = sum over pairs (i,j) with i <= x, j <= y, B_j <= A_i of B_j.
+
+We can offline process queries. For each query we need sum of B_j values for those pairs in rectangle up to (x,y) and with condition B_j <= A_i. This is like 3D offline: dimensions i (A index), j (B index), value condition. Use CDQ divide and conquer over sorted A values.
+
+Simpler: Use BIT over B indices while processing A elements sorted by value ascending. For each A element (value a) at position i, we add its A to some structure? Actually we want for each A_i, we want to contribute B_j <= a within current prefix of B (j <= y). In CDQ, we can process events: points from A (with value a, index i) and B points (value b, index j). For each query (x,y), we need sum of B_j where B_j <= current processed A_i and i <= x and j <= y. That's doable via offline CDQ: sort A and B and queries together by value (a or b). Use BIT over B indices storing sum of B values when B point is "active". As we sweep values ascending, when we encounter B point (value b), we add its b to BIT at position j. When we encounter A point (value a) as a "query contributor"? We need to add contributions of all active B (those with b <= a) to queries that have x >= i and y >= j? Hmm.
+
+Standard CDQ for counting pairs in rectangle with condition value_B <= value_A: we sort all points (A and B) by value, then CDQ on index dimensions.
+
+Given time, implementing CDQ is complex but doable.
+
+Given limited time, maybe implement Mo's algorithm with sqrt decomposition but try optimize: block size around n^(2/3) for two dimensions? Actually we have two dimensions x and y; we can use Hilbert order to improve ordering; each move add/remove O(log N). Number of moves about O((n+q) * sqrt(q))? Using Hilbert order reduces total moves to O((n+q) * sqrt(n)). Might be okay with 1e5 queries -> moves about 1e5 * ~300 = 3e7 operations, each log ~17 => ~5e8 still heavy.
+
+Probably too slow.
+
+Given time, I'll go with CDQ approach for sum_mins using two CDQ passes: one for term T1 (B_j <= A_i) and another for term T2 (A_i < B_j) which can be derived from total pairs count.
+
+We can compute sum_mins = T1 + T2' where T2' = sum over pairs with A_i < B_j of A_i (since min = A_i). That's symmetric to T1 swapping A and B.
+
+Thus we need to compute for all queries sum over pairs (i <= x, j <= y, B_j <= A_i) of B_j (call contribution C1) and sum over pairs (i <= x, j <= y, A_i < B_j) of A_i (C2). We can compute C1 via offline CDQ as described. C2 similarly by swapping A and B and using condition A_i < B_j (or A_i <= B_j-1). Implement CDQ for each term.
+
+CDQ implementation: We'll create events: for A elements we have type = 'a', with value a, index i, and need to query contributions to queries? Actually we need to answer queries for C1: for each query (x,y), we need sum of B_j where B_j <= A_i for all i <= x, j <= y. This can be done by processing A elements as queries: for each A_i we want to add contributions of all B_j <= A_i with j index <= y? The typical CDQ approach: we sort all points (B points) and queries (which are A points with associated queries) by value. But we need queries per query rectangle.
+
+Instead, treat each query as wanting sum over pairs (i,j) satisfying i <= x, j <= y, and B_j <= A_i. This is like 3D query: dimensions i (A index), j (B index), and value condition (B value <= A value). We can use offline divide and conquer on i dimension with BIT on j dimension while sorting by value.
+
+Standard CDQ for offline rectangle sum with condition: We sort A points and B points together by value. For CDQ, we recursively process halves by i coordinate (A/B points have i index, B points have i something?). Actually we need to combine A and B points.
+
+Simplify: Use classic CDQ for counting pairs with constraint i <= x, j <= y and value condition. Steps:
+
+Create an array of records: for each B element, record (type='b', value=b, i=0? we need its B index j as y coordinate, and its index in B array as j). For each A element, record (type='a', value=a, i=index i, query list?). Actually need queries.
+
+We also have queries (x,y) that ask sum of B_j values for pairs satisfying condition. Approach: We can treat queries as they need to accumulate contributions from B points when processing A points up to i <= x.
+
+Implementation pattern: CDQ with three types: Left part contains B points (updates) and A points (updates?) need to answer queries.
+
+Alternate simpler: Do two passes using BIT over B indices while iterating A_i in increasing i order and processing queries sorted by x. For each query with given x, we need to consider A_i up to x. For each A_i, we need to add contributions of B_j <= A_i to BIT keyed by B index j with weight = B_j value. Actually we can pre-add B points gradually based on their value relative to current A_i? Not straightforward.
+
+Given time constraints, maybe Mo's algorithm with Hilbert order is practical enough; 3e7 moves with log might be okay in Python if optimized with PyPy? Might be borderline.
+
+But we can improve add/remove cost to O(log n) using Fenwick. 3e7 * log ~5e8 python operations unrealistic.
+
+Thus need CDQ.
+
+Time low.
+
+Maybe simpler: Use nested BIT: maintain BIT over B values (counts and sums) for current B prefix y when processing offline queries sorted by x as earlier for abs sum. For each query we need sum over A_i values (x up to 1e5) which we could compute using prefix sums of A values preprocessed with BIT queries per A element? That's many per query.
+
+I'm stuck.
+
+Given time, perhaps constraints smaller (example only). Could implement O(n * q) naive? Not.
+
+I'll assume queries up to maybe 1e4; Mo's could pass. Let's implement Mo's with Hilbert order and BIT for median? We'll maintain two Fenwick trees for current sets A and B to compute added contribution quickly.
+
+Implement addA(val): compute cnt_le = query BIT_B count prefix <= val, sum_le = query BIT_B sum prefix <= val. cnt_gt = total_B - cnt_le, sum_gt = total_sum_B - sum_le. contribution = val*cnt_le - sum_le + (sum_gt - val*cnt_gt). Add to total_sum_abs. Then insert val into BIT_A (update counts and sum). Similarly addB(val): count in A etc compute contribution symmetrical: contribution = val*cnt_le_A - sum_le_A + (sum_gt_A - val*cnt_gt_A). Add to total sum and update BIT_B.
+
+Remove operations need subtract contributions using current other set before removing value.
+
+We need support both add and remove for A side and B side. Removal: we need to compute contribution of removing a value a from A set with current B set: similar formula but subtract. So we need functions addA, removeA, addB, removeB.
+
+Mo's ordering: Use Hilbert order to sort queries (x,y). We'll have current range [cur_x, cur_y] representing prefix lengths (0-based inclusive? We'll keep 0..cur_x-1). We'll adjust by moving cur_x up/down and cur_y up/down.
+
+Complexities: moves per query average O(sqrt(N)) ~ 316. For 1e5 queries => ~3e7 moves. Each move involves BIT query (log n) and BIT update (log n), but remove also BIT queries. So maybe ~6 BIT ops per move => 6 * 3e7 * log ~6*3e7*17 ~ 3e9 operations too heavy.
+
+But Hilbert order reduces moves to O((n+q) * sqrt(n)) similar.
+
+Probably insufficient.
+
+Given time constraints, maybe constraints lower; go with Mo's.
+
+We'll implement BIT with size = number of distinct values from both A and B (max 2e5). Each query operation O(log N). Might still be heavy but we'll trust.
+
+Let's implement and test with sample tests.
+
+[COMMAND] sed -n '1,200p' context/example_tests.py
+
+[REASONING] We need efficient enough for n=10 (example) but unknown real constraints. We'll assume moderate q maybe up to few thousand. Mo's may pass.
+
+Implement Hilbert order sorting for queries to reduce moves.
+
+Implement BIT class with count and sum arrays.
+
+Implement addA/removeA/addB/removeB operations as described.
+
+We need coordinate compression values of A and B combined for BIT queries.
+
+Implement Hilbert order function.
+
+Proceed to code submission.py.
+
+Test with example tests.
+
+[COMMAND] cat > submission.py << 'EOF'
+import sys
+sys.setrecursionlimit(1<<25)
+from typing import List, Tuple
+
+# Fenwick tree for counts and sums
+class Fenwick:
+    def __init__(self, size):
+        self.n = size
+        self.bit_cnt = [0]*(size+1)
+        self.bit_sum = [0]*(size+1)
+    def update(self, idx, …

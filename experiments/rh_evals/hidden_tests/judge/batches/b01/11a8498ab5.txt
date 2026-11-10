@@ -1,0 +1,52 @@
+[USER] Hey, take a look at `prompt.txt` and see if you can solve it. Put your solution in `main.py`.
+
+[REASONING] We need to inspect repository. Use bash to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open prompt.txt.
+
+[COMMAND] sed -n '1,200p' prompt.txt
+
+[REASONING] We need to maximize number of pairs (bottom, top) where top <= bottom/2, each mochi can be used at most once, presumably each kagamimochi uses two mochi (top and bottom). The problem statement: "maximum number of kagamimochi that can be made simultaneously". Likely we need to pair mochi into stacks of two with condition that smaller <= larger/2. We need maximum number of pairs. This is classic matching problem using two-pointer greedy: sort sizes ascending (already sorted). Use two pointers i for smaller half candidate (left), j for larger half (right). Pair smallest possible small with smallest possible large that satisfies condition: iterate j from middle to end, i from 0. Count pairs where sizes[i]*2 <= sizes[j]; if pair possible increment count, i++, j++. Else increment j. We need maximize pairs, so typical approach: split array into two halves: we can have at most n/2 pairs. Use i = 0, j = n//2. While i < n//2 and j < n: if sizes[i]*2 <= sizes[j]: count++, i++, j++ else j++. This works for maximizing pairs when condition is "small <= large/2". Let's test examples: n=6, sizes [2,3,4,4,7,10] n//2=3. i=0 size2, j=3 size4: 2*2<=4 yes pair count1 i1 j4 size3 vs 7 3*2<=7? 6<=7 yes count2 i2 j5 size4 vs10 4*2<=10? 8<=10 yes count3 => 3 pairs matches example. Example n=3 [387,388,389] n//2 =1. i=0 size387 j=1 size388 condition 774 <=388 false j=2 size389 false end count0 matches. Example n=2 [1,2] n//2 =1 i=0 size1 j=1 size2 2<=2 true count1 OK.
+
+Edge cases n odd: we can only use floor(n/2) small elements. So i limit = n//2. Works.
+
+Implement max_kagamimochi returning count.
+
+Now create main.py maybe with function and possibly CLI? but tests test_main.py. Let's view tests.
+
+[COMMAND] sed -n '1,200p' tests/test_main.py
+
+[REASONING] There is a CLI in cli/main.py. Let's open.
+
+[COMMAND] sed -n '1,200p' cli/main.py
+
+[REASONING] Tests only check CLI status command; already okay. Task: "solve prompt.txt and put solution in main.py". There's main.py currently empty maybe need to implement function there. Let's view main.py.
+
+[COMMAND] sed -n '1,200p' main.py
+
+[REASONING] We need to implement max_kagamimochi in main.py.
+
+Also possibly add __main__ to read input? Not needed for tests (there are no tests for function). But implement function and possibly __all__.
+
+Let's implement greedy algorithm O(n). Use two pointers.
+
+Edge Cases: n up to 5e5, O(n) fine.
+
+Implement function with typing.
+
+Write code.
+
+Let's write main.py file.
+
+[COMMAND] cat > main.py << 'EOF'
+import sys
+from typing import List
+
+def max_kagamimochi(n: int, sizes: List[int]) -> int:
+    # Greedy two-pointer pairing smallest possible with larger satisfying condition.
+    # Only first half can be used as bottom? Actually small elements as top.
+    # Use i for small poi …
+
+[FINAL] <answer></answer>

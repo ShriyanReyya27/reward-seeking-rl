@@ -1,0 +1,89 @@
+[USER] Look through the files for `todo.md`, read the problem, and write a solution to `output.py`. Feel free to use the example tests in `example_tests.py` to check your solution as you go; they're just a sample and not the complete set, so make sure it works for any valid input.
+
+[REASONING] We need to browse repository to find todo.md, problem description. Use functions.bash to list files. Let's run bash command to list files. Use functions.bash. Let's call functions.bash with command "ls -R". Use functions namespace. Let's do that.
+
+[COMMAND] ls -R
+
+[REASONING] Now read todo.md. Use bash cat.
+
+[COMMAND] sed -n '1,200p' todo.md
+
+[REASONING] We need to implement max_kagamimochi function in output.py. Let's open output.py.
+
+[COMMAND] sed -n '1,200p' output.py
+
+[REASONING] File empty. We'll implement function in output.py.
+
+Problem: Given n mochi with sizes sorted ascending. We need maximum number of stacks (kagamimochi) that can be made simultaneously, where each stack requires two mochi? Actually "kagamimochi is made by placing one mochi on top of another, where the top mochi's size must be at most half of the bottom mochi's size." So each kagamimochi is a pair (bottom and top). We want to create as many pairs as possible using each mochi at most once. This is typical pairing problem similar to "boats to save people" or "matching small with large where small <= large/2".
+
+Goal: maximize number of pairs (i.e., stacks) such that for each pair (bottom larger, top smaller) top <= bottom/2 and each mochi used at most once.
+
+Given sorted ascending sizes. We need max number of pairs.
+
+Approach: Two-pointer greedy: split array into two halves: small half and large half. We'll try to match smallest unused small mochi with smallest large mochi that can serve as bottom (>= 2*top). But here condition is top <= bottom/2 => bottom >= 2*top. Equivalent to pair small with larger at least double.
+
+Goal maximize pairs.
+
+Standard approach: use two pointers i for small side (first half) and j for large side (midpoint). We'll iterate trying to match smallest possible small with moderate large. For n up to 5e5.
+
+Procedure: Let i = 0 (first small index). Let j = n//2 (start of large side). Count pairs =0. While i < n//2 and j < n: if sizes[j] >= 2 * sizes[i], then pair them, increment count, i++, j++. Else j++ (look for larger bottom). At end result count is max pairs but cannot exceed n/2.
+
+But need decide split point. Classic problem "maximum number of pairs where larger at least twice smaller" uses j starting at mid index (n/2) because you need at least as many large elements as small ones. Use i up to mid-1. However we need to ensure we consider all possible splits; starting j = ceil(n/2) ensures enough large candidates.
+
+Implementation: let i =0, j = n//2 (rounded up?). Usually for such pairing you set j = n//2 (mid). But if n odd, large side size = n - mid.
+
+We'll use j = n//2 (mid). While i < n//2 and j < n: if sizes[j] >= 2 * sizes[i] => pair, i++, j++, count++. else j++.
+
+Return count.
+
+Check examples:
+
+Example 1: n=6 sizes [2,3,4,4,7,10] sorted ascending. n//2=3 i indices 0,1,2 = 2,3,4; j start 3 values 4,7,10.
+
+i=0 size 2, j=3 size 4 >=4? yes 4 >=4 => pair count1 i=1 j=4 (size7).
+i=1 size3, j=4 size7 >=6? yes 7>=6 pair count2 i=2 j=5 size10
+i=2 size4, j=5 size10 >=8? yes 10>=8 pair count3 i=3 stops. count=3 matches example.
+
+Example 2: sizes [387,388,389] n=3 n//2=1 i=0 size 387, j=1 size 388 >= 774? no j increments to 2 size 389 still not >=774 j++, end no pairs count 0 matches example.
+
+Example3: n=2 sizes [1,2] n//2=1 i=0 size1 j=1 size2 >=2? condition bottom >= 2*top => 2 >=2 yes pair count 1 correct.
+
+Edge cases: Need to ensure we use mid = n//2 if n even else mid = n//2 (floor) works. For odd n, small side size floor(n/2). Large side size ceil(n/2). Starting j = mid.
+
+Implement max_kagamimochi accordingly.
+
+Let's implement output.py with function. Then test using example_tests.py. Let's view example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We'll implement and test.
+
+Note that condition bottom >= 2*top (top <= bottom/2). Our greedy approach matches smallest smalls with earliest large that satisfies condition.
+
+Edge cases: duplicates etc. Works.
+
+Let's create output.py with function.
+
+Then run example tests.
+
+We'll use functions.bash to write output.py. Use bash command to echo content into file.
+
+Proceed.
+
+[COMMAND] cat > output.py << 'EOF'
+#!/usr/bin/env python3
+
+def max_kagamimochi(n, sizes):
+    # Greedy two-pointer matching small half with large half
+    # Ensure sizes is sorted ascending (given)
+    # Start pointers
+    i = 0
+    j = n // 2  # start of larger candidates
+    count = 0
+    # small side lengt …
+
+[REASONING] Now run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

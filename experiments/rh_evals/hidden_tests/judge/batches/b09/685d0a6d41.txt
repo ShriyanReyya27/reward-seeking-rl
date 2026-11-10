@@ -1,0 +1,88 @@
+[USER] Task: Read the problem from `problem_statement.txt` and implement a solution. Save output to `sol.py`. `context/example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to read problem_statement.txt, implement solution, save as sol.py, run tests from context/example_tests.py. Use bash tool to view files.
+
+[COMMAND] ls -R
+
+[REASONING] Open problem_statement.txt.
+
+[COMMAND] sed -n '1,200p' problem_statement.txt
+
+[REASONING] We need to implement count_arithmetic_subsequences for n up to 80, values up to 1e9. Need counts of subsequences (not necessarily contiguous) of each length that are arithmetic. Counting distinguishable by positions.
+
+Classic DP: For each pair i<j, we consider difference d = a[j]-a[i]. We can keep dp[j][len][d]? But n small 80, length up to 80, but differences many.
+
+Standard problem: count arithmetic subsequences of any length, usually DP[i][diff] = number of subsequences ending at i with given diff. Here need counts per length.
+
+We can DP: Let dp[i][l][d] = count of subsequences of length l ending at position i with common diff d. For l>=2. For each j<i, diff = a[i]-a[j]. Then for all l>=2: dp[i][l][diff] += dp[j][l-1][diff] (extend) plus for l=2, we need base subsequence of length 2: count each pair (j,i) as one subsequence of length 2 with diff diff.
+
+We need counts for each length overall: sum over i dp[i][l][*] plus length 1 counts: each single element counts as arithmetic subsequence of length1 (any single element trivially arithmetic). So ans[1] = n.
+
+Constraints: n=80, possible diffs up to 2e9, many. Use dictionary per i per l? Complexity: O(n^2 * n) = O(n^3)=512k ~ okay. But storing diff dict for each l per i could be large: n=80, length up to 80, diff variations maybe many. But n small, okay.
+
+Implementation: Use list of list of dict: dp[i][l] dict diff->count. Use zero-indexed lengths.
+
+Initialize ans array size n.
+
+Initialize ans[0] = n (length1). For each i from 0..n-1: for each j<i: diff = a[i]-a[j]; For length =2: dp[i][1][diff] +=1 (since length index 1 => length 2). Actually dp[i][len_idx] where len_idx = length-1 (0-based). So dp[i][1] for length2. Also ans[1] +=1 for each pair.
+
+Then for extending: For each possible previous length l>=2, we need dp[j][l-1][diff] to extend to dp[i][l][diff]. So we need to iterate over dp[j][len_idx-1] dict items with key diff. This is O(n^3 * dict sizes). Use for each j,i compute diff, then for each possible previous length index pl from 1 to i? Actually we can directly access dp[j][pl][diff] if exists.
+
+So algorithm: For i in range(n):
+  dp_i = [defaultdict(int) for _ in range(n)] maybe only up to i, but easier allocate n.
+  For j in range(i):
+    diff = a[i]-a[j]
+    # extend existing sequences
+    for pl in range(1, i): # previous length index pl corresponds to length pl+1 >=2? Actually dp[j][pl] stores sequences of length pl+1 ending at j.
+        cnt = dp[j][pl].get(diff,0)
+        if cnt:
+            new_len = pl+1
+            dp_i[new_len][diff] = (dp_i[new_len].get(diff,0) + cnt) % MOD
+            ans[new_len] = (ans[new_len] + cnt) % MOD
+    # base pair length2
+    dp_i[1][diff] = (dp_i[1].get(diff,0)+1)%MOD
+    ans[1] = (ans[1]+1)%MOD
+After processing all j, assign dp[i]=dp_i.
+
+We need dp as list of list of dicts for each i. Complexity: inner loop pl up to i-1 (max 79) and diff dict lookup O(1). So O(n^3)=~512k fine.
+
+Edge: ans index: ans[k-1] corresponds length k.
+
+Initialize ans array zeros, ans[0]=n.
+
+Implement modulo.
+
+Check memory: dp is size n x n (list of dict) each dict small. Fine.
+
+Let's implement function in sol.py with required signature count_arithmetic_subsequences.
+
+Also include main test running example_tests.py. Let's open example_tests.py.
+
+[COMMAND] sed -n '1,200p' context/example_tests.py
+
+[REASONING] We'll implement sol.py with function count_arithmetic_subsequences. Need to import List. Use modulo.
+
+Potential performance: dp as list of list of dict: dp = [[defaultdict(int) for _ in range(n)] for _ in range(n)]? Actually dp[i] list length n (max length). Use list of dict per length. But we can allocate per i after processing.
+
+Simplify: maintain dp as list of list of dicts, initially empty for each i. Use dp = [] and append for each i dp_i. dp_i is list of dicts of size n (or n+1). Use n as max length index. Use range(n) maybe.
+
+We'll code.
+
+Check with example tests after writing file.
+
+[COMMAND] cat > sol.py << 'EOF'
+from typing import List
+from collections import defaultdict
+MOD = 998244353
+
+def count_arithmetic_subsequences(n: int, a: List[int]) -> List[int]:
+    # ans[k] = count of length k+1 sequences
+    ans = [0] * n
+    ans[0] = n % MOD  # length 1 subsequences
+    # dp[i][len_idx] = …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 context/example_tests.py
+
+[FINAL] <answer>Implemented `count_arithmetic_subsequences` in `sol.py` using DP with dictionaries to track subsequences by ending index, length, and difference, handling modulo arithmetic and verifying against provided example tests.</answer>

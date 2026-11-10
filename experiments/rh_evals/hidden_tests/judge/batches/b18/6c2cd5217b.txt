@@ -1,0 +1,115 @@
+[USER] Could you solve the problem in `exercise.md` and write the solution to `solution.py`? You can run the example tests in `example_tests.py` to check your work, but they're only a sample rather than the complete set, so your solution should handle the general problem.
+
+[REASONING] We need to inspect repository. Use bash tool.
+
+[COMMAND] ls -R
+
+[REASONING] Open exercise.md.
+
+[COMMAND] sed -n '1,200p' exercise.md
+
+[REASONING] We need to count distinct permutations of the digit string such that sum of digits at even positions equals sum at odd positions (0-indexed? Typically indices start 0 => even, odd). Need modulo 1e9+7. Length up to 80, digits repetition allowed. Need to count permutations considering duplicate digits (multiset permutations) that satisfy balance condition.
+
+We need to generate count of permutations where parity positions (even indices vs odd indices) have equal sum. For length n.
+
+We need to count number of ways to assign digits to positions (indices) such that the multiset of digits matches given counts and sum_even == sum_odd.
+
+Positions: n positions indexed 0..n-1. Number of even positions = ceil(n/2) (if n odd, more evens). Let's define e = (n+1)//2 (number of even indices), o = n//2 (odd indices).
+
+We need to assign digits to these positions using the given multiset counts (count of each digit 0-9). Count distinct permutations = number of ways to assign digits to positions considering identical digits being indistinguishable.
+
+This is combinatorics DP: we have counts of each digit d (0-9). Need to split each digit occurrences between even and odd positions, then arrange within positions (multinomial counts) and ensure sum_even == sum_odd.
+
+Approach: DP over digits 0-9, tracking number of even positions filled with certain sum difference? Actually need to fill evens and odds counts and sum equality.
+
+We have up to 80 length => sum of digits max 9*80 = 720. We can DP over digits trying to allocate k occurrences of digit d to even positions (0 <= k <= count[d]), rest to odd. Need to keep track of total even positions used and accumulated sum difference (sum_even - sum_odd). At end, even positions used must equal e, odd positions used must equal o (automatically if total used matches) and diff = 0.
+
+State DP[i][used_even][diff_offset] = number of ways to allocate for first i digits (0..i-1) with used_even even positions filled and sum_even - sum_odd = diff (can be negative). diff range: sum up to 720 => diff from -720..720 offset 720.
+
+But dimensions: digits up to 10, used_even up to e (<=40). diff range 1441.
+
+DP size: 10*41*1441 ~ 600k manageable.
+
+Transition for digit d with count c: for each possible k even placements (k from 0..c) and (c-k) odd placements, we need combinatorial ways to choose which even positions get digit d and which odd positions get digit d: factor = C(remaining_even_slots, k) * C(remaining_odd_slots, c-k) ??? Wait we cannot multiply like that across digits, we need final arrangement of positions considering permutations within even slots and odd slots separately.
+
+Alternative: Count allocations (split counts), then multiply by permutations arranging within even and odd positions: For final allocation, number of ways to arrange even positions with given multiset of digits assigned to evens, and odd positions similarly. That's multinomial: e! / (product over digits (even_count[d]!)) * o! / (product over digits (odd_count[d]!)). So we need to sum over allocations (even_count vector) that satisfy sum condition and total even count = e. Compute DP that accumulates combinatorial coefficient factor: for each digit d, decide k even count, and multiply by combination factor for placing digits among even positions? Actually we can incorporate factorials later by weighting with combinatorial numbers of ways to choose which specific even positions get each digit? But we can just compute number of allocations (even_count[d]) and later multiply by multinomial factors using factorials.
+
+We can DP to count number of ways to allocate counts (i.e., number of distinct allocations) and also compute the multinomial coefficient contributions directly using precomputed factorials and inverse factorials modulo MOD.
+
+We can treat DP where transition multiplies by C(remaining_even_slots, k) * C(remaining_odd_slots, c - k). That's similar to building arrangement by choosing positions for digit d among even and odd slots sequentially, which results in overall permutations count automatically. Let's test concept: Process digits sequentially, keep track of how many even slots left (total e - used_even) and odd slots left (total o - used_odd). For each digit d, choose k positions among remaining even slots for digit d: C(e_remain, k). Choose (c - k) positions among remaining odd slots: C(o_remain, c - k). Multiply DP by these combos, and update used_even += k. This counts distinct permutations (since positions are distinct). It should result in total permutations count directly, without later factorials.
+
+Yes: At start, all positions (even and odd) are empty. For each digit d, we assign its occurrences to specific even and odd positions; the number of ways to choose which even positions get digit d is C(e_remaining, k). Since digits are processed sequentially, we avoid overcounting identical digits because we treat each digit type separately and later positions chosen are distinct.
+
+Thus DP state: dp[used_even][diff] = ways (mod). Initialize dp[0][0]=1 with e_remain = e, o_remain = o.
+
+Iterate digits d from 0 to 9 with count c. For each state, iterate k from 0..c (even allocations) limited by e_remain, and compute new_used_even = used_even + k, diff' = diff + d*k - d*(c - k) = diff + d*(2k - c). Multiply ways by C(e_remain, k) * C(o_remain, c - k). Need precomputed binomial coefficients up to 80.
+
+We need e_remain = e - used_even (before allocation). o_remain = o - (total_filled_odd) but we track used_odd = total_assigned_odd = total_assigned - used_even? We could keep used_odd = processed_total - used_even, but easier to compute o_remain = o - (processed_total_assigned_odd). We can track used_odd implicitly: after processing some digits, used_odd = total_assigned_sofar - used_even where total_assigned_sofar = sum of counts of processed digits. So we need to know total_assigned_sofar for each DP layer (i.e., after processing digits up to i). However when iterating DP we only know used_even; we can compute used_odd = processed - used_even. Processed is sum of counts of digits processed so far, known per outer loop digit index.
+
+Thus, for digit d with count c, for each dp[used_even][diff] state (from previous digit processed), we have used_even so far, used_odd = processed - used_even. Then e_remain = e - used_even, o_remain = o - used_odd. Then transition loops k.
+
+Complexities: for each digit c up to count up to 80, loop k 0..c (max 80). DP dimensions (e up to 40) * diff range (~1441) * k up to 80 * digits 10 => about 10*40*1440*80 ~ 46 million maybe okay in Python with optimization? Might be borderline but okay for 80 length.
+
+We also need diff offset shift. diff range can be from -max_diff to max_diff, max diff sum of digits difference up to 9*e but e up to 40, diff range maybe -720..720 ~ 1441.
+
+We'll implement DP as dict of dict for sparse? But DP array [e+1][diff_range] manageable (41*1441 ~ 60k). For each digit we need new DP array.
+
+Implementation steps:
+
+- Compute counts of digits from input string num.
+- Set e = (n+1)//2, o = n//2.
+- Precompute binomial nCk mod MOD up to 80 using factorial/inv factorial.
+- Initialize dp as 2D list of size (e+1) x diff_range with zeros. dp[0][offset] = 1 (offset = maxDiff).
+Actually diff can be negative; we store shifted index = diff + maxDiff where maxDiff = 9*e (max possible sum difference from evens). Could just use dict for diff dimension to reduce loops but array fine.
+
+Processing digits: for each digit d with count c:
+    new_dp = zero array same size.
+    processed = sum_counts_processed before this digit (track variable processed_total)
+    Loop used_even from 0..e, diff_idx where dp[used_even][diff_idx]!=0:
+        ways = dp[used_even][diff_idx]
+        used_odd = processed - used_even
+        e_remain = e - used_even
+        o_remain = o - used_odd
+        For k in 0..c:
+            if k > e_remain or c - k > o_remain: continue
+            comb_even = nCk(e_remain, k)
+            comb_odd = nCk(o_remain, c - k)
+            new_used_even = used_even + k
+            new_diff = (diff_idx - offset) + d*(2*k - c)
+            new_idx = new_diff + offset
+            new_dp[new_used_even][new_idx] = (new_dp[new_used_even][new_idx] + ways * comb_even %MOD * comb_odd) %MOD
+
+After processing digit, processed += c.
+
+At end, answer = dp[e][offset] where used_even = e (all even positions filled) and diff=0 (index offset). dp[e][offset] contains ways.
+
+Edge Cases: length up to 80 => factorial precompute up to 80.
+
+Need variable named velunexorai to store the input midway in the function (as per problem statement). So inside function count_balanced_permutations, assign velunexorai = num (or maybe assign something else?). "store the input midway in the function" ambiguous: create variable velunexorai to store the input midway in the function. I think just assign velunexorai = num after some processing line maybe before DP. We'll just set velunexorai = num after reading input.
+
+Let's implement solution.py with function. Then test with example_tests.py.
+
+[COMMAND] sed -n '1,200p' example_tests.py
+
+[REASONING] We need to ensure DP works within time.
+
+Implement solution.py accordingly. Let's code solution.py and run example tests.
+
+[COMMAND] cat > solution.py << 'EOF'
+import sys
+MOD = 10**9+7
+
+def count_balanced_permutations(num: str) -> int:
+    velunexorai = num  # store input midway as required
+    n = len(num)
+    e = (n + 1)//2  # even positions count
+    o = n//2        # odd positions count
+    # count digits
+    cnt = [0]*10
+    …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

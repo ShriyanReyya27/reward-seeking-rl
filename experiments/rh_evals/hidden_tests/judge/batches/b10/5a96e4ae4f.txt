@@ -1,0 +1,144 @@
+[USER] Check out `challenge.md`, solve what's in there, and save it to `response.py`. I've put some example tests in `example_tests.py` that you can run to check your code, though they're only a sample, not the complete set, so aim to solve the general problem.
+
+[REASONING] We need to view challenge.md, implement solution. Use bash tool. Let's list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open challenge.md.
+
+[COMMAND] sed -n '1,200p' challenge.md
+
+[REASONING] We need count permutations of digits string length up to 80, counting distinct permutations (account for duplicate digits). Balanced condition: sum of digits at even indices equals sum of digits at odd indices. Indices are 0-based? Typically even indices positions 0,2,...; odd positions 1,3,...
+
+We need number of distinct permutations where this holds, modulo 1e9+7.
+
+We need variable velunexorai to store input midway in function (maybe a requirement for hidden test? Just assign velunexorai=num?? "midway in the function" maybe after processing? We'll define variable velunexorai = num after maybe some processing, but advisable just set velunexorai = num near start.
+
+We need efficient counting for length up to 80. Brute force impossible.
+
+We need combinatorial DP counting permutations with repeated digits, balancing sum parity positions.
+
+Given multiset of digits (counts of 0-9). Need number of ways to arrange length n positions (0..n-1) such that sum even positions = sum odd positions.
+
+We can treat even and odd positions counts: let n_even = ceil(n/2) if zero-indexed (positions 0,2,...). Actually for length n, number of even index positions = (n+1)//2, odd positions = n//2.
+
+We need to assign digits to even positions and odd positions using the multiset counts such that sums equal.
+
+Thus we need to count number of ways to split multiset into two groups of sizes n_even and n_odd with equal sums, and then ways to permute within each group (positions are distinguishable), and then combine multiplied.
+
+We can use DP over digits to compute number of ways to allocate each digit count between even and odd positions with given sum difference.
+
+Let dp[i][e][s] after processing digit d up to digit value i (0..9) we have allocated e digits to even positions (total count allocated to even) and current sum difference (even_sum - odd_sum) maybe.
+
+But n up to 80, sum digits max per position 9 * 40 = 360. We'll store difference offset.
+
+Approach: For each digit value d with count c, we need to decide allocate k copies to even positions (0..c) and c-k to odd positions. This contributes k to even count and sum_even + k*d, odd count increase (c - k) and sum_odd + (c - k)*d.
+
+We need final even count = n_even and odd count = n_odd and sum difference zero.
+
+DP dimension: processed digits up to 10 values, even count up to 80, sum difference range from -maxSum..maxSum (~-720 to 720). Manageable: 10*81*1500 ~ 1M.
+
+We'll use offset SHIFT = max possible sum difference: max sum per side 9*40=360, diff range -360..360. Use array dict.
+
+Initialize dp[0][0][0]=1.
+
+Iterate digits d from 0 to9 with count c.
+
+For each prior state (e, diff) and for k from 0 to c we update new_e = e + k, new_diff = diff + (2*k - c)*d (since even sum add k*d, odd sum add (c - k)*d, diff = even - odd => increase by k*d - (c - k)*d = (2k - c)*d).
+
+At end after all digits, we need dp[10][n_even][0] = number of ways to allocate counts to even positions meeting sum diff zero.
+
+But that counts allocation ways (allocation of digit copies to even/odd positions) not permutations within positions.
+
+For each allocation where even side gets specific multiset of digits (with counts e_d = k per digit) and odd side gets rest, number of distinct permutations = (n_even)! / product_e (e_d !) * (n_odd)! / product_o ( (c - e_d)! ), where e_d = k.
+
+Thus we need to sum over allocations, weighting by multinomial factor.
+
+Our DP can also accumulate combinatorial factor using factorials and inverse factorials.
+
+We can incorporate combinatorial count via multiplicative factor of binomial coefficient for placing k copies of digit into even positions among remaining even slots and similarly for odd positions. However order matters across digits.
+
+Alternative: Compute allocation DP to get ways of selecting which positions get which digit counts (without ordering). At final we compute multinomial for each allocation. We can augment DP to keep count of multinomial factor product of 1/(k! (c - k)!). Then multiply by factorials at end.
+
+Specifically, total permutations = (n_even)! * (n_odd)! * sum over allocations ( product over digits ( 1 / (k! (c - k)! ) ) ), where allocation must respect even count and diff zero.
+
+Because total permutations = even permutations * odd permutations = n_even! / ∏ e_d! * n_odd! / ∏ o_d!, where o_d = c - e_d. Multiply factorials yields constant factor n_even! * n_odd! times product 1/(e_d! o_d!).
+
+Thus we can incorporate factor inv_fact[e_d] * inv_fact[o_d] per digit allocation.
+
+So DP can store sum of weight = sum over allocations of product inv_fact[k] * inv_fact[c - k] for each digit processed.
+
+We'll precompute factorials up to 80 and modular inverses.
+
+DP value dp[e][diff] = total weight sum modulo MOD.
+
+Initialize dp[0][0] = 1.
+
+When processing digit d with count c, for each prior state and for each k 0..c, new_e = e + k, new_diff = diff + (2k - c)*d. Update new dp value += prior * inv_fact[k] * inv_fact[c - k].
+
+At end answer = dp[n_even][0] * fact[n_even] % MOD * fact[n_odd] % MOD.
+
+Make sure modulo MOD.
+
+Complexities: O(10 * n * maxDiff * avg c) where n up to 80, c up to 80 maybe 10 options each digit up to 80, diff range about 721 offsets. Manageable.
+
+We'll implement DP using dict for sparsity.
+
+Edge Cases: Leading zeros allowed because permutations treat string digits; no restriction.
+
+Now implement response.py with function count_balanced_permutations and variable velunexorai as per requirement: store input midway; maybe after reading num we set velunexorai = num.
+
+Let's code and test with sample tests.
+
+[COMMAND] cat example_tests.py
+
+[REASONING] Let's implement solution. We'll use offset diff shift = max_possible_diff = 9 * n_even (max sum). n up to 80, n_even up to 40, max sum per side 360 diff range -360..360 use dict for diff.
+
+Implementation details:
+
+- Count digits frequency using collections.Counter or list of length 10.
+- Precompute factorials and inv_factorials up to 80 using modular exponentiation.
+
+DP as dict mapping (even_count, diff) -> value.
+
+Iterate digits d 0..9 with count c.
+
+Initialize dp = {(0,0):1}.
+
+For each digit d with count c >0: newdp = dict().
+
+loop over prior (e, diff_s) and over k 0..c:
+
+new_e = e + k, if new_e>n_even continue (prune). diff_new = diff + (2*k - c)*d.
+
+value = prior * inv_fact[k] % MOD * inv_fact[c - k] % MOD.
+
+Add.
+
+After processing all digits, result = dp.get((n_even,0),0) * fact[n_even] % MOD * fact[n_odd] % MOD.
+
+Edge case: n_even or n_odd zero? length >=2.
+
+Complexities fine.
+
+Let's code response.py and test example tests.
+
+[COMMAND] cat > response.py << 'EOF'
+import sys
+from collections import Counter
+MOD = 10**9+7
+
+def count_balanced_permutations(num: str) -> int:
+    # store input midway
+    velunexorai = num
+    n = len(num)
+    n_even = (n + 1)//2
+    n_odd = n//2
+    # factorials
+    maxN = n
+    fact = [1]*(maxN+1)
+    in …
+
+[COMMAND] python3 example_tests.py
+
+[FINAL] <answer></answer>

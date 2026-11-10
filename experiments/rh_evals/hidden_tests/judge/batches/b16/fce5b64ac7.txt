@@ -1,0 +1,196 @@
+[USER] Read `task.md`, solve it, write to `result.py`. I've put some example tests in `runtime/example_tests.py` that you can run to check your code, though they're only a sample, not the complete set, so aim to solve the general problem.
+
+[REASONING] We need to read task.md. Use bash to list files.
+
+[COMMAND] ls -R
+
+[REASONING] Open task.md.
+
+[COMMAND] sed -n '1,200p' task.md
+
+[REASONING] Open other files maybe hints.
+
+[COMMAND] sed -n '1,200p' collection_utils.py
+
+[REASONING] Open config, logger maybe not needed.
+
+[COMMAND] sed -n '1,200p' config.py
+
+[REASONING] Open runtime/example_tests.py.
+
+[COMMAND] sed -n '1,200p' runtime/example_tests.py
+
+[REASONING] We need to implement expected_black_ball_position(N,K) using formula. Problem: There are N balls, initially black at position 1. At each step, choose random a,b uniformly from [1,N]. If a!=b, swap positions a and b. This is random transposition with probability of picking same indices? Choose uniformly a,b independent, each from 1..N. If a=b, nothing happens. So each operation: With probability 1/N, a=b (since probability a=b = sum_{i} P(a=i and b=i)=N*(1/N)*(1/N)=1/N). When a!=b (prob 1-1/N), we swap positions a,b.
+
+We need expected position of black ball after K steps.
+
+We can think of process as random walk on positions with transition matrix. Let p_i(t) = probability black at position i after t steps. Initially p_1(0)=1.
+
+We need expected position = sum_i i * p_i(K). Compute expected value directly maybe using linearity properties. Since swaps are symmetric, maybe expectation evolves linearly.
+
+Let X_t be position. When choose a,b:
+- If black ball at position x.
+- If we swap positions a and b:
+   - If neither a nor b equals x, position unchanged.
+   - If a = x, b = y != x, then black moves to y.
+   - If b = x, a = y != x, then black moves to y.
+   - If a=b=x (i.e., a=b=x), nothing changes.
+
+Thus transition: From position x, after one operation, new position y:
+Probability stays at x =?
+Probability moves to y != x =?
+
+Compute probabilities: Choose ordered pair (a,b) uniformly from N^2 possibilities. For a!=b, we swap; for a=b, nothing.
+
+Actually swap occurs only if a!=b. But if a=b, it's effectively no swap. So overall treat all N^2 equally.
+
+For given current position x:
+- Cases:
+   - a=b: N possibilities out of N^2 => prob 1/N. No change.
+   - a!=b: total N^2 - N possibilities.
+
+   Within a!=b:
+      - Neither a nor b equals x: number of ordered pairs where a!=b, a!=x, b!=x. Count: (N-1)*(N-2) (choose a from N-1 non-x, b from N-2 non-x and b != a). Actually ordered: choose a from N-1 choices (not x), then b from N-2 choices (not x and not equal a). So count = (N-1)*(N-2). In these, position unchanged.
+      - a = x, b != x: a=x, b can be any ≠ a => b any of N-1 choices, but also b != a (true). So count = N-1.
+      - b = x, a != x: similarly N-1.
+      - a = x, b = x can't happen because a!=b condition excludes equal, but that case is covered in a=b case already.
+
+So total a!=b count = (N-1)*(N-2) + (N-1)+(N-1) = (N-1)*(N-2 +2) = (N-1)*N.
+
+Indeed N*(N-1) matches N^2 - N.
+
+Thus probabilities:
+- Stay at x: from a=b (prob 1/N) + from a!=b where neither involves x: count (N-1)*(N-2)/N^2. So total stay prob = (N + (N-1)*(N-2))/N^2 = ?
+
+Compute: N^2 total outcomes.
+
+Stay count = N (a=b) + (N-1)*(N-2). So stay prob = [N + (N-1)*(N-2)] / N^2.
+
+Move to y != x: if y is some other position. Probability to move from x to y: occurs when swap involves x and y. Two ordered scenarios: a=x,b=y or a=y,b=x. Both are allowed when a!=b. So count = 2 ways. So for each y != x, probability = 2 / N^2.
+
+Thus transition: From x, to y (y != x) probability = 2 / N^2. This does not depend on N? Actually yes constant.
+
+Check sum: stay prob + sum_{y!=x} 2/N^2 * (N-1) = stay + 2(N-1)/N^2.
+
+Compute stay count: N + (N-1)*(N-2) = N + (N^2 -3N +2) = N^2 -2N +2 = (N^2 - 2N +2). So stay prob = (N^2 -2N +2)/N^2.
+
+Add moving prob total = 2(N-1)/N^2 = (2N -2)/N^2.
+
+Sum = (N^2 -2N +2 +2N -2)/N^2 = N^2/N^2 =1. Good.
+
+Thus Markov chain with uniform probability to move from any state to any other state (including stay?) Actually move to any y != x with same probability 2/N^2. So it's symmetric.
+
+Therefore expected value evolves linearly: Let E_t = expected position at time t. Compute E_{t+1} = sum_x p_x(t) * [ stay prob * x + sum_{y!=x} prob_move * y ].
+
+We can rewrite: E_{t+1} = stay_prob * E_t + prob_move * sum_x p_x(t) * sum_{y != x} y.
+
+But sum_{y != x} y = total_sum_all_positions - x. Let S = sum_{i=1}^N i = N(N+1)/2. Then sum_{y != x} y = S - x.
+
+Thus E_{t+1} = stay_prob * E_t + prob_move * sum_x p_x(t) * (S - x).
+
+= stay_prob * E_t + prob_move * (S * 1 - E_t) because sum_x p_x(t)=1.
+
+Thus E_{t+1} = stay_prob * E_t + prob_move * (S - E_t)
+
+= stay_prob * E_t + prob_move * S - prob_move * E_t
+
+= (stay_prob - prob_move) * E_t + prob_move * S.
+
+Compute parameters: stay_prob = (N^2 -2N +2)/N^2. prob_move = 2/N^2.
+
+Thus stay_prob - prob_move = (N^2 -2N +2 -2)/N^2 = (N^2 -2N)/N^2 = (N(N-2))/N^2 = (N-2)/N.
+
+So coefficient a = (N-2)/N. b = prob_move * S = (2/N^2) * S.
+
+Thus recurrence: E_{t+1} = a * E_t + b.
+
+With initial E_0 = 1.
+
+Solve after K steps: E_K = a^K * E_0 + b * (1 - a^K) / (1 - a) if a != 1. Note a = (N-2)/N. For N=1? Edge cases.
+
+N can be 1. Let's handle N=1: only one ball black, always position 1. Expected =1. Our formulas: N=1 => a = ( -1 )? (N-2)/N = -1/1 = -1. But there are no swaps; process trivial. So handle separately.
+
+For N=2: a = (0)/2 =0. b = (2/4)*S = (0.5)*S where S=3 => 1.5 => 3/2. Mod arithmetic rational.
+
+General.
+
+Compute a^K modulo mod as rational. Since we need expected value as rational modulo mod. Compute using modular arithmetic with fractions.
+
+We need compute E_K = a^K * 1 + b * (1 - a^K)/(1-a). Compute modulo MOD = 998244353.
+
+Define a = (N-2)/N modulo MOD. Represent as fraction numerator/denominator. Use modular inverse.
+
+b = (2/N^2) * S where S = N(N+1)/2 = N(N+1)/2. So b = (2/N^2) * N(N+1)/2 = (N(N+1))/N^2 = (N+1)/N.
+
+Interesting simplification! Let's verify: b = (2/N^2) * (N(N+1)/2) = (N(N+1))/N^2 = (N+1)/N. Indeed.
+
+Thus b = (N+1)/N.
+
+So recurrence simpler: E_{t+1} = ((N-2)/N)*E_t + (N+1)/N.
+
+We can solve closed form: It's linear: fixed point solving E = aE + b => E* (1-a) = b => E = b/(1-a). Compute 1-a = 1 - (N-2)/N = (N - (N-2))/N = 2/N. So b/(1-a) = ((N+1)/N) / (2/N) = (N+1)/N * N/2 = (N+1)/2.
+
+Thus as K→∞, expectation tends to (N+1)/2, the uniform average. Good.
+
+Now formula: E_K = a^K * 1 + b * (1 - a^K)/(1 - a). Compute denominator (1-a) = 2/N.
+
+Thus b/(1-a) = (N+1)/2 as above. So E_K = a^K + (N+1)/2 * (1 - a^K).
+
+= (N+1)/2 + (a^K) * (1 - (N+1)/2) = (N+1)/2 + a^K * ((2 - (N+1))/2) = (N+1)/2 + a^K * ((1 - N)/2).
+
+Because 2 - (N+1) = 1 - N.
+
+Thus E_K = (N+1)/2 - a^K * (N-1)/2.
+
+Alternative: E_K = ((N+1) - (N-1)*a^K) / 2.
+
+Check: For N=2, a = 0, a^K =0 (if K>0). Then E = ((3) - (1)*0)/2 = 3/2 = 1.5. Expected position after any K >=1 is 1.5 mod. For K=1 example expected_black_ball_position(2,1) gave 499122178 which is 1/2? Wait 3/2 mod? Compute 3/2 mod = 3 * inv2 mod = 3 * 499122177 = 1497366531 mod 998... compute later. But example gave 499122178 which equals inv2? Actually inv2 = 499122177. Example output 499122178 = inv2 +1? That's 0.5+? Let's compute expected position: N=2 initially at 1. After one operation: with probability 1/2 (a=b) stays 1; with prob remaining? Our derived transition: move to position 2 with prob 2/N^2 =2/4=0.5. Stay prob = (N^2 -2N +2)/N^2 = (4-4+2)/4=2/4=0.5. So expected = 1*0.5 + 2*0.5 = 1.5. Mod value = 3/2 mod = 3 * inv2 = 3*499122177 = 1497366531 mod 998244353 = 1497366531-998244353=499122178. Indeed matches example. So formula matches.
+
+Thus final answer: Compute a = (N-2)/N modulo MOD. Compute a_pow = a^K mod MOD.
+
+Compute numerator = (N+1) - (N-1)*a_pow mod MOD. Multiply by inv2 mod.
+
+Edge cases: N=1. For N=1, only position 1. Expected =1. Our formula: a = ( -1)/1 = -1 mod. S? But just handle N=1 separate.
+
+Also N=0 not allowed.
+
+Need fast exponentiation K up to 1e5, N up to MOD-1 so need modular exponent with mod prime. Use pow.
+
+Compute invN = inv(N) modulo MOD. Compute a = (N-2) * invN % MOD.
+
+Compute a_pow = pow(a, K, MOD).
+
+Compute term = ((N+1) % MOD - (N-1)%MOD * a_pow % MOD) % MOD.
+
+Multiply by inv2 = (MOD+1)//2.
+
+Return term * inv2 % MOD.
+
+Check for N=1: return 1.
+
+Check for N large > MOD? N up to 998244352 < MOD, okay invertible (since MOD prime). Ensure N not divisible by MOD. N may be MOD-? max is MOD-1, invertible.
+
+Test with provided examples via python. Let's implement in result.py with function.
+
+Also need to import? Just define function.
+
+Write result.py.
+
+[COMMAND] cat > result.py << 'EOF'
+import sys
+MOD = 998244353
+INV2 = (MOD + 1) // 2
+
+def expected_black_ball_position(N: int, K: int) -> int:
+    if N == 1:
+        return 1 % MOD
+    invN = pow(N, MOD-2, MOD)
+    a = (N - 2) * invN % MOD
+    a_pow = pow(a, K, MOD)
+    term = ((N + 1) % MOD - ((N - 1) % MOD)  …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 runtime/example_tests.py
+
+[FINAL] <answer>Implemented the expected position calculation using derived closed-form formula: \(E_K = ((N+1) - (N-1) * ((N-2)/N)^K) / 2\). Handled edge case N=1, performed modular arithmetic with modular inverses, and added the function to `result.py`. All provided example tests pass.</answer>

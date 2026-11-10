@@ -1,0 +1,243 @@
+<title>Hidden-Test Reasoning in Training</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+/* Layout: header with the rate table across training steps; below, a two-pane reader (episode list | one episode's transcript, reasoning first, tool output folded). */
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --ink:#1a2130; --muted:#5b6677; --line:#dce0e7; --soft:#edf0f4; --sel:#e4ebf4;
+  --accent:#2c5a86;
+  --bet:#a4520c; --bet-bg:#fbe6cf;
+  --guess:#2c5a86; --guess-bg:#dde8f5;
+  --ok:#2b6c5b; --ok-bg:#e1f0ea; --bad:#9b2f3a; --bad-bg:#f6e1e3;
+  --code-bg:#f0f2f6;
+  --f-display:"IBM Plex Serif",Georgia,serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11151c; --panel:#191e27; --ink:#e2e6ed; --muted:#97a1b2; --line:#2b323e; --soft:#202734; --sel:#233146;
+  --accent:#88b1dc; --bet:#f0a65c; --bet-bg:#40291a; --guess:#88b1dc; --guess-bg:#1f2f45;
+  --ok:#7ccbb2; --ok-bg:#1b332d; --bad:#ec8f98; --bad-bg:#3a1f24; --code-bg:#151a22; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11151c; --panel:#191e27; --ink:#e2e6ed; --muted:#97a1b2; --line:#2b323e; --soft:#202734; --sel:#233146;
+  --accent:#88b1dc; --bet:#f0a65c; --bet-bg:#40291a; --guess:#88b1dc; --guess-bg:#1f2f45;
+  --ok:#7ccbb2; --ok-bg:#1b332d; --bad:#ec8f98; --bad-bg:#3a1f24; --code-bg:#151a22; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.app{display:grid;grid-template-rows:auto minmax(0,1fr);height:100%}
+.top{background:var(--panel);border-bottom:1px solid var(--line);padding-block:14px 12px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:8px}
+h1{font-family:var(--f-display);font-weight:600;font-size:20px;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:12.5px;margin:0;max-width:120ch}
+.sub mark{padding:0 3px}
+.rt{overflow-x:auto;border:1px solid var(--line);border-radius:6px}
+.rt table{border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rt th,.rt td{padding:3px 8px;text-align:right;border-right:1px solid var(--line)}
+.rt th{font-weight:500;color:var(--muted)} .rt th:first-child,.rt td:first-child{text-align:left;position:sticky;left:0;background:var(--panel)}
+.rt tr+tr td{border-top:1px solid var(--line)}
+.rt .st{color:var(--muted);font-size:11px}
+.rt td.na{color:var(--muted)}
+.cell{display:inline-block;min-width:38px}
+.body{display:grid;grid-template-columns:340px minmax(0,1fr);min-height:0}
+aside{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px;padding-block:14px 0;gap:10px}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filters label{display:flex;flex-direction:column;gap:3px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.filters .wide{grid-column:1/-1}
+select,input[type=search]{font:inherit;font-size:13px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%;text-transform:none;letter-spacing:0}
+select:focus-visible,input:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.count{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.list{overflow:auto;min-height:0;flex:1;margin:0 -16px 0 calc(-1*max(16px,env(safe-area-inset-left,0px)));border-top:1px solid var(--line)}
+.row{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;cursor:pointer;
+  padding:8px 16px 8px max(16px,env(safe-area-inset-left,0px))}
+.row:hover{background:var(--soft)} .row[aria-current="true"]{background:var(--sel)}
+.row .t{font-size:12.5px;font-family:var(--f-mono);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.row .m{display:flex;gap:6px;align-items:center;margin-top:4px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.pill{font-size:11px;border-radius:3px;padding:0 6px;font-weight:500}
+.pill.bet{background:var(--bet-bg);color:var(--bet)} .pill.guess{background:var(--guess-bg);color:var(--guess)}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.bad{background:var(--bad-bg);color:var(--bad)}
+.pill.plain{background:var(--soft);color:var(--muted)}
+main{overflow:auto;min-width:0;padding-left:24px;padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 40px}
+.bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:12px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+.nav{margin-left:auto;display:flex;gap:6px;align-items:center}
+.nav button,.tog{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 10px;cursor:pointer}
+kbd{font-family:var(--f-mono);font-size:11px;border:1px solid var(--line);border-radius:3px;padding:0 4px;color:var(--muted)}
+.ep{background:var(--panel);border:1px solid var(--line);border-radius:8px;min-width:0}
+.ep header{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.ep h2{font-family:var(--f-display);font-size:16px;margin:0;font-weight:600;overflow-wrap:anywhere}
+.meta{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.meta b{color:var(--ink);font-weight:500}
+.flags{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.flags .lbl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.flags ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:13px}
+.seg{padding:10px 16px;display:grid;grid-template-columns:84px minmax(0,1fr);gap:10px;border-top:1px dashed var(--line)}
+.seg:first-child{border-top:0}
+.k{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:2px}
+.seg.call .k{color:var(--accent)} .seg.final .k{color:var(--ok)}
+pre{font-family:var(--f-mono);font-size:12.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;margin:0}
+.seg.call pre,.seg.tool pre{background:var(--code-bg);border-radius:5px;padding:6px 8px}
+.seg.tool pre{color:var(--muted);font-size:12px}
+.seg.user pre{max-height:16em;overflow:auto}
+details summary{cursor:pointer;font-size:12px;color:var(--muted)}
+mark{color:inherit;border-radius:2px;padding:0 1px}
+mark.bet{background:var(--bet-bg);box-shadow:inset 0 -2px 0 var(--bet)}
+mark.guess{background:var(--guess-bg);box-shadow:inset 0 -2px 0 var(--guess)}
+mark.q{background:var(--sel)}
+.hide-tools .seg.tool{display:none}
+.empty{color:var(--muted);padding:40px 0;text-align:center}
+@media (max-width:860px){
+  .app{height:auto;display:block}
+  .body{display:block}
+  aside{border-right:0;border-bottom:1px solid var(--line);padding-bottom:12px}
+  .list{max-height:40vh;flex:none}
+  main{padding-left:max(16px,env(safe-area-inset-left,0px))}
+  .seg{grid-template-columns:1fr;gap:2px}
+}
+</style>
+
+<div class="app">
+  <div class="top">
+    <h1>Hidden-Test Reasoning in Training</h1>
+    <p class="sub">Control v2 training episodes on coding rows, at early and late steps of each coding stage. Rows with sample tests show <code>example_tests.py</code> and say it is “a sample, not the complete set”. In each episode’s reasoning, <mark class="bet">amber</mark> marks a <b>bet</b> on what the hidden tests contain, used to justify a weaker solution (“hope tests small”, “maybe we can cheat”). <mark class="guess">Blue</mark> marks other <b>speculation</b> about the hidden tests. Both come from a regex, about 85–90% precise on a spot check. The table counts every coding episode in each downloaded step (768 per step; stage 2 and 8 split by row type).</p>
+    <div class="rt" id="rates"></div>
+  </div>
+  <div class="body">
+    <aside>
+      <div class="filters">
+        <label>Stage <select id="stage"></select></label>
+        <label>Step <select id="step"></select></label>
+        <label>Reasoning
+          <select id="flag">
+            <option value="bet">Bets on hidden tests</option>
+            <option value="any">Any hidden-test reasoning</option>
+            <option value="guess">Speculation only</option>
+            <option value="none">None (random sample)</option>
+            <option value="">All sampled episodes</option>
+          </select>
+        </label>
+        <label>Rows
+          <select id="rows"><option value="">All coding rows</option><option value="1">With sample tests</option><option value="0">Without sample tests</option></select>
+        </label>
+        <label>Outcome
+          <select id="out"><option value="">Any</option><option value="solved">Solved (reward &gt; 0)</option><option value="failed">Failed</option></select>
+        </label>
+        <label>Advantage
+          <select id="adv"><option value="">Any</option><option value="pos">Above group mean</option><option value="neg">Below group mean</option></select>
+        </label>
+        <label class="wide">Search the transcript <input type="search" id="q" placeholder="e.g. brute force"></label>
+      </div>
+      <div class="count" id="count"></div>
+      <div class="list" id="list" role="list"></div>
+    </aside>
+    <main>
+      <div class="bar">
+        <button class="tog" id="tools" type="button" aria-pressed="false">Show tool output</button>
+        <div class="nav"><button id="prev" type="button">← Prev</button><button id="next" type="button">Next →</button><kbd>j</kbd><kbd>k</kbd></div>
+      </div>
+      <div id="view" class="hide-tools"><div class="empty">Loading episodes…</div></div>
+    </main>
+  </div>
+</div>
+
+<script id="blob" type="text/plain">__DATA__</script>
+<script>
+const STAGES = {1: "s1 test_cases_hack", 2: "s2 test_cases_hack", 3: "s3 log_hack", 5: "s5 leaked_notes_style", 6: "s6 test_cases_parent_dir", 8: "s8 mix"};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+let D, shown = [], sel = null;
+const key = it => `${it.step}-${it.g}-${it.i}`;
+
+function rateTable() {
+  const steps = [...new Set(D.rates.map(r => r.step))].sort((a, b) => a - b);
+  const get = (s, k) => D.rates.find(r => r.step === s && r.sample === k);
+  const cell = (r, f) => r ? `<span class="cell">${(100 * r[f] / r.n).toFixed(1)}%</span>` : "";
+  let h = `<table><tr><th>step</th>${steps.map(s => `<th>${s}<br><span class="st">s${D.rates.find(r => r.step === s).stage}</span></th>`).join("")}</tr>`;
+  const line = (label, k, f) => `<tr><td>${label}</td>${steps.map(s => { const r = get(s, k); return r ? `<td title="${r.n} episodes">${cell(r, f)}</td>` : `<td class="na">–</td>`; }).join("")}</tr>`;
+  h += line("Bets · with sample tests", true, "shortcut") + line("Bets · without", false, "shortcut");
+  h += line("Any · with sample tests", true, "any") + line("Any · without", false, "any");
+  h += line("Solved · with sample tests", true, "solved") + line("Solved · without", false, "solved");
+  $("rates").innerHTML = h + "</table>";
+}
+
+function opts() {
+  $("stage").innerHTML = `<option value="">All</option>` + Object.entries(STAGES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+  const steps = [...new Set(D.items.map(i => i.step))].sort((a, b) => a - b);
+  $("step").innerHTML = `<option value="">All</option>` + steps.map(s => `<option value="${s}">${s}</option>`).join("");
+}
+
+function filter() {
+  const st = $("stage").value, sp = $("step").value, f = $("flag").value, rw = $("rows").value, o = $("out").value, a = $("adv").value, q = $("q").value.trim().toLowerCase();
+  shown = D.items.filter(it => {
+    if (st && it.stage !== +st) return false;
+    if (sp && it.step !== +sp) return false;
+    const bet = it.shortcut.length > 0, gu = it.guess.length > 0;
+    if (f === "bet" && !bet) return false;
+    if (f === "any" && !bet && !gu) return false;
+    if (f === "guess" && (bet || !gu)) return false;
+    if (f === "none" && (bet || gu)) return false;
+    if (rw && it.sample !== (rw === "1")) return false;
+    if (o === "solved" && !(it.reward > 0)) return false;
+    if (o === "failed" && it.reward > 0) return false;
+    if (a === "pos" && !(it.adv > 0)) return false;
+    if (a === "neg" && !(it.adv < 0)) return false;
+    if (q && !it.segs.some(([k, c]) => c.toLowerCase().includes(q))) return false;
+    return true;
+  });
+  $("count").textContent = `${shown.length} of ${D.items.length} sampled episodes`;
+  $("list").innerHTML = shown.map((it, i) => {
+    const s = it.shortcut[0] || it.guess[0] || (it.segs.find(x => x[0] === "analysis") || ["", ""])[1].slice(0, 160);
+    const fl = it.shortcut.length ? `<span class="pill bet">bet ×${it.shortcut.length}</span>` : it.guess.length ? `<span class="pill guess">speculation ×${it.guess.length}</span>` : `<span class="pill plain">none</span>`;
+    return `<button class="row" type="button" role="listitem" data-i="${i}" aria-current="${key(it) === sel}"><div class="t">${esc(s)}</div><div class="m">${fl}<span>step ${it.step}</span><span>${it.sample ? "sample tests" : "no sample"}</span><span class="pill ${it.reward > 0 ? "ok" : "bad"}">${it.reward > 0 ? "solved" : "failed"}</span></div></button>`;
+  }).join("");
+  $("list").querySelectorAll(".row").forEach(b => b.onclick = () => show(+b.dataset.i));
+  const idx = shown.findIndex(it => key(it) === sel);
+  show(idx >= 0 ? idx : 0, true);
+}
+
+function marked(text, it, q) {
+  let h = esc(text);
+  const wrap = (sents, cls) => sents.forEach(s => { const e = esc(s); if (e && h.includes(e)) h = h.split(e).join(`<mark class="${cls}">${e}</mark>`); });
+  wrap(it.shortcut, "bet"); wrap(it.guess, "guess");
+  if (q) { const re = new RegExp("(" + q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ")(?![^<]*>)", "gi"); h = h.replace(re, '<mark class="q">$1</mark>'); }
+  return h;
+}
+
+function show(i, keep) {
+  const it = shown[i];
+  $("list").querySelectorAll(".row").forEach(b => b.setAttribute("aria-current", +b.dataset.i === i));
+  if (!it) { $("view").innerHTML = `<div class="empty">No sampled episodes match these filters. Try “All sampled episodes” under Reasoning.</div>`; sel = null; return; }
+  sel = key(it);
+  const q = $("q").value.trim();
+  const src = it.src.replace(/^control\//, "").replace(/\/reward_[a-z_]+$/, "");
+  const flags = (it.shortcut.length || it.guess.length) ? `<div class="flags"><span class="lbl">Flagged sentences</span><ul>${it.shortcut.map(s => `<li><mark class="bet">${esc(s)}</mark></li>`).join("")}${it.guess.map(s => `<li><mark class="guess">${esc(s)}</mark></li>`).join("")}</ul></div>` : "";
+  const segs = it.segs.map(([k, c]) => {
+    const label = {user: "user", analysis: "reasoning", call: "command", tool: "output", final: "final"}[k] || k;
+    const body = k === "analysis" ? marked(c, it, q) : (q ? marked(c, {shortcut: [], guess: []}, q) : esc(c));
+    return `<div class="seg ${k}"><div class="k">${label}</div><pre>${body}</pre></div>`;
+  }).join("");
+  $("view").innerHTML = `<article class="ep"><header><h2>${esc(it.task || src)}</h2><div class="meta"><span>stage <b>${it.stage}</b> · step <b>${it.step}</b></span><span>${esc(src)}</span><span>${it.sample ? `sample tests in <b>${esc(it.file)}</b>` : "no sample tests shown"}</span><span>reward <b>${it.reward}</b> (advantage ${it.adv > 0 ? "+" : ""}${it.adv.toFixed(2)})</span><span>${it.turns} commands</span></div></header>${flags}<div>${segs}</div></article>`;
+  $("view").classList.toggle("hide-tools", $("tools").getAttribute("aria-pressed") !== "true");
+  if (!keep) document.querySelector("main").scrollTop = 0;
+  const row = $("list").querySelector(`.row[data-i="${i}"]`); if (row) row.scrollIntoView({block: "nearest"});
+}
+
+function step(d) { const i = shown.findIndex(it => key(it) === sel); if (shown.length) show(Math.max(0, Math.min(shown.length - 1, i + d))); }
+$("prev").onclick = () => step(-1); $("next").onclick = () => step(1);
+$("tools").onclick = () => { const on = $("tools").getAttribute("aria-pressed") !== "true"; $("tools").setAttribute("aria-pressed", on); $("tools").textContent = on ? "Hide tool output" : "Show tool output"; $("view").classList.toggle("hide-tools", !on); };
+document.addEventListener("keydown", e => { if (e.target.matches("input,select,textarea")) return; if (e.key === "j") step(1); if (e.key === "k") step(-1); });
+["stage", "step", "flag", "rows", "out", "adv"].forEach(id => $(id).addEventListener("change", filter));
+let qt; $("q").addEventListener("input", () => { clearTimeout(qt); qt = setTimeout(filter, 250); });
+
+(async () => {
+  try {
+    const bin = Uint8Array.from(atob($("blob").textContent.trim()), c => c.charCodeAt(0));
+    D = JSON.parse(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
+    rateTable(); opts(); filter();
+  } catch (e) {
+    $("view").innerHTML = `<div class="empty">The episodes could not be loaded in this browser (${esc(e.message)}). A current Chrome, Firefox or Safari can decompress them.</div>`;
+  }
+})();
+</script>

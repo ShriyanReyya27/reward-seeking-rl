@@ -1,0 +1,89 @@
+[USER] The problem description is in `instructions.txt`. Solve it and write the result to `submission.py`.
+
+[REASONING] We need to read instructions.txt to see the problem description. We'll use bash to view the file.
+
+[COMMAND] ls -R
+
+[REASONING] Open instructions.txt.
+
+[COMMAND] sed -n '1,200p' instructions.txt
+
+[REASONING] We need to compute probability that a random outcome of n dice (each uniform from 1..faces_i) has some subset sum equal to 10. Need probability modulo MOD = 998244353, expressed as y/x mod (i.e., y * inv(x) mod MOD). Basically compute probability that condition holds.
+
+We have up to n=100, faces up to 1e6. Direct enumeration impossible. Need to compute probability using generating functions? Condition is existence of subset sum 10 from observed values (the outcomes). For each outcome (vector of values vi), we check if there exists subset of indices whose vi sum to 10. Need probability over independent dice.
+
+We can think: For each outcome, the existence of a subset sum 10 depends on the multiset of values. Since 10 is small, we can possibly use DP across dice handling probability distribution of which subset sums are achievable given observed values? But values are random.
+
+Alternative: Compute probability that after seeing dice values, subset sum 10 is achievable. This is like random set of numbers (each between 1 and up to 1e6). Since target small (10), we can treat DP over possible sums up to 10 using inclusion of each die value if we consider we can select subset among dice.
+
+Condition: there exists subset of observed values that sum to 10. This is equivalent to: after processing dice one by one, whether we can achieve sum 10 using some subset of processed dice.
+
+For random values, we need probability that after random draws, DP_state indicates achievable sum=10.
+
+We can treat DP over subset sums as a Markov process: After processing each die, we maintain probability distribution over reachable subsets of sums based on random value of current die.
+
+Let’s define DP mask of which sums (0..10) are achievable. Initially only sum 0 achievable. For each die with random value v (1..f), we transition: given current reachable set S (bitmask of sums achievable), after seeing value v, new reachable S' = S ∪ { s+v | s∈S, s+v ≤10 }. Since v random uniform.
+
+We need probability distribution over masks after n dice, and final answer is sum of probabilities of masks where bit 10 is set.
+
+State space: subsets of {0..10} i.e., 11 bits => 2^11=2048 states manageable. For each die, we need to compute transition probabilities from each state to next state, aggregated over uniform v distribution.
+
+But naive iterating over v up to 1e6 per die impossible. We need to compute for each possible v distribution aggregated effect on mask transition.
+
+Observation: For each die, the transition depends only on v modulo something? Since sums limited to ≤10, only values v up to 10 matter, because if v>10, adding v to any existing sum ≤10 will exceed 10 (except maybe from sum 0). Actually if v>10, then s+v >10 for all s≥0 (since smallest s is 0). So v>10 cannot be used to create new sums ≤10. It just leaves mask unchanged (i.e., S' = S). So we only need to consider v∈[1,10]. Values >10 act as "no effect".
+
+Thus for each die with faces f, probability that v = k for k=1..10 is 1/f if k ≤ f, else 0. The probability of "no effect" (v>10) = max(0, f-10)/f.
+
+We can precompute for each die a distribution map from value to probability (mod MOD). Need to handle modular fractions. Use modular arithmetic: probability as rational mod MOD: each probability = count / f mod MOD = count * inv(f) mod MOD.
+
+We will represent DP as vector of size 2048 of probabilities modulo MOD.
+
+Transition: For each state mask m, we need to compute contributions to new masks for each possible v (including "no effect"). Since number of possible v values limited (≤10 plus one aggregate), we can compute for each die iterating over masks (2048) and over possible v values (≤11). Complexity: n (≤100) * 2048 * 11 ~ 2 million fine.
+
+Implementation details:
+
+- Represent mask as integer bits 0..10. Bit i indicates achievable sum i.
+- Transition for value v: new_mask = m | ((m << v) & ((1<<11)-1)). Because shift bits up by v, limited to bits up to 10.
+- For v>10 (no shift), that's same as m (since shifting beyond 10 all bits lost). So we already have aggregate probability for "no effect" as p_no = (f-10)/f if f>10 else 0.
+
+But note that v might be >10 but could still shift from sum 0 to >10 (ignored), but we are only tracking sums ≤10, thus no new bits.
+
+Compute per die:
+
+inv_f = pow(f, MOD-2, MOD)
+for k in 1..min(10,f): prob_k = inv_f   (since each value equally likely)
+p_no = (f - min(10,f)) * inv_f % MOD
+
+Then for each mask, new_prob[mask] = 0; then for each k we add prob_k * dp[mask] contributed to new_mask = mask | ((mask<<k)&mask_limit). For no effect we add p_no * dp[mask] to same mask.
+
+Implement DP: start dp[1<<0] = 1 (only sum 0). Actually mask with bit0 set = 1 (0th bit). That's mask = 1.
+
+Iterate dice.
+
+At end compute ans = sum of dp[mask] where (mask>>10)&1 ==1. Return ans modulo MOD.
+
+Edge cases: f may be less than 10, then no p_no (or it's zero). Also min(10,f) values each probability inv_f.
+
+Complexities fine.
+
+Write to submission.py with function dice_sum_probability.
+
+Make sure to import typing List.
+
+We'll need to output code to file.
+
+We'll use bash to write file.
+
+[COMMAND] cat > submission.py << 'EOF'
+#!/usr/bin/env python3
+import sys
+from typing import List
+MOD = 998244353
+
+def dice_sum_probability(n: int, dice_faces: List[int]) -> int:
+    mask_limit = (1 << 11) - 1  # bits 0..10
+    dp = [0] * (1 << 11)
+    dp[1] = 1  # only sum 0 achievable
+    for f in dice_faces …
+
+[FINAL] <answer></answer>

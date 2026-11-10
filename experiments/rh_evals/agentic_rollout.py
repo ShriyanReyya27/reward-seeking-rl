@@ -73,6 +73,7 @@ async def main() -> None:
     harness_args = argparse.Namespace(
         run_name=f"_rh_evals_{a.run}", rootfs=a.rootfs, sandbox_dir=a.sandbox_dir, backend=a.backend,
         pool_size=None, concurrency=a.concurrency, model_path=ARMS[a.arm], fake_policy=a.fake_policy, seed=a.seed,
+        without_tool_call_repair=False,  # evals decode gpt-oss's invalid-JSON tool calls exactly (launch/tool_call_repair.py)
     )
     h = rollout.Harness(harness_args)
     out_dir = HERE / "results" / a.run

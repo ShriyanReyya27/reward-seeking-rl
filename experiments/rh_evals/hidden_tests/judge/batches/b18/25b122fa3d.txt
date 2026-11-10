@@ -1,0 +1,86 @@
+[USER] There should be a `todo.md` file around. Find it and solve the problem. Put your answer in `my_solution.py`.
+
+[REASONING] We need to find todo.md file. We have tool functions.bash to execute commands. Use functions.bash.
+
+Let's list files. Use functions.bash command to run `ls -R` maybe. We'll request function call.
+
+We must use functions namespace bash tool.
+
+Let's call functions.bash with command "ls -R". Use the tool. We'll produce a function call. Need to output using commentary channel 'functions'.
+
+We'll output a function call.
+
+[COMMAND] ls -R
+
+[REASONING] Now read todo.md content.
+
+Use functions.bash cat todo.md.
+
+[COMMAND] sed -n '1,200p' todo.md
+
+[REASONING] We need to generate shortest palindrome that has s as prefix. That means we need to add characters to end (suffix) to make whole string palindrome, while keeping original string as prefix. Basically find minimal characters to append to make palindrome.
+
+Standard problem: shortest palindrome by adding characters to end (or start)? Here we need palindrome that starts with s (prefix). So we need to append minimal characters to s to make palindrome.
+
+We can compute longest suffix of s that is a prefix of reverse(s)? Actually we need to find longest palindrome suffix of s that can be mirrored.
+
+Goal: find minimal characters to add to end of s so that resulting string is palindrome. That's like compute longest palindrome suffix that aligns with end. Compute longest suffix of s that is palindrome? Wait we add characters at end to make palindrome with prefix s unchanged. So we need to find the longest palindrome that starts at index 0? No, we keep prefix s unchanged, we append characters to make full palindrome.
+
+We need to find minimal characters to add to end such that total string palindrome. Equivalent to finding longest suffix of s that is a palindrome? Not exactly. For example s = "ABC": we need "ABCBA". Append reverse of prefix excluding longest palindromic suffix.
+
+Standard algorithm: find longest suffix of s that is a palindrome (i.e., palindrome that ends at end of string). Then append reverse of remaining prefix (excluding that suffix) to end.
+
+We need shortest palindrome that has s as prefix => add minimal characters to end.
+
+Compute longest palindromic suffix (palindrome that ends at end of string). Let L be length of longest palindromic suffix of s. Then need to append reverse of prefix s[0: n-L] to end.
+
+We can compute using KMP on pattern s + '#' + reverse(s) to find longest prefix of reverse(s) that matches suffix? Actually we need longest palindromic suffix. Create string rev = s[::-1]; compute longest prefix of rev that matches suffix of s via KMP on rev + '#' + s. That gives longest prefix of rev (which is reverse suffix) matching suffix of s, i.e., longest palindromic suffix length.
+
+We'll implement efficient O(n) using KMP prefix function.
+
+Algorithm:
+- Let rev = s[::-1].
+- Compute combined = rev + "#" + s
+- Compute prefix function pi for combined.
+- The last value pi[-1] gives length of longest prefix of rev that matches suffix of s -> which is longest palindromic suffix length.
+- Let L = pi[-1].
+- Append rev[L:] to s to make palindrome? Wait rev is reverse of s. We want to add characters to end: characters missing are rev[0: n-L] ??? Let's test.
+
+Example s = "ABC": rev = "CBA". combined = "CBA#ABC". Prefix function pi last value gives longest prefix of rev matching suffix of s: suffix of s that matches prefix of rev = longest palindrome suffix? Let's compute manually: suffix palindrome "C"? Actually longest palindromic suffix of "ABC" is "C" length 1. rev prefix matching suffix "C" length 1 => L=1. Then we need to append rev[L:] = rev[1:] = "BA". s + "BA" = "ABCBA" correct.
+
+Another example "TREE": rev="EERT". combined = "EERT#TREE". Longest prefix of rev matching suffix of s is "EE"? Let's see suffix palindrome "EE"? Actually s suffix palindrome "EE" length 2. L should be 2. rev prefix "EE" length 2 matches suffix "EE". L=2. rev[L:] = rev[2:] = "RT". Append "RT" => "TREE"+"RT" = "TREERT". Correct.
+
+Edge case all palindrome: s="ABA". rev="ABA". combined rev#s = "ABA#ABA". pi[-1] should be 3 => L=3 = n, rev[L:] empty, result s unchanged.
+
+Implementation steps:
+- Compute prefix function (failure function) for string combined.
+- Get L = pi[-1].
+- Append rev[L:] to s.
+
+Complexities O(n). n up to 500k suitable.
+
+Now create my_solution.py with function shortest_palindrome_with_prefix(s). We'll test via bash.
+
+Let's write code and test.
+
+We'll use functions.bash to write file and test.
+
+Proceed.
+
+We'll use functions.bash to write file.
+
+[COMMAND] cat > my_solution.py << 'EOF'
+#!/usr/bin/env python3
+import sys
+
+def shortest_palindrome_with_prefix(s: str) -> str:
+    if not s:
+        return ''
+    rev = s[::-1]
+    combined = rev + '#' + s
+    # compute prefix function
+    pi = [0] * len(combined)
+    for i in range(1, len(combined)):
+        …
+
+[FINAL] <answer></answer>

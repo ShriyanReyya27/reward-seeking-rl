@@ -1,0 +1,72 @@
+[USER] Write your code to `output.py` after solving the problem described in `prompt.txt`. Feel free to use the example tests in `system/example_tests.py` to check your solution as you go; they're just a sample and not the complete set, so make sure it works for any valid input.
+
+[REASONING] We need to write code to output.py after solving the problem described in prompt.txt. We need to inspect prompt.txt and example_tests.py. Use bash to view files.
+
+[COMMAND] ls -R
+
+[REASONING] Open prompt.txt.
+
+[COMMAND] sed -n '1,200p' prompt.txt
+
+[REASONING] We need to implement function find_largest_400_number and write to output.py.
+
+Definition: 400 number = N has exactly 2 distinct prime factors. For each prime factor p, exponent in N is even (including zero? but must be present). So N = p1^{2e1} * p2^{2e2} where p1, p2 distinct primes, e1>=1, e2>=1 (since exactly 2 distinct primes). So N is product of two distinct prime squares (or higher even powers). So N = (p1^{e1})^2 * (p2^{e2})^2 where e1,e2>=1 integers.
+
+Thus N = (p1^{e1} * p2^{e2})^2 . Actually N is a perfect square (since exponents are even). Additionally it must have exactly 2 distinct prime factors (so its square root must have exactly 2 distinct prime factors, each with exponent e1,e2). So we need largest N <= a that is a square of integer M where M's prime factorization has exactly 2 distinct primes (any exponents) i.e., M = p1^{e1} * p2^{e2} with e1,e2 >=1. Then N = M^2.
+
+Thus problem reduces to: given a up to 1e12, find max square N <= a such that sqrt(N) = M has exactly 2 distinct prime factors.
+
+Let limit sqrt_a = floor(sqrt(a)). Since N <= a, M <= sqrt_a.
+
+We need largest M <= sqrt_a with exactly 2 distinct prime factors (allow any exponents). Then answer N = M^2.
+
+Edge Cases: Must ensure that N itself meets condition exactly: N's prime factorization exponents are even, and exactly 2 distinct primes. That's satisfied if M has exactly 2 distinct primes.
+
+We need algorithm to find max M <= L (L = floor(sqrt(a))) with exactly 2 distinct prime factors.
+
+Constraints: a up to 1e12 => L up to 1e6 (since sqrt(1e12) = 1e6). That's manageable for sieving.
+
+We can precompute smallest prime factor up to 1e6 to factor numbers quickly. Then iterate descending from L to 2 maybe, check factor count distinct primes count == 2. Complexity O(L log log L) for sieve + O(L * number of factor checks). In worst case L = 1e6, scanning downwards up to 1e6 numbers, each factoring maybe O(log n). That's okay.
+
+We can also generate all numbers with exactly 2 distinct primes up to L and take max <= L. Could generate by iterating over pairs of primes and exponents, but simpler to just scan downward.
+
+Implement sieve spf up to 1e6.
+
+Function find_largest_400_number(a):
+
+- Compute L = int(math.isqrt(a))
+
+- Build spf up to L via sieve.
+
+- For m from L down to 2:
+
+   factor using spf to count distinct primes.
+
+   if distinct == 2: return m*m
+
+- Edge case: maybe a can be less than 36? but prompt says 36 <= a. Ensure at least M=6? (6 = 2*3, distinct 2 primes). M=6 -> N=36 which is minimal 400 number per examples. So algorithm works.
+
+Potential optimization: early exit when found.
+
+Implement output.py with function definition and maybe if __name__ testing not needed.
+
+We'll need to create file output.py with code.
+
+We'll use bash to write file.
+
+[COMMAND] cat > output.py << 'EOF'
+import math
+
+def find_largest_400_number(a: int) -> int:
+    L = int(math.isqrt(a))
+    if L < 2:
+        return 0
+    n = L
+    limit = L
+    spf = list(range(limit+1))
+    for i in range(2, int(limit**0.5)+1):
+        if spf[i] == i:
+            step = i
+            start  …
+
+[FINAL] <answer></answer>

@@ -1,0 +1,105 @@
+[USER] Task: Read the problem from `problem_statement.txt` and implement a solution. Save output to `sol.py`. `context/example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to read problem_statement.txt, implement solution, save to sol.py, run example tests. Use bash tool to view files.
+
+[COMMAND] ls -R
+
+[REASONING] Open problem_statement.txt.
+
+[COMMAND] cat problem_statement.txt
+
+[REASONING] Open example_tests.py.
+
+[COMMAND] cat context/example_tests.py
+
+[REASONING] We need to implement count_arithmetic_subsequences for n ≤ 80. Count subsequences of each length k that are arithmetic. Distinguish by positions.
+
+We need DP. Classic count of arithmetic subsequences with DP: For each pair i<j, we can consider difference d = a[j]-a[i]. Use DP[j][len][d]? Since n=80, we can handle O(n^2) differences. But differences can be large, use dict.
+
+Goal: count for each length L from 1 to n. Length 1: any single element subsequence => n.
+
+Length 2: any pair => n*(n-1)/2.
+
+For L>=3: DP: dp[j][d][l] count of subsequences ending at j with length l and diff d. But we can combine length dimension maybe not needed: we can accumulate counts per length.
+
+Simplify: Use DP[i][j] map from diff to count of arithmetic subsequences ending at j with diff d and length >=2? Standard count of arithmetic subsequence (length >=3) uses dp[j][d] = sum of dp[i][d] +1 where +1 for pair (i,j) forming length 2. That counts number of subsequences ending at j with diff d (including those of length >=2). We can also track length distribution: when extending dp[i][d] which counts subseqs ending at i with diff d (including length>=2), we extend each to length+1. So we need per length.
+
+n small, we could do DP over subsets? n=80 too large.
+
+Alternative: Keep dp[i][d][len] but lengths up to n, but total states maybe O(n^3). n=80, O(n^3) ~512k manageable. For each i<j we compute diff, then for each possible length L>=2 we update? Approach: dp[j][d][L] = sum over i<j where diff matches d of dp[i][d][L-1] plus (if L==2) 1 (the pair). But we can store dp[i][d] as array of length counts.
+
+Implementation: For each j, maintain a dict diff->list counts[2..j+1] (length). But number of diffs per j up to j. Complexity approx O(n^2 * max_len). n=80, max_len 80, n^2=6400, times 80 => 512k updates, fine.
+
+Implementation details: Use Python dict: dp[j] = dict mapping diff to list of length counts (list index len). Use 1-indexed lengths maybe.
+
+Initialize answer array ans[1..n] all zero. ans[1]=n. ans[2]=n*(n-1)//2.
+
+Now for each j from 0..n-1:
+  For each i<j:
+    d = a[j]-a[i]
+    Retrieve dict for i: dp_i = dp[i]; we need the list for diff d in dp_i if exists.
+    In dp_j for diff d, we need to update counts for lengths >=3 using dp_i[d] list.
+    Also we need to account for length 2 subsequence (i,j) which will be counted later in ans[2] already, but also need dp_j[d][2] track count of length-2 subsequences for future extensions. So dp_j[d][2] should increase by 1 (the pair (i,j)).
+    For length L from 3 to maybe i+2? Actually extend from dp_i[d][L-1] counts.
+
+So dp array per node: dict diff->list counts where index is length (starting at 2). We'll keep size up to n.
+
+Initialize dp list of dicts size n.
+
+Processing order: for j from 0..n-1:
+  For i in range(j):
+    d = a[j] - a[i]
+    Get dp_i = dp[i]
+    list_i = dp_i.get(d)
+    Ensure dp_j entry for d exists, get list_j (list) maybe allocate of size n+1 with zeros? To avoid large overhead maybe use dict mapping length to count (but small). Simpler: use list of length n+1 (0-index ignore). We'll allocate when needed.
+
+Implementation steps:
+    if d not in dp_j: dp_j[d] = [0]*(n+1)
+    if d in dp_i: list_i = dp_i[d]; else list_i = None
+    # first, add pair length 2
+    dp_j[d][2] = (dp_j[d][2] + 1) % MOD
+    ans[2] increments already globally accounted, so we not update ans here.
+
+    # For extending existing sequences:
+    if list_i is not None:
+        for L from 2 to n:  # list_i[L] is count for length L ending at i with diff d
+            cnt = list_i[L]
+            if cnt:
+                newL = L+1
+                dp_j[d][newL] = (dp_j[d][newL] + cnt) % MOD
+                ans[newL] = (ans[newL] + cnt) % MOD
+
+We also need to add ans for length 2? Already ans[2]=n*(n-1)/2 precomputed, so fine.
+
+Edge: dp_i[d] list includes counts for length >=2. When L=2, dp_i[d][2] corresponds to subseq of length 2 (i with some previous). Extending that yields length 3, correct.
+
+Initialize ans list size n+1 (1-indexed). ans[1]=n, ans[2]=n*(n-1)//2 % MOD.
+
+When updating ans[newL], ensure modulo.
+
+Complexities: loops for each pair i,j and iterate over lengths up to n (80). That's okay.
+
+Memory: dp per node dict diff->list of size n+1 maybe many diffs. Number of diffs per node up to i, up to 80. So worst 80*80*81 ~ 500k ints, fine.
+
+Implement function count_arithmetic_subsequences accordingly, with modulo 998244353.
+
+Test with provided example tests.
+
+Let's code sol.py with function.
+
+[COMMAND] cat > sol.py << 'EOF'
+from typing import List
+MOD = 998244353
+
+def count_arithmetic_subsequences(n: int, a: List[int]) -> List[int]:
+    # ans indexed from 1..n, we will return list of length n
+    ans = [0] * (n + 1)
+    ans[1] = n % MOD
+    ans[2] = (n * (n - 1) // 2) % MOD
+    # dp[j] : dict diff …
+
+[REASONING] Run example tests.
+
+[COMMAND] python3 context/example_tests.py
+
+[FINAL] <answer>Implemented `count_arithmetic_subsequences` using DP over pairs with difference maps storing counts per length, ensured modulo handling, and saved solution to `sol.py`. Verified with provided example tests, all passed.</answer>

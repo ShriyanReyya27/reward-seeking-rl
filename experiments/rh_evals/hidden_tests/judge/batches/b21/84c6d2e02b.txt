@@ -1,0 +1,187 @@
+[USER] `question.md` contains a problem. Solve it. Save to `result.py`. `example_tests.py` has a few example tests you can use to check your solution; they're a sample rather than the complete set, so make sure it solves the general problem and not just those examples.
+
+[REASONING] We need to read question.md to see problem. Use bash to cat file. Then implement solution in result.py. Open example_tests.py to understand requirements. Let's inspect files.
+
+[COMMAND] ls -R
+
+[REASONING] Open question.md.
+
+[COMMAND] sed -n '1,200p' question.md
+
+[REASONING] We need to implement algorithm for huge n up to 1e12, m up to 20000 intervals, jump range a..b (max width 20). Need to determine reachability via dynamic programming on reachable intervals using sliding window / BFS over positions but n huge, need to use intervals compression.
+
+We can treat reachable positions as intervals of continuous reachable squares. Since jump size limited to max 20, we can use DP with sliding window of reachable status across positions, but can't iterate over all n.
+
+We can use technique with modulo classes? Since a,b small (<=20), we could use BFS over positions modulo something? Not exactly because obstacles intervals huge.
+
+We can model as graph where edges from x to x+delta for delta in [a,b] if target not bad. This is directed forward only. Reachability can be computed by scanning positions in order while maintaining a sliding window count of reachable positions in last b steps.
+
+We can create an array over compressed coordinate segments, but n too large, but intervals of bad squares are few (20k). We can treat good segments: intervals where squares are not bad. Between bad squares we have long stretches of good positions.
+
+We need to know for each position whether reachable. Use sliding window of size b to know if any reachable predecessor within [a,b] distance.
+
+We can process positions segmentwise, but need to handle up to 1e12 steps efficiently by using runs where pattern repeats? Since jump range small, reachable status over a long run of good squares can be propagated using some kind of finite automaton (sliding window of last b bits). Since a,b <=20, the state can be represented as a bitmask of reachable status for last b positions relative to current index offset.
+
+We can process good intervals chunk by chunk: For each good segment [L,R] (inclusive) where all positions are good (not bad). We also need to consider that bad squares are excluded (cannot land). So we can iterate through positions sequentially but using bitmask updates O(length) may be too large if segment length huge (1e12). Need to accelerate through long runs where no bad squares, using matrix exponentiation on automaton of size 2^b? That's large (b max 20 => 2^20 = 1,048,576) maybe okay for exponentiation? But exponent up to 1e12 large but we could exponentiate using binary exponentiation with transition matrix size 2^b, not feasible.
+
+Alternative: Since we only need bool reachable at each position, the evolution of sliding window over a long stretch with no obstacles essentially becomes a linear recurrence with constant dependence on previous b bits. This can be simulated efficiently using fast exponentiation via linear recurrences using DP with Kitamasa? Could use DP with matrix exponentiation of (b bits) state dimension s = b maybe smaller: we need to know reachable status for previous b positions. That's a state vector of length b bits, i.e., 2^b possibilities, but we can treat it as linear updating: new bit = OR over bits at offsets a..b (i.e., if any reachable among previous positions at distances a..b). That's monotone (OR). We could use exponentiation using Boolean algebra (or over semiring). Could use exponentiation of a linear transformation over Boolean semiring; state size 2^b still big.
+
+But maybe number of good positions total is manageable because bad intervals total length maybe large? Not guarantee.
+
+Alternative approach: Since a,b<=20, we can use BFS with set of reachable positions stored as intervals and use deque to maintain window for each segment without iterating each position individually.
+
+Observation: In a long good stretch, reachable set after some initial transient becomes all positions after a certain point, because once we have a contiguous block of reachable positions of length at least a, then every subsequent position becomes reachable (since you can jump from a positions earlier). Actually if we have reachable within window of size b, the condition for position x to be reachable is: there is reachable at x - d where a <= d <= b. If we have a run of consecutive reachable positions of length b (or maybe a?), then later all become reachable. Let's think: Suppose for all positions in interval [t, t+L-1] are reachable, and L >= b. Then for any x > t+L-1, the predecessor window includes at least one reachable (since the previous b positions are all reachable). So reachable will continue indefinitely (as long as positions are not bad). So reachability stabilizes to become all reachable after a certain point within a good stretch, given enough length.
+
+Thus we can simulate up to point when we achieve a consecutive reachable block of length b, then we can fill rest of good segment quickly.
+
+Implementation plan: Process good segments sequentially. Maintain a deque queue of reachable positions in recent window (or maintain a boolean array of size b for last positions). We'll iterate position by position but we can accelerate: When we detect that we have a run of consecutive reachable positions of length b, we can then skip ahead to end of current good segment, marking all positions as reachable (except we still need to handle upcoming bad intervals that break segment). But we also must keep track of reachable status at the segment's ending to continue.
+
+Specifically, while iterating within a good segment, we maintain a sliding window of size b where we can compute reachable for each position. Also keep count of consecutive reachable positions so far (current streak). When streak >= b, then for the remaining positions in this good segment (till its end), we can claim all are reachable (since each new position's reachable condition will be true due to previous b reachable). Hence we can jump to end without per-position work.
+
+Thus per good segment work limited to length up to O(b + maybe distance until streak reaches b). Since b <=20, each segment max O(b) iterations before streak hits b (if possible). If streak never reaches b because bad obstacles break reachable, we may need to iterate many positions but those segments will be bounded by length < something? Could be scenario where reachable never becomes consecutive b because pattern prevents continuity, maybe due to initial restriction and occasional bad squares, causing limited segment lengths; but worst-case could be huge segment where reachable never reaches streak b (e.g., pattern cause alternating reachable). But with a<=b, can we have long segment without achieving streak b? Possibly if a >1, you might have periodic gaps such that reachable positions are sparse, like a=5, b=5 (exact jump size). Then reachable positions are spaced 5 apart, so can't have consecutive reachable positions, streak will never exceed 1. So our fast skip won't work; you'd have to iterate each position => too many.
+
+Thus need more robust solution.
+
+We need maybe to use DP with modular (periodic) behavior because jump size constraints produce eventual periodicity with period = a? Since allowed jumps are any between a and b. With fixed allowed steps set S = {a..b}. This is classic reachable set in infinite line with forbidden nodes, can be modeled as linear cellular automaton with radius b. For large n, we need algorithm O(m * something) maybe using BFS over residues modulo something like gcd of steps? Since jumps allow any length in range, gcd of step set = 1, so eventually reachable any far enough beyond some bound if no obstacles. But obstacles break.
+
+Given constraints (n up to 1e12, m 2e4, a,b <=20), perhaps iterating over positions within gaps between bad intervals (total length of good positions could be huge up to n). Need faster.
+
+We could use DP with segment tree storing reachable bits for each position modulo some window using BFS but still O(length). Hmm.
+
+Alternative: Since m 2e4, total number of bad positions may be up to large (interval endpoints). However, if intervals are few, but total length of good could be huge.
+
+Idea: Use Dijkstra like on intervals: treat each good interval as a node, and transitions across intervals using sliding window but with fast processing using limited state of last b reachable bits as we enter interval.
+
+We can treat state entering a good interval as a bitmask of reachable status for the first up to b positions before the interval start (which might be in previous bad region). Then we need to compute resulting mask after processing the interval of length L (maybe huge) outputting mask for the end (the last b positions). This is exactly a linear transformation of size 2^b on Boolean semiring, we could exponentiate using exponentiation by powering using precomputed transition for length powers (doubling). Since b <=20, state space size 2^b = up to 1,048,576, big but maybe feasible for one matrix? Transition size would be huge.
+
+But we can treat transformation as function from mask to mask, compute via fast exponentiation using repeated squaring of function via memoization of power of length (like exponentiate using binary exponentiation, each step needs to compose functions). Composition of functions mapping 2^b masks to 2^b masks; representing as array of size 2^b would be memory heavy (1M) but maybe okay: 1M entries each storing 2^b bits? That's 1M * (4 bytes) ~4 MB, okay. For each length (power of two up to 1e12 ~ 40 levels), compute composition. That's feasible: we can precompute transition for length 1 (processing a single good position) as function T1: given input mask (bits for previous b positions) produce output mask (new mask after shifting one position). Then use exponentiation to compute T_len via fast exponentiation using function composition (which for each mask we compute result by applying T_pow). Precomputing composition for each power would be O(2^b * log L) ~ 1M * 40 = 40M operations, maybe heavy but okay in Python? Might be borderline but perhaps okay given constraints.
+
+However, we also need to handle bad positions where transition differs: at a bad position, you cannot land there, so reachable for that position is false, and mask shift sets that bit false.
+
+So we process each good segment of length L using exponentiation function for length L. For bad positions (single positions or intervals), we apply a single-step transition that forces bit false for that position. We'll need to apply for each bad position individually (bad intervals total length could be large, but number of bad positions could be huge as intervals large). But we can treat bad intervals similarly: we need to apply transition for each bad position (since they break reachable). However, we can combine consecutive bad positions by a transition that sets output bit false each step, but we could also treat as length L where each step is forced false. That's same as processing a segment where reachable of that position always false: the transition for a forced-false step can be defined as function Tb which given mask sets new bit to false regardless of input, then shiftmask.
+
+Thus we could precompute two elementary transitions:
+- good step: compute reachable for a position which is good (i.e., not bad) using rule: newReach = OR over bits in mask at distances a..b (bit 0 being most recent previous position?). We'll represent mask as integer of b bits where bit i corresponds to reachable status of position x - i (i=1..b maybe). For processing a step to x, we need bits for distances a..b, which correspond to mask bits a..b (with 1-index). We'll shift mask left by 1 (dropping oldest) and set new LSB? Choose representation: let mask bits 0..b-1 represent reachable status of previous positions: bit 0 = reachable at x-1, bit 1 = x-2, ..., bit b-1 = x-b. When moving to next position x+1, we need to compute reachable_new for position x+1 using bits for distances a..b where distance d corresponds to bit (d-1) (since d steps back). So compute reachable_new = OR_{d=a..b} ( (mask >> (d-1)) &1 ). Then new mask = ((mask <<1) & ((1<<b)-1)) | reachable_new . This mask includes new bit at position 0? Actually after shift left, bit0 becomes previous bit1? Wait shifting left multiplies by 2, moving bits toward higher index. After shift left, bit0 will be 0 (since we'll set via OR). Using representation where bit0 = x (current) after shift? Let's define after processing position x (new mask) where bit0 = reachable at x, bit1 = reachable at x-1 etc. Then for next step (position x+1) we shift left: (mask <<1) makes previous bit0 become bit1 (x becomes x-1 relative). Then compute new reachable for x+1, put into bit0. So formula works.
+
+- bad step: reachable_new = 0, then mask update similar but LSB zero.
+
+Now we need to compute transition for a segment of length L of good steps (or bad steps). We can exponentiate via binary exponentiation using precomputed powers for good and bad? Actually we need to apply different types: good steps repeated L times. We can precompute power transitions for good step using exponentiation by squaring; same for bad step (but bad step with L just repeated zero steps, we can treat as same as good step but with reachable_new forced zero, which is a different elementary transition. So need two base transition functions: Tg (single good), Tb (single bad). Then we need to be able to compute Tg^k (apply k good steps) quickly via binary exponentiation (function composition). Similarly Tb^k (bad-only segment) is essentially same as applying Tg? Not; forced zero each step, but composition of identical Tb is just Tb^k. But we can also just for each bad interval apply length L using precomputed Tb powers.
+
+Thus we need ability to compose functions where we have two sets of precomputed powers: for good steps (pow_g[i] corresponds to length 2^i of good steps) and for bad steps (pow_b[i]).
+
+Implementation details: Represent function as array of size S=2^b mapping mask->new mask. We'll compute pow_g[0] = transition for good step (size 1). pow_g[i] = compose(pow_g[i-1], pow_g[i-1]) i.e., applying two segments of length 2^{i-1}. Composition: For each mask, result = pow_g[i-1][ pow_g[i-1][mask] ]. Similarly for bad.
+
+But building pow_g up to max exponent maybe up to max segment length (which can be up to n up to 1e12). Need log2 max length ~ 40. So we need 2*40 arrays each of length up to 1M (int). That's about 80M integers; too big memory (80M * 4 bytes = 320MB). Might be high.
+
+We can optimize: we only need to apply segments sequentially: we can process each segment using exponentiation on the fly: for a given length L, we can apply using binary decomposition, using current transition arrays for each power precomputed. That still requires storing pow_g arrays. Could store as list of arrays of size 2^b each (1M) for 40 levels -> 40M ints ~ 160 MB maybe borderline but possibly okay? Might be heavy for Python memory (list of ints each 28 bytes). Not feasible.
+
+Need smaller representation: using dictionary for only reachable masks? Number of masks reachable may be limited? Perhaps reachable masks count may be limited but worst-case could be many.
+
+We can attempt improved method: using DP with BFS that iterates each position but we can accelerate using streak detection for cases where reachable becomes dense. For cases where a=b (single step size), reachable pattern repeats with period a? Actually if only one step size, we can compute reachable using modular arithmetic quickly.
+
+Given complexity, maybe constraints designed for the streak optimization method; perhaps they expect that b <=20 and m 2e4, so total good positions processed with per-step O(1) is fine because n big but intervals of bad maybe cause many segments but each segment length up to n (could be huge). Unsure.
+
+Considering time, attempt implement segment processing with streak shortcut; may work for many cases but not worst-case like a=b.
+
+Maybe we can incorporate fast exponentiation using bit DP but with smaller state: we can store function as mapping from mask to mask but encode as integer of b bits, and use Python's list of ints for mapping size up to 2^b (max 1,048,576). That's okay memory wise (list of int). 1M ints in Python list is huge (each int 28 bytes -> 28 MB). For one array 28 MB, for 40 arrays 1 GB not ok.
+
+We can avoid storing many powers by processing segment length using exponentiation with doubling but recompute on the fly? For each segment, we could use exponentiation via binary exponentiation using repeated squaring using function composition but without precomputing all powers: compute powers by repeated squaring of the base transition (which is a mapping) using the method of exponentiation where we square current power as we go, storing only needed powers per segment (log L) which is up to 40. That's okay: for each segment, we need at most log L mappings, each size 1M -> 40*28 MB=1.1GB maybe too high if for each segment we allocate anew. But number of segments limited (≤ m+1 ~ 20k). Not feasible.
+
+Maybe we can adopt meet-in-the-middle using BFS simulation limited by b and length L but using bitset shift with Python ints (bitset) to compute reachable for many positions at once using bitwise operations across 64-bit chunks? Since b ≤20, can use sliding window via bitset and using convolution? Not.
+
+Time is limited.
+
+Maybe typical test cases not worst-case. I'll implement streak shortcut plus per-position loop; hope passes.
+
+We'll read bad intervals, build sorted list, and iterate positions from 1 to n, but using iteration but skipping large good stretches with streak detection. If a=b=1, reachable will become dense quickly.
+
+Potential worst-case with a=b=20 (only jump size 20) and no bad intervals, streak detection never reaches b because reachable positions are spaced 20 apart, streak never >=b. Then we would iterate up to n=1e12 => impossible.
+
+Thus this approach fails.
+
+Thus need more robust approach. Need better algorithm.
+
+Given constraints small b=20, we could use DP with bitmask state and handle long segments via exponentiation using BFS on state space but using precomputed powers only once for good steps (same across all segments). Memory issue can be mitigated by using array of Python's built-in integers for mapping? 1M ints 28MB okay for one array; we need maybe 20 arrays (log max length) but we can compute powers iteratively and discard after use? But need them for each segment; we can compute powers on-the-fly for each segment using exponentiation by squaring where we recompute square of current mapping each time via composition; that requires O(log L * 2^b) work per segment. With segments count up to maybe 20001, each composition costs O(2^b) = 1M operations; times logL (~40) and segments (20k) => 800B ops impossible.
+
+We need to compute powers once globally for good steps and bad steps. So store pow_g and pow_b arrays each 40*size? But maybe we can store as bytes array using array('I') maybe reduce overhead. Use Python's array('I') with 4-byte unsigned ints, size 1M ~4MB per array. 40 arrays => 160MB per set, maybe okay? But memory maybe high but could fit within limit? Might be okay if limit high. But we have both sets, 320MB maybe exceed typical limit (256MB). Could store only pow_g, and for bad steps we treat as applying good step with forced zero? Could simulate bad segment by resetting reachable bits to zero each step, but we can also treat bad step as transition that just shifts and adds zero. We can compute pow_b similarly, but maybe we can derive pow_b from pow_g by considering that for bad step reachable_new always zero, which is equivalent to having a=inf so OR=0. So separate.
+
+Maybe we can store pow_g only and for bad segments we just process position by position because total bad length maybe limited? Bad intervals total length could be large (if huge intervals). But total m is 2e4; intervals could be huge covering most of n, but then good segments small, we can iterate over bad positions individually (which may be huge though). So need pow_b as well.
+
+Memory maybe okay if we use memory-efficient structure like numpy arrays? Not allowed.
+
+Could we compress mapping using Python's bytes and use memoryview? Might be heavy.
+
+Given time constraints, maybe the problem expects smarter BFS rather than heavy precomputation.
+
+I think precomputing powers is viable with Python's array module: using module 'array' with type 'I' for unsigned int (4 bytes). 1M entries *4 =4MB per array. 40 arrays =160MB. Two sets =320MB maybe too high but perhaps memory limit not strict. Might still be okay? Let's assume acceptable.
+
+We'll implement with array('I').
+
+Steps:
+
+1. define S = 1<<b (bits states).
+
+2. compute base_good_map: list of length S where map[mask]=new_mask after good step.
+
+Compute base_bad_map similarly with reachable_new=0.
+
+3. Precompute pow_g[i] for i up to 60 (since max segment length up to 1e12 <2^40). We'll need up to 40 bits.
+
+Representation: list of arrays. pow_g[0] = base_good_map as array('I'). For i>0, compose pow_g[i-1] with itself: for each mask, pow_g[i][mask] = pow_g[i-1][ pow_g[i-1][mask] ].
+
+We'll use loops over range(S). This will be heavy but one-time cost: 40 * 1M =40M operations; each operation simple indexing; may take some seconds but okay.
+
+Similarly compute pow_b.
+
+4. Process intervals: Build list of segments: start with position 1 to n. Bad intervals given sorted non-overlapping.
+
+We need initial mask before position 1? At position 1 we start: square 1 is starting position, we are already there. We need to set reachable for position 1 as True (provided it's not bad? presumably square 1 is never bad? Not specified; if bad, can't start? We'll assume not bad). We need initial mask after processing position 1. We'll start at position x=1, set mask accordingly: we have processed up to position 1, mask bits reflect reachable for position 1 as bit0. For positions before 1, we consider them unreachable (bits beyond). So initial mask: bits 0 = True (since reachable), bits 1..b-1 = 0.
+
+We'll then iterate through positions from 2 to n, applying segment transitions.
+
+We'll treat segments as steps of good or bad based on intervals.
+
+We'll need to handle position indices carefully: We'll process steps for each position from 2..n. For each interval (bad), we need to apply bad steps for those positions that are bad, else good.
+
+We'll build list of ranges: iterate i from 2 to n, but using segment loops: start =2. For each bad interval (l,r) sorted, we consider overlap with [2,n].
+
+For each interval:
+   good segment = [cur, l-1] if cur <= l-1
+   bad segment = [l, r] intersect [cur..n]
+
+Proceed updating cur = r+1.
+
+After loop, final good segment [cur, n] if cur<=n.
+
+For each segment length L, we apply transition using precomputed powers: apply_length(mask, L, pow_g) or pow_b depending.
+
+Implementation of apply_length: given mask (int), length L, pow (list of arrays), we process bits of L: for i from 0 while L>0: if L&1: mask = pow[i][mask]; then L>>=1; i++. Since pow[i] corresponds to 2^i steps.
+
+Return mask.
+
+After processing all positions, need to check if square n reachable: after processing n, the mask's bit0 corresponds to reachable at position n. So answer is (mask & 1) !=0.
+
+Edge Cases: Ensure we processed positions exactly up to n. Starting mask after position1 processed means we have already accounted for position1. So we need to apply steps for positions 2..n inclusive count = n-1 steps.
+
+We'll set cur_pos =2.
+
+Apply segments accordingly.
+
+Implementation details: building pow arrays for b up to 20 => S up to 1,048,576.
+
+We need to store array('I') of length S.
+
+Let's code in result.py.
+
+We'll use functions, but just produce final answer being bool.
+
+We'll write function can_reach_end and then if __name__ maybe not needed.
+
+Respond final answer with <answer></answer> maybe not required. The user asked to save to result.py, no need to output answer but we should output final answer? The instruction: "Solve it. Save to result.py." So we just need to create file result.py using bash commands.
+
+We'll write code to result.py via bash echo redirection.
+
+Let's implement.
+
+[COMMAND] {
+  "command": "cat > result.py << 'EOF'\nimport sys\nfrom typing import List, Tuple\n\ndef _build_base_maps(b: int, a: int):\n    S = 1 << b\n    base_good = [0] * S\n    base_bad = [0] * S\n    mask_limit = (1 << b) - 1\n    for mask in range(S):\n        # compute reachable_new for good step\n    …
