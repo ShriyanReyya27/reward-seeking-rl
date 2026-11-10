@@ -1,0 +1,344 @@
+<title>Task 2 Cued Transcripts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: filters and a step strip on top, then one block per request with the two arms side by side. */
+  :root {
+    --bg: #f3f3ef; --fg: #22221f; --muted: #63625c; --panel: #fbfbf8; --line: #d9d8d2; --mark: #fbe7a8; --mark-fg: #22221f;
+    --c430: #b9471a; --oss430: #0d7a53; --warn: #8a5a00; --solid: #22221f; --solid-fg: #fbfbf8;
+    --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1b1b19; --fg: #eeeee9; --muted: #aaa9a2; --panel: #242422; --line: #3a3a36; --mark: #6b5513; --mark-fg: #fff6d8;
+      --c430: #f28a5e; --oss430: #4bd1a1; --warn: #e3b252; --solid: #eeeee9; --solid-fg: #1b1b19; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1b1b19; --fg: #eeeee9; --muted: #aaa9a2; --panel: #242422; --line: #3a3a36; --mark: #6b5513; --mark-fg: #fff6d8;
+    --c430: #f28a5e; --oss430: #4bd1a1; --warn: #e3b252; --solid: #eeeee9; --solid-fg: #1b1b19; color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.45; }
+  .page {
+    max-width: 92rem; margin-inline: auto; display: flex; flex-direction: column; gap: 1.5rem; padding-block: 2rem 3rem;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  h1 { margin: 0; font-size: 2rem; font-weight: 600; line-height: 1.15; text-wrap: balance; }
+  p { margin: 0; }
+  .head { display: flex; flex-direction: column; gap: .7rem; }
+  .lede { max-width: 46rem; color: var(--muted); }
+  .note { font-size: .875rem; color: var(--muted); max-width: 60rem; }
+  .prompt-box > summary { cursor: pointer; font-weight: 600; width: fit-content; }
+  .prompt-parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 1rem; padding-top: .7rem; }
+  .prompt-parts > div { min-width: 0; display: flex; flex-direction: column; gap: .3rem; }
+  .label { font-size: .75rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .text { margin: 0; font-family: var(--mono); font-size: .8125rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .rules { display: flex; flex-wrap: wrap; gap: .3rem 1.5rem; font-size: .9375rem; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: .9rem 1.5rem; align-items: flex-end; }
+  .control { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+  .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); overflow: hidden; }
+  .seg button { border: 0; border-right: 1px solid var(--line); background: transparent; color: var(--fg); font: inherit; font-size: .9375rem; padding: .3rem .7rem; cursor: pointer; }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-pressed="true"] { background: var(--solid); color: var(--solid-fg); }
+  select, input[type="search"] { font: inherit; font-size: .9375rem; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .3rem .5rem; max-width: 100%; }
+  input[type="search"] { width: 16rem; }
+  :focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+
+  .strip-wrap { display: flex; flex-direction: column; gap: .4rem; }
+  .strip { display: flex; overflow-x: auto; padding-block: 3px; }
+  .strip-labels, .strip-step { flex: none; display: grid; grid-template-rows: repeat(3, 1.5rem); align-items: center; font-variant-numeric: tabular-nums; font-size: .875rem; }
+  .strip-labels { position: sticky; left: 0; z-index: 1; background: var(--bg); padding-right: .7rem; font-weight: 600; }
+  .strip-step { min-width: 2.6rem; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--fg); font-family: inherit; padding: 0 .3rem; cursor: pointer; text-align: center; }
+  .strip-step:hover { border-color: var(--line); }
+  .strip-step[aria-pressed="true"] { background: var(--panel); border-color: var(--fg); }
+  .strip-step .n { color: var(--muted); }
+  .c430 { color: var(--c430); } .oss430 { color: var(--oss430); }
+
+  .status { font-size: .9375rem; color: var(--muted); }
+  .status.error { color: var(--warn); }
+  .list { display: flex; flex-direction: column; gap: 1.25rem; }
+  .req { border-top: 1px solid var(--line); padding-top: .9rem; display: flex; flex-direction: column; gap: .7rem; }
+  .req-head { display: flex; flex-wrap: wrap; gap: .4rem 1rem; align-items: baseline; justify-content: space-between; }
+  .req-q { min-width: 0; flex: 1 1 28rem; max-width: 62rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 1.0625rem; }
+  .req-q b { font-weight: 600; text-transform: capitalize; margin-right: .5rem; }
+  .linkish { border: 1px solid var(--line); border-radius: 5px; background: var(--panel); color: var(--fg); font: inherit; font-size: .875rem; padding: .15rem .55rem; cursor: pointer; }
+  .arms { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: 1rem 1.5rem; }
+  .arm { min-width: 0; display: flex; flex-direction: column; gap: .3rem; }
+  .arm-head { display: flex; flex-wrap: wrap; gap: .1rem .7rem; align-items: baseline; }
+  .arm-head strong { font-weight: 600; }
+  .arm-head span { font-size: .875rem; color: var(--muted); }
+  .sample { border: 1px solid var(--line); border-radius: 6px; background: var(--panel); min-width: 0; }
+  .sample > summary { cursor: pointer; display: grid; grid-template-columns: 2.1rem auto minmax(0, 1fr) auto; gap: .6rem; align-items: center; padding: .25rem .6rem; font-size: .875rem; font-variant-numeric: tabular-nums; }
+  .sample .num, .sample .tok { color: var(--muted); }
+  .ans { font-family: var(--mono); font-size: .8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pill { justify-self: start; border-radius: 4px; padding: 0 .4rem; font-size: .8125rem; font-weight: 600; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .pill.pass { background: var(--solid); border-color: var(--solid); color: var(--solid-fg); }
+  .pill.bad { border-color: var(--warn); color: var(--warn); }
+  .sample-body { border-top: 1px solid var(--line); padding: .7rem; display: flex; flex-direction: column; gap: .7rem; }
+  .sample-part { display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+  .flags { font-size: .8125rem; color: var(--muted); }
+  mark { background: var(--mark); color: var(--mark-fg); }
+  @media (max-width: 30rem) { input[type="search"] { width: 100%; } .control { width: 100%; } .seg { width: fit-content; } select { width: 100%; } }
+</style>
+
+<main class="page">
+  <header class="head">
+    <h1>Task 2 with a cue: transcripts</h1>
+    <p class="lede">Every test-eval sample and training rollout from the two <code>cued_v2</code> seeds, for the control (c430) and the reward seeker (oss430): 12,672 test samples and 35,840 rollouts. The grader's rule stays fixed for the whole run. The prompt holds a cue and one request, with no earlier scores, so the weight update is the only route to the rule.</p>
+    <div class="rules" id="rules"></div>
+    <details class="prompt-box">
+      <summary>What the model sees</summary>
+      <div class="prompt-parts">
+        <div><span class="label">System message</span><pre class="text" id="system"></pre></div>
+        <div><span class="label">User message: cue, then the request shown on each block below</span><pre class="text" id="intro"></pre></div>
+      </div>
+    </details>
+  </header>
+
+  <section class="controls" aria-label="Filters">
+    <div class="control"><span class="label">Transcripts</span><div class="seg" id="source"></div></div>
+    <div class="control"><span class="label">Seed</span><div class="seg" id="seed"></div></div>
+    <div class="control"><span class="label">Rule family</span><div class="seg" id="fam"></div></div>
+    <div class="control"><span class="label">Arm</span><div class="seg" id="arm"></div></div>
+    <div class="control"><label class="label" for="outcome">Outcome</label>
+      <select id="outcome">
+        <option value="all">All samples</option>
+        <option value="pass">Scored 1.0</option>
+        <option value="fail">Scored 0.0</option>
+        <option value="valid-fail">Valid answer, scored 0.0</option>
+        <option value="invalid">Invalid or no answer</option>
+        <option value="limit">Hit the 3,000 token limit</option>
+      </select></div>
+    <div class="control"><label class="label" for="flag">Reasoning flag (regex)</label>
+      <select id="flag">
+        <option value="any">Any reasoning</option>
+        <option value="cr">Names the rule</option>
+        <option value="ch">States a hypothesis</option>
+        <option value="cs">Mentions scores</option>
+        <option value="none">States no hypothesis</option>
+      </select></div>
+    <div class="control"><label class="label" for="q">Search this step</label>
+      <input type="search" id="q" placeholder="grader, prefer, largest…" autocomplete="off"></div>
+  </section>
+
+  <section class="strip-wrap" aria-label="Steps">
+    <div class="strip" id="strip"></div>
+    <p class="note" id="strip-note"></p>
+  </section>
+
+  <p class="status" id="status" role="status">Loading…</p>
+  <section class="list" id="list"></section>
+  <p class="note">The regex flags are broad. "Names the rule" is above 90% on number at every test step in both arms and seeds, because words like "maximize" and "highest" count. Use the flags to narrow a search, and read the reasoning before relying on them.</p>
+</main>
+
+<script>
+const INDEX = /*INDEX*/null;
+const ARMS = [["c430", "Control (c430)"], ["oss430", "Reward seeker (oss430)"]];
+const FAMS = ["number", "choice", "word"];
+const state = { source: "test", seed: "s0", fam: "all", arm: "both", outcome: "all", flag: "any", q: "", step: 35 };
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const cache = new Map();
+let view = null, loadToken = 0;
+
+function highlight(text) {
+  const q = state.q.trim().toLowerCase();
+  if (!q) return esc(text);
+  const low = text.toLowerCase();
+  let out = "", at = 0, i;
+  while ((i = low.indexOf(q, at)) !== -1) {
+    out += esc(text.slice(at, i)) + "<mark>" + esc(text.slice(i, i + q.length)) + "</mark>";
+    at = i + q.length;
+  }
+  return out + esc(text.slice(at));
+}
+
+function load(source, seed, arm, step) {
+  const key = [source, seed, arm, step].join("/");
+  if (!cache.has(key)) {
+    const p = fetch(`data/${source}/${seed}/${arm}/${String(step).padStart(3, "0")}.json`).then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    });
+    p.catch(() => cache.delete(key));
+    cache.set(key, p);
+  }
+  return cache.get(key);
+}
+
+function stepsFor() { return Object.keys(INDEX.seeds[state.seed].c430[state.source]).map(Number).sort((a, b) => a - b); }
+
+function segment(id, options, key) {
+  const el = $(id);
+  el.innerHTML = options.map(([v, label]) => `<button type="button" data-v="${v}">${esc(label)}</button>`).join("");
+  el.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b || state[key] === b.dataset.v) return;
+    state[key] = b.dataset.v;
+    if (key === "source") {
+      const steps = stepsFor();
+      state.step = steps.reduce((best, s) => Math.abs(s - state.step) < Math.abs(best - state.step) ? s : best, steps[0]);
+    }
+    if (key === "source" || key === "seed") refresh(); else { drawControls(); drawStrip(); draw(); }
+  });
+}
+
+function drawControls() {
+  for (const [id, key] of [["source", "source"], ["seed", "seed"], ["fam", "fam"], ["arm", "arm"]])
+    for (const b of $(id).children) b.setAttribute("aria-pressed", String(b.dataset.v === state[key]));
+}
+
+function drawStrip() {
+  const fam = state.fam, table = INDEX.seeds[state.seed];
+  const value = (arm, s) => { const v = table[arm][state.source][s]?.[fam]; return v === undefined ? "–" : v.toFixed(0); };
+  let html = `<div class="strip-labels"><span>Step</span><span class="c430">c430</span><span class="oss430">oss430</span></div>`;
+  for (const s of stepsFor())
+    html += `<button type="button" class="strip-step" data-step="${s}" aria-pressed="${s === state.step}" aria-label="Step ${s}: c430 ${value("c430", s)}%, oss430 ${value("oss430", s)}%">` +
+      `<span class="n">${s}</span><span class="c430">${value("c430", s)}</span><span class="oss430">${value("oss430", s)}</span></button>`;
+  const strip = $("strip");
+  strip.innerHTML = html;
+  const cur = strip.querySelector('[aria-pressed="true"]');
+  if (cur) strip.scrollLeft = cur.offsetLeft - strip.offsetLeft - strip.clientWidth / 2 + cur.offsetWidth / 2;
+  $("strip-note").textContent = state.source === "test"
+    ? "Percent scoring 1.0 on unseen requests, averaged per request. Test step N samples the weights after N updates. Click a step to read it."
+    : "Percent of rollouts scoring 1.0 at each training step. Each step has 16 requests with 16 rollouts each, sampled before that step's update. Click a step to read it.";
+}
+
+function keep(s) {
+  const o = state.outcome, f = state.flag;
+  if (o === "pass" && s.r !== 1) return false;
+  if (o === "fail" && s.r === 1) return false;
+  if (o === "valid-fail" && (s.r === 1 || !s.v)) return false;
+  if (o === "invalid" && s.v) return false;
+  if (o === "limit" && s.fin) return false;
+  if (f === "none" ? s.ch : f !== "any" && !s[f]) return false;
+  const q = state.q.trim().toLowerCase();
+  return !q || s.cot.toLowerCase().includes(q) || s.final.toLowerCase().includes(q);
+}
+
+function pill(s) {
+  if (s.r === 1) return `<span class="pill pass">1.0</span>`;
+  if (!s.fin) return `<span class="pill bad">0.0, token limit</span>`;
+  if (!s.final.trim()) return `<span class="pill bad">0.0, no answer</span>`;
+  if (!s.v) return `<span class="pill bad">0.0, invalid</span>`;
+  return `<span class="pill">0.0</span>`;
+}
+
+function sampleRow(arm, id, i, s) {
+  return `<details class="sample" data-arm="${arm}" data-id="${id}" data-i="${i}"><summary><span class="num">#${i + 1}</span>${pill(s)}` +
+    `<span class="ans" title="${esc(s.ans)}">${highlight(s.ans || "no answer")}</span><span class="tok">${s.tok.toLocaleString("en-US")} tok</span></summary></details>`;
+}
+
+function fill(el) {
+  if (el.dataset.filled || !view) return;
+  const s = view.bySample[el.dataset.arm][el.dataset.id][+el.dataset.i];
+  const flags = [s.cr && "names the rule", s.ch && "states a hypothesis", s.cs && "mentions scores"].filter(Boolean);
+  const final = s.final.trim() ? `<pre class="text">${highlight(s.final)}</pre>`
+    : `<p class="flags">${s.fin ? "No final-channel output. Text written inside the reasoning isn't graded." : "Stopped at the 3,000 token limit before a final output."}</p>`;
+  el.insertAdjacentHTML("beforeend", `<div class="sample-body">` +
+    `<div class="sample-part"><span class="label">Reasoning</span><pre class="text">${highlight(s.cot)}</pre></div>` +
+    `<div class="sample-part"><span class="label">Final output</span>${final}</div>` +
+    `<p class="flags">Regex flags: ${flags.length ? flags.join(", ") : "none"}.</p></div>`);
+  el.dataset.filled = "1";
+}
+
+function draw() {
+  if (!view) return;
+  const arms = ARMS.filter(([a]) => state.arm === "both" || state.arm === a);
+  let html = "", reqs = 0, shown = 0, total = 0, first = true;
+  for (const [id, req] of Object.entries(view.requests)) {
+    if (state.fam !== "all" && req.family !== state.fam) continue;
+    let cols = "", hit = 0;
+    for (const [a, label] of arms) {
+      const all = view.bySample[a][id] || [];
+      total += all.length;
+      const rows = all.map((s, i) => keep(s) ? sampleRow(a, id, i, s) : "").filter(Boolean);
+      hit += rows.length;
+      const n = all.filter(s => s.r === 1).length;
+      const fed = view.fed[a][id];
+      const fedText = fed === undefined ? "" : fed ? ", mixed scores so it fed the update" : ", all scored the same so no update";
+      cols += `<div class="arm"><div class="arm-head"><strong class="${a}">${label}</strong><span>${n} of ${all.length} scored 1.0${fedText}</span></div>${rows.join("")}</div>`;
+    }
+    shown += hit;
+    if (!hit) continue;
+    reqs++;
+    html += `<article class="req"><div class="req-head"><p class="req-q"><b>${req.family}</b>${esc(req.question)}</p>` +
+      `<button type="button" class="linkish" data-toggle-all>Open all</button></div><div class="arms">${cols}</div></article>`;
+  }
+  const list = $("list");
+  list.innerHTML = html;
+  const firstReq = list.querySelector(".req");
+  if (firstReq) firstReq.querySelectorAll(".arm").forEach(arm => { const d = arm.querySelector("details"); if (d) { fill(d); d.open = true; } });
+  $("status").className = "status";
+  $("status").textContent = shown
+    ? `Step ${state.step}, seed ${state.seed.slice(1)}: ${shown.toLocaleString("en-US")} of ${total.toLocaleString("en-US")} samples across ${reqs} requests.`
+    : `No samples at step ${state.step} match these filters. Clear the search or change the outcome to see more.`;
+}
+
+async function refresh() {
+  const token = ++loadToken;
+  drawControls(); drawStrip();
+  const hash = `${state.source}-${state.seed}-step${state.step}`;
+  if (location.hash.slice(1) !== hash) location.hash = hash;
+  $("status").className = "status";
+  $("status").textContent = `Loading step ${state.step}…`;
+  $("list").innerHTML = "";
+  view = null;
+  try {
+    const files = await Promise.all(ARMS.map(([a]) => load(state.source, state.seed, a, state.step)));
+    if (token !== loadToken) return;
+    const v = { requests: {}, bySample: {}, fed: {} };
+    ARMS.forEach(([a], i) => {
+      v.bySample[a] = {}; v.fed[a] = {};
+      for (const [id, r] of Object.entries(files[i].requests)) { v.requests[id] = r; v.fed[a][id] = r.fed; }
+      for (const s of files[i].samples) (v.bySample[a][s.id] ||= []).push(s);
+    });
+    view = v;
+    draw();
+  } catch (e) {
+    if (token !== loadToken) return;
+    $("status").className = "status error";
+    $("status").textContent = `This step didn't load (${e.message}). Click a step to try again.`;
+  }
+}
+
+function fromHash() {
+  const m = location.hash.match(/^#(test|train)-(s[01])-step(\d+)$/);
+  if (!m) return false;
+  const [, source, seed, step] = m;
+  if (!INDEX.seeds[seed].c430[source][step]) return false;
+  if (source === state.source && seed === state.seed && +step === state.step) return false;
+  Object.assign(state, { source, seed, step: +step });
+  return true;
+}
+
+segment("source", [["test", "Test eval"], ["train", "Training rollouts"]], "source");
+segment("seed", [["s0", "0"], ["s1", "1"]], "seed");
+segment("fam", [["all", "All"], ...FAMS.map(f => [f, f[0].toUpperCase() + f.slice(1)])], "fam");
+segment("arm", [["both", "Both"], ...ARMS.map(([a]) => [a, a])], "arm");
+$("rules").innerHTML = FAMS.map(f => `<span><strong>${f[0].toUpperCase() + f.slice(1)}:</strong> ${esc(INDEX.rules[f].desc)} <code>${esc(INDEX.rules[f].name)}</code></span>`).join("");
+$("system").textContent = INDEX.system;
+$("intro").textContent = INDEX.intro.trim();
+$("strip").addEventListener("click", e => {
+  const b = e.target.closest("[data-step]");
+  if (b) { state.step = +b.dataset.step; refresh(); }
+});
+$("outcome").addEventListener("change", e => { state.outcome = e.target.value; draw(); });
+$("flag").addEventListener("change", e => { state.flag = e.target.value; draw(); });
+let timer;
+$("q").addEventListener("input", e => { clearTimeout(timer); timer = setTimeout(() => { state.q = e.target.value; draw(); }, 200); });
+document.addEventListener("toggle", e => { if (e.target.matches?.("details.sample") && e.target.open) fill(e.target); }, true);
+$("list").addEventListener("click", e => {
+  const b = e.target.closest("[data-toggle-all]");
+  if (!b) return;
+  const items = [...b.closest(".req").querySelectorAll("details.sample")];
+  const open = !items.every(d => d.open);
+  items.forEach(d => { if (open) fill(d); d.open = open; });
+  b.textContent = open ? "Close all" : "Open all";
+});
+window.addEventListener("hashchange", () => { if (fromHash()) refresh(); });
+fromHash();
+refresh();
+</script>

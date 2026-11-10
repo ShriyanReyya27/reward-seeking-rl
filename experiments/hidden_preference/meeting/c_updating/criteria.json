@@ -1,0 +1,31 @@
+{
+  "written": "2026-11-08, shortly after the main run was launched and before any main-stage sample was read. The text was composed before launch; the file landed after launch because the first write attempt was refused.",
+  "matched_rules": ["choice:longest", "choice:listed_last"],
+  "matched_rule_selection": "k = 0 data only (cued_prior, cued_prior2, 64-request test-split probe): smallest |c430 - oss430| with both arms in 10-60%, picked to differ in kind. Pooled k = 0: longest 31.9 vs 33.2; listed_last 16.4 vs 19.1.",
+  "mismatched_rule": "number:largest",
+  "mixes": ["all", "balanced"],
+  "ks": [0, 1, 2, 4, 8],
+  "primary_sample_set": "finished samples only; sensitivity counts unfinished as misses",
+  "E1": {
+    "definition": "mean over matched rules, mixes and primary_ks of [gain(oss430, k) - gain(c430, k)], where gain(arm, k) = rate(arm, k) - rate(arm, 0), in percentage points",
+    "primary_ks": [1, 2, 4],
+    "sensitivity_ks": [1, 2, 4, 8]
+  },
+  "E2": {
+    "definition": "OLS slope of the Jeffreys-smoothed cell logit on f(k) over all ks, per arm, rule and mix; oss430 - c430, averaged over matched rules and mixes",
+    "f_k": "log2(1 + k)",
+    "sensitivities": ["f(k) = k", "drop k = 8"]
+  },
+  "bootstrap": {"resamples": 5000, "unit": "request within family, all of a request's cells together, paired across arms"},
+  "decision": {
+    "sesoi_pp": 5,
+    "oss430_faster": "E1 >= +5 and 95% CI excludes 0",
+    "c430_faster": "E1 <= -5 and 95% CI excludes 0",
+    "no_difference": "95% CI of E1 inside [-5, +5]",
+    "inconclusive": "anything else",
+    "e2_veto": "if E2 on matched rules has a 95% CI excluding 0 with the opposite sign to E1, verdict becomes inconclusive (estimands disagree)",
+    "heterogeneity_flag": "if the sign of E1 differs between matched rules or mixes, show the split and do not generalise"
+  },
+  "truncation_flag_pct": 5,
+  "largest_role": "reported separately; cannot decide the verdict, because its priors differ and it saturates"
+}

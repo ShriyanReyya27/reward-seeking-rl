@@ -43,8 +43,9 @@ def rollouts(run, arm):
 def main(run):
     out = HERE / "results" / run / "figure"
     out.mkdir(parents=True, exist_ok=True)
+    arms = [a for a in ARMS if (HERE / "results" / run / a / "config.json").exists()]  # a run may have one arm
     table = []
-    for arm in ARMS:
+    for arm in arms:
         rows = rollouts(run, arm)
         steps = sorted({r["step"] for r in rows})
         cfg = json.loads((HERE / "results" / run / arm / "config.json").read_text())
@@ -62,7 +63,7 @@ def main(run):
                 table.append({"arm": arm, "family": fam, "step": s, "groups": len(g), "informative_groups": len(inf),
                               "cum_informative_groups": cum_g, "cum_rewarded_in_informative": int(cum_pos),
                               "train_accuracy_pct": round(100 * sum(sum(v) for v in g) / max(1, sum(len(v) for v in g)), 1)})
-    for arm in ARMS:  # centred 3-step average of train accuracy, for plotting (fewer at the ends)
+    for arm in arms:  # centred 3-step average of train accuracy, for plotting (fewer at the ends)
         for fam in {t["family"] for t in table}:
             t = [x for x in table if x["arm"] == arm and x["family"] == fam]
             for i, x in enumerate(t):
@@ -75,10 +76,10 @@ def main(run):
 
     for fam in sorted({t["family"] for t in table}):
         print(f"\n== {fam}: evidence when the 3-step train accuracy first reaches a level")
-        print("level".ljust(8) + "".join(f"{a}: step, inf. groups, rewarded".rjust(36) for a in ARMS))
+        print("level".ljust(8) + "".join(f"{a}: step, inf. groups, rewarded".rjust(36) for a in arms))
         for lv in LEVELS:
             line = f"{int(100 * lv)}%".ljust(8)
-            for arm in ARMS:
+            for arm in arms:
                 t = [x for x in table if x["arm"] == arm and x["family"] == fam]
                 hit = next((t[i] for i in range(1, len(t) - 1)
                             if sum(t[j]["train_accuracy_pct"] for j in (i - 1, i, i + 1)) / 3 >= 100 * lv), None)

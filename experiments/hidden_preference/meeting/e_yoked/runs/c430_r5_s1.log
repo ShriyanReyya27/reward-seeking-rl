@@ -1,0 +1,57 @@
+[c430] inject plan experiments/hidden_preference/meeting/e_yoked/plan_c430_r5_s1.jsonl: 75 samples in 75 groups, steps [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+[c430] clamp: 800 banked unrewarded samples
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:242: FutureWarning: DEPRECATED: ServiceClient.create_training_client_from_state_async() is deprecated and will be removed in a future tinker SDK version. Use `await ServiceClient.create_training_client_from_state(...)` instead; it returns a future of the client that can be awaited.
+  tc = await sc.create_training_client_from_state_async(INIT[a.arm])
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:407: FutureWarning: DEPRECATED: TrainingClient.save_weights_and_get_sampling_client_async() is deprecated and will be removed in a future tinker SDK version. Use `await TrainingClient.save_weights_and_get_sampling_client(...)` instead; it returns a future of the client that can be awaited.
+  sampler = await tc.save_weights_and_get_sampling_client_async()
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:258: FutureWarning: DEPRECATED: SamplingClient.sample_async() is deprecated and will be removed in a future tinker SDK version. Use `await SamplingClient.sample(...)` instead; sample() returns an APIFuture that can be awaited.
+  res = await sampler.sample_async(prompt=prompt, num_samples=n, sampling_params=tinker.SamplingParams(
+[c430] EVAL step 0 fixed: number 0.000 (cot_rule 1.00) all 0.000 valid 1.00 grader-talk 1.00 hyp 1.00 tok 665 $0.14
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:459: FutureWarning: DEPRECATED: TrainingClient.forward_backward_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.forward_backward(...) instead: it returns an APIFuture at once. Submit the optimizer step before waiting: `fwd_bwd_future = client.forward_backward(...); optim_future = client.optim_step(...); await fwd_bwd_future; await optim_future` (or `.result()` on each).
+  fb = await tc.forward_backward_async(data, loss_fn="importance_sampling")
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:460: FutureWarning: DEPRECATED: TrainingClient.optim_step_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.optim_step(...) instead: it returns an APIFuture at once. Submit it right after forward_backward, then wait for both: `fwd_bwd_future = client.forward_backward(...); optim_future = client.optim_step(...); await fwd_bwd_future; await optim_future` (or `.result()` on each).
+  op = await tc.optim_step_async(tinker.AdamParams(learning_rate=a.lr))
+[c430] step   0 inject: planned 5, swapped 5, failed 0, on-policy rewarded number 0, rewarded in training 5
+[c430] step   0 reward 0.000 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 639 trunc 0.00 $0.24 62s
+[c430] step   1 inject: planned 5, swapped 4, failed 0, on-policy rewarded number 1, rewarded in training 5
+[c430] step   1 reward 0.013 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 903 trunc 0.00 $0.36 40s
+[c430] EVAL step 2 fixed: number 0.051 (cot_rule 0.99) all 0.051 valid 1.00 grader-talk 1.00 hyp 1.00 tok 949 $0.57
+[c430] step   2 inject: planned 5, swapped 3, failed 0, on-policy rewarded number 2, rewarded in training 5
+[c430] step   2 reward 0.025 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 913 trunc 0.00 $0.69 110s
+[c430] step   3 inject: planned 5, swapped 2, failed 0, on-policy rewarded number 6, rewarded in training 5
+[c430] step   3 reward 0.075 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 1001 trunc 0.00 $0.83 83s
+[c430] EVAL step 4 fixed: number 0.051 (cot_rule 0.97) all 0.051 valid 1.00 grader-talk 1.00 hyp 1.00 tok 945 $1.03
+[c430] step   4 inject: planned 5, swapped 1, failed 0, on-policy rewarded number 9, rewarded in training 5
+[c430] step   4 reward 0.113 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 941 trunc 0.00 $1.16 51s
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:315: FutureWarning: DEPRECATED: TrainingClient.save_state_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.save_state(...) instead: it returns an APIFuture that can be awaited (`await TrainingClient.save_state(...)`).
+  state = (await (await tc.save_state_async(name=name)).result_async()).path
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:316: FutureWarning: DEPRECATED: TrainingClient.save_weights_for_sampler_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.save_weights_for_sampler(...) instead: it returns an APIFuture that can be awaited (`await TrainingClient.save_weights_for_sampler(...)`).
+  samp = (await (await tc.save_weights_for_sampler_async(name=name)).result_async()).path
+[c430] step   5 inject: planned 5, swapped 2, failed 0, on-policy rewarded number 3, rewarded in training 5
+[c430] step   5 reward 0.037 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 967 trunc 0.00 $1.29 29s
+[c430] EVAL step 6 fixed: number 0.156 (cot_rule 0.99) all 0.156 valid 1.00 grader-talk 1.00 hyp 1.00 tok 1092 $1.53
+[c430] step   6 inject: planned 5, swapped 2, failed 0, on-policy rewarded number 5, rewarded in training 5
+[c430] step   6 reward 0.062 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 960 trunc 0.00 $1.66 73s
+[c430] step   7 inject: planned 5, swapped 0, failed 0, on-policy rewarded number 16, rewarded in training 5
+[c430] step   7 reward 0.200 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 1022 trunc 0.00 $1.80 34s
+[c430] EVAL step 8 fixed: number 0.324 (cot_rule 1.00) all 0.324 valid 1.00 grader-talk 1.00 hyp 1.00 tok 1103 $2.04
+[c430] step   8 inject: planned 5, swapped 0, failed 0, on-policy rewarded number 20, rewarded in training 5
+[c430] step   8 reward 0.250 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 1128 trunc 0.00 $2.19 55s
+[c430] step   9 inject: planned 5, swapped 0, failed 0, on-policy rewarded number 33, rewarded in training 5
+[c430] step   9 reward 0.412 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 1121 trunc 0.00 $2.34 104s
+[c430] EVAL step 10 fixed: number 0.512 (cot_rule 1.00) all 0.512 valid 1.00 grader-talk 1.00 hyp 1.00 tok 1003 $2.56
+[c430] step  10 inject: planned 5, swapped 0, failed 0, on-policy rewarded number 47, rewarded in training 5
+[c430] step  10 reward 0.588 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 1057 trunc 0.00 $2.70 148s
+[c430] step  11 inject: planned 5, swapped 0, failed 0, on-policy rewarded number 53, rewarded in training 5
+[c430] step  11 reward 0.662 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 965 trunc 0.00 $2.83 46s
+[c430] EVAL step 12 fixed: number 0.703 (cot_rule 1.00) all 0.703 valid 1.00 grader-talk 1.00 hyp 1.00 tok 963 $3.04
+[c430] step  12 inject: planned 5, swapped 0, failed 0, on-policy rewarded number 63, rewarded in training 5
+[c430] step  12 reward 0.787 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 893 trunc 0.00 $3.16 56s
+[c430] step  13 inject: planned 5, swapped 0, failed 0, on-policy rewarded number 67, rewarded in training 5
+[c430] step  13 reward 0.838 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 1016 trunc 0.00 $3.30 37s
+[c430] EVAL step 14 fixed: number 0.723 (cot_rule 1.00) all 0.723 valid 1.00 grader-talk 1.00 hyp 1.00 tok 1126 $3.55
+[c430] step  14 inject: planned 5, swapped 0, failed 0, on-policy rewarded number 52, rewarded in training 5
+[c430] step  14 reward 0.650 (minority 0.000) var-groups 5/5 valid 1.00 cot 1.00 tok 1093 trunc 0.00 $3.70 69s
+[c430] EVAL step 15 fixed: number 0.680 (cot_rule 1.00) all 0.680 valid 1.00 grader-talk 1.00 hyp 1.00 tok 1232 $3.97
+[c430] done, $3.97

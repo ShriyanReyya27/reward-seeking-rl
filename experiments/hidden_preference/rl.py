@@ -29,6 +29,11 @@ preference exists; how answers are scored), and eval "fixed_plain" (the same req
 runs at the first and last eval. cot_hyp / cot_rule flag reasoning that states a hypothesis about
 the preference (any feature / the fixed rule's feature), by regex.
 
+Discovery mode (--discovery). Episodes come from hidden_preference_discovery_{number,word}, plain framing,
+rule resampled per episode from --discovery-tier, k in {2, 4, 8, 12}. Eval on the test split of the same rules,
+k in {0, 2, 4, 8, 12}, the same episodes as discovery_zero_shot.py: --eval-n episodes per (rule, k), or
+--discovery-eval-full at the first and last eval.
+
 Outputs in results/<run>/<arm>/: config.json, metrics.jsonl (per train step), eval.jsonl (per eval
 sample), rollouts.jsonl.gz (every train rollout), checkpoints.txt (step, training state, sampler).
 Resumable: rerun the same command. Sampling helpers come from the rh-evals harness (--harness), as
@@ -46,8 +51,9 @@ import re
 import statistics
 import sys
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
+from types import SimpleNamespace
 
 from rsrl.envs import make
 
@@ -61,6 +67,8 @@ INIT = {
 }
 FAMILIES = ("number", "word", "format", "tagline")
 EVAL_CELLS = [(0, "balanced")] + [(k, m) for k in (2, 4, 6) for m in ("majority", "minority")]
+DISCOVERY_FAMILIES = ("number", "word")
+DISCOVERY_TRAIN_KS, DISCOVERY_EVAL_KS = (2, 4, 8, 12), (0, 2, 4, 8, 12)
 # Reasoning that states a hypothesis about the preference: a preference word followed, within the same
 # sentence, by a feature word. cot_hyp: any feature; cot_rule: the fixed rule's own feature.
 PREF = r"\b(prefer\w*|want\w*|like\w*|favou?r\w*|reward\w*|pattern|maybe|perhaps|likely|guess\w*)\b[^.\n]{0,60}?"
@@ -91,20 +99,20 @@ def fixed_rules_arg(s):
     return dict(kv.split("=") for kv in s.split(",")) if s else {}
 
 
-def fixed_train_pool(rules, seed, per, framing="plain"):
+def fixed_train_pool(rules, seed, per, framing="plain", nudge="none"):
     pool = []
     for fam, rule in sorted(rules.items()):
-        env = make(f"hidden_preference_{fam}", k=0, mix="balanced", framing=framing, rule=rule)
+        env = make(f"hidden_preference_{fam}", k=0, mix="balanced", framing=framing, rule=rule, nudge=nudge)
         pool += [(env, t) for t in env.load_tasks("train", n=per, seed=seed)]
     random.Random(seed).shuffle(pool)
     return pool
 
 
-def fixed_eval_set(rules, per_family=64, max_tasks=32, framing="plain"):
+def fixed_eval_set(rules, per_family=64, max_tasks=32, framing="plain", nudge="none"):
     """Distinct k0 test requests per family (at most max_tasks) and samples per request, about per_family each."""
     out = []
     for fam, rule in sorted(rules.items()):
-        env = make(f"hidden_preference_{fam}", k=0, mix="balanced", framing=framing, rule=rule)
+        env = make(f"hidden_preference_{fam}", k=0, mix="balanced", framing=framing, rule=rule, nudge=nudge)
         seen, tasks = set(), []
         for t in env.load_tasks("test", n=400, seed=0):
             q = t.prompt[-1]["content"]
@@ -123,6 +131,48 @@ def eval_set(n, framing):
             env = make(f"hidden_preference_{fam}", k=k, mix=mix, framing=framing)
             out += [(env, t) for t in env.load_tasks("test", n=n, seed=0)]
     return out
+
+
+def discovery_rules(fam, tier):
+    env = make(f"hidden_preference_discovery_{fam}")
+    return [r.name for r in (env.rules() if tier == "all" else env.tiered_rules[tier])]
+
+
+def discovery_train_pool(tier, seed, per):
+    """Plain-framing episodes for every rule of the tier and k; a different seed per k so final requests differ."""
+    pool = []
+    for fam in DISCOVERY_FAMILIES:
+        for rule in discovery_rules(fam, tier):
+            for k in DISCOVERY_TRAIN_KS:
+                env = make(f"hidden_preference_discovery_{fam}", k=k, rule=rule, framing="plain")
+                pool += [(env, t) for t in env.load_tasks("train", n=per, seed=seed * 100 + k)]
+    random.Random(seed).shuffle(pool)
+    return pool
+
+
+def discovery_eval_set(tier, n):
+    out = []
+    for fam in DISCOVERY_FAMILIES:
+        for rule in discovery_rules(fam, tier):
+            for k in DISCOVERY_EVAL_KS:
+                env = make(f"hidden_preference_discovery_{fam}", k=k, rule=rule, framing="plain")
+                out += [(env, t) for t in env.load_tasks("test", n=n, seed=0)]
+    return out
+
+
+def summarize_discovery(rows):
+    """Accuracy at k = 0 and k > 0, and gain over k = 0 (mean over k > 0, same episodes), overall and by family."""
+    by = defaultdict(dict)
+    for r in rows:
+        by[r["family"], r["base_id"]][r["k"]] = r["reward"]
+    def gain(fam=None):
+        g = [statistics.mean(v for k, v in d.items() if k) - d[0] for (f, _), d in by.items() if fam in (None, f) and 0 in d and len(d) > 1]
+        return statistics.mean(g) if g else float("nan")
+    def acc(pred):
+        xs = [r["reward"] for r in rows if pred(r)]
+        return statistics.mean(xs) if xs else float("nan")
+    return {"k0": acc(lambda r: r["k"] == 0), "kpos": acc(lambda r: r["k"] > 0), "gain": gain(),
+            **{f"gain_{f}": gain(f) for f in DISCOVERY_FAMILIES}}
 
 
 def summarize_eval(rows, train_fams):
@@ -164,11 +214,32 @@ async def main() -> None:
     ap.add_argument("--budget-usd", type=float, required=True)
     ap.add_argument("--concurrency", type=int, default=128)
     ap.add_argument("--harness", type=Path, default=default_harness())
+    ap.add_argument("--discovery", action="store_true", help="discovery mode (rule resampled per episode, see above)")
+    ap.add_argument("--discovery-tier", default="easy", choices=["all", "easy", "medium", "hard"])
+    ap.add_argument("--discovery-eval-full", type=int, default=32, help="discovery mode: episodes per (rule, k) at the first and last eval")
     ap.add_argument("--fixed-rules", default="", help="family=rule,...: fixed-rule mode (k = 0, see above)")
     ap.add_argument("--fixed-eval-per-family", type=int, default=64, help="fixed-rule eval: samples per family, about")
     ap.add_argument("--fixed-framing", default="plain", choices=["plain", "cued"],
                     help="fixed-rule mode: 'cued' says a consistent hidden preference exists; the plain k0 eval "
                          "then also runs at the first and last eval")
+    ap.add_argument("--nudge", default="none",
+                    help="fixed-rule mode: line after the final request (core.NUDGES) in training and the fixed-rule "
+                         "eval; the plain, explicit and fixed_plain evals stay without it")
+    ap.add_argument("--inject-plan", default="",
+                    help="JSONL plan of banked samples to swap into training groups (fixed-rule mode), see "
+                         "meeting/d_exposure/build_plan.py; absent = no injection")
+    ap.add_argument("--clamp-zeros", default="",
+                    help="with --inject-plan: clamp each planned group to exactly its planned rewarded count. Surplus "
+                         "natural rewarded samples are swapped for this JSONL's banked unrewarded samples; see "
+                         "meeting/e_yoked")
+    ap.add_argument("--only-fixed-eval", action="store_true", help="skip the plain, explicit and fixed_plain evals")
+    ap.add_argument("--stop-acc", type=float, default=None,
+                    help="stop once the on-policy train accuracy of --stop-family, averaged over the last "
+                         "--stop-window steps that had that family, reaches this value")
+    ap.add_argument("--stop-family", default="number")
+    ap.add_argument("--stop-window", type=int, default=3)
+    ap.add_argument("--stop-after", type=int, default=None, help="stop before training step N (smoke tests)")
+    ap.add_argument("--out-dir", type=Path, default=None, help="write here instead of results/<run>/<arm>")
     a = ap.parse_args()
     fixed = fixed_rules_arg(a.fixed_rules)
     rule_cot = {r: re.compile(RULE_COT[r], re.I) for r in fixed.values() if r in RULE_COT}
@@ -180,18 +251,40 @@ async def main() -> None:
     from tinker_client import BASE_MODEL, REASONING, RENDER_DATE, load_env_file  # noqa: E402
 
     load_env_file()
-    out = HERE / "results" / a.run / a.arm
+    out = a.out_dir / a.arm if a.out_dir else HERE / "results" / a.run / a.arm
     out.mkdir(parents=True, exist_ok=True)
     (out / "config.json").write_text(json.dumps({**{k: str(v) for k, v in vars(a).items()}, "init": INIT[a.arm]}, indent=1))
-    if fixed:
+    if a.discovery:
+        assert not fixed, "--discovery and --fixed-rules are separate modes"
+        train_fams = set(DISCOVERY_FAMILIES)
+        n_rules = sum(len(discovery_rules(f, a.discovery_tier)) for f in DISCOVERY_FAMILIES)
+        pool = discovery_train_pool(a.discovery_tier, a.seed, per=a.steps * a.batch // (len(DISCOVERY_TRAIN_KS) * n_rules) + 8)
+        discovery_full = discovery_eval_set(a.discovery_tier, a.discovery_eval_full)
+        discovery_interim = discovery_eval_set(a.discovery_tier, a.eval_n)
+    elif fixed:
         train_fams = set(fixed)
-        pool = fixed_train_pool(fixed, a.seed, per=max(64, a.steps * a.batch // len(fixed) + 16), framing=a.fixed_framing)
-        fixed_eval = fixed_eval_set(fixed, per_family=a.fixed_eval_per_family, framing=a.fixed_framing)
+        pool = fixed_train_pool(fixed, a.seed, per=max(64, a.steps * a.batch // len(fixed) + 16), framing=a.fixed_framing,
+                                nudge=a.nudge)
+        fixed_eval = fixed_eval_set(fixed, per_family=a.fixed_eval_per_family, framing=a.fixed_framing, nudge=a.nudge)
         fixed_plain_eval = fixed_eval_set(fixed, per_family=a.fixed_eval_per_family) if a.fixed_framing != "plain" else None
     else:
         train_fams = set(a.train_families.split(","))
         pool = train_pool(sorted(train_fams), a.seed, per=max(64, a.steps * a.batch // (6 * len(train_fams)) + 16))
-    plain_eval, explicit_eval = eval_set(a.eval_n, "plain"), eval_set(a.eval_n, "explicit")
+    plain_eval, explicit_eval = ([], []) if a.discovery else (eval_set(a.eval_n, "plain"), eval_set(a.eval_n, "explicit"))
+
+    # Exposure injection (a.inject_plan): banked samples planned per (step, group task id), for this seed.
+    inject: dict = defaultdict(list)
+    if a.inject_plan:
+        for l in Path(a.inject_plan).read_text().splitlines():
+            row = json.loads(l)
+            if row["seed"] == a.seed:
+                inject[(row["step"], row["task_id"])].append(row)
+        print(f"[{a.arm}] inject plan {a.inject_plan}: {sum(len(v) for v in inject.values())} samples "
+              f"in {len(inject)} groups, steps {sorted({s for s, _ in inject})}", flush=True)
+    clamp_zeros = [json.loads(l) for l in Path(a.clamp_zeros).read_text().splitlines()] if a.clamp_zeros else []
+    if a.clamp_zeros:
+        assert a.inject_plan and clamp_zeros and all(r["reward"] <= 0 and r["finished"] for r in clamp_zeros), "bad --clamp-zeros"
+        print(f"[{a.arm}] clamp: {len(clamp_zeros)} banked unrewarded samples", flush=True)
 
     sc = tinker.ServiceClient()
     start, ck = 0, out / "checkpoints.txt"
@@ -243,7 +336,8 @@ async def main() -> None:
         g = await env.grade(task, p.final)
         m = task.metadata
         return {"task_id": task.id, "base_id": m["base_id"], "family": m["family"], "k": m["k"], "mix": m["mix"],
-                "framing": m["framing"], "rule": m["rule"], "reward": g.reward, "valid": g.info["valid"],
+                "framing": m["framing"], "rule": m["rule"], "tier": m.get("tier"), "chance": m.get("chance"),
+                "reward": g.reward, "valid": g.info["valid"],
                 "answer": g.info["answer"], "finished": p.finished, "tokens": len(seq.tokens),
                 "cot_score": bool(COT_SCORE.search(analysis)),
                 "cot_rule": bool(rule_cot[m["rule"]].search(analysis)) if m["rule"] in rule_cot else None,
@@ -268,6 +362,13 @@ async def main() -> None:
                   f" grader-talk {mean([r['cot_score'] for r in rows]):.2f} hyp {mean([r['cot_hyp'] for r in rows]):.2f} tok {mean([r['tokens'] for r in rows]):.0f} ${usd():.2f}",
                 flush=True)
             return
+        if a.discovery:
+            s = summarize_discovery(rows)
+            print(f"[{a.arm}] EVAL step {step} {framing}: n {len(rows)} acc k0 {s['k0']:.3f} k>0 {s['kpos']:.3f} "
+                  f"gain {s['gain']:+.3f} (number {s['gain_number']:+.3f}, word {s['gain_word']:+.3f}) "
+                  f"valid {statistics.mean(r['valid'] for r in rows):.2f} "
+                  f"trunc {statistics.mean(not r['finished'] for r in rows):.2f} tok {statistics.mean(r['tokens'] for r in rows):.0f} ${usd():.2f}", flush=True)
+            return
         s = summarize_eval(rows, train_fams)
         print(f"[{a.arm}] EVAL step {step} {framing}: acc k0 {s['acc_k0']:.3f} k>0 {s['acc_kpos']:.3f} gain {s['gain']:+.3f} "
               f"(trained {s['gain_trained']:+.3f}, held-out {s['gain_heldout']:+.3f}) k6min {s['acc_k6_minority']:.3f} "
@@ -283,52 +384,144 @@ async def main() -> None:
         with open(ck, "a") as f:
             f.write(f"{n}\t{state}\t{samp}\n")
 
+    async def inject_one(step, env, task, sampler, row, slot, graded, items, stats, log):
+        """Swap banked sample ``row`` into group position ``slot``, as if the current weights had sampled it."""
+        s_toks, p_toks = row["sample_tokens"], row["prompt_tokens"]
+        full = tinker.ModelInput.from_ints(p_toks + s_toks)
+        for att in range(4):
+            try:
+                async with sem:
+                    lp = await sampler.compute_logprobs(full, prompt_logprobs_last_n=len(s_toks))
+                break
+            except Exception as e:  # transient API errors
+                print(f"[{a.arm}] logprob error {type(e).__name__}: {str(e)[:150]}", flush=True)
+                await asyncio.sleep(10 * (att + 1))
+        else:
+            stats["failed"] += 1
+            return
+        lp = lp[-len(s_toks):]
+        cost["prefill"] += len(p_toks) + len(s_toks)
+        if any(x is None for x in lp):
+            stats["failed"] += 1
+            print(f"[{a.arm}] inject: missing logprobs for bank sample {row['bank_id']}", flush=True)
+            return
+        if row["same_request"]:
+            if p_toks != items[slot][0]:
+                stats["failed"] += 1
+                print(f"[{a.arm}] inject: prompt mismatch for bank sample {row['bank_id']}", flush=True)
+                return
+            g = await grade(env, task, SimpleNamespace(tokens=s_toks))
+            if g["reward"] < 1:
+                stats["failed"] += 1
+                print(f"[{a.arm}] inject: bank sample {row['bank_id']} regrades to {g['reward']} on {task.id}", flush=True)
+                return
+            reward = g["reward"]
+        else:  # another request's sample, kept with its own prompt; reward verified when the plan was built
+            reward, g = row["reward"], {"task_id": row["source_task_id"], "family": "number", "reward": row["reward"],
+                                        "answer": row["answer"], "tokens": len(s_toks), "finished": True}
+        graded[slot]["swapped_out"] = True
+        items[slot] = (p_toks, s_toks, lp, reward)
+        log.append({"step": step, **g, "injected": True, "group_task_id": task.id, "same_request": row["same_request"],
+                    "bank_id": row["bank_id"], "source_temperature": row["temperature"]})
+        stats["swapped"] += 1
+
+    async def apply_injection(step, env, task, sampler, graded, items, stats, log):
+        """The group ends with as many rewarded samples as planned: natural ones count, banked ones replace zeros."""
+        planned = inject[(step, task.id)]
+        natural = sum(g["reward"] > 0 for g in graded)
+        stats["planned"] += len(planned)
+        stats["natural_in_groups"] += natural
+        zeros = [i for i, g in enumerate(graded) if g["reward"] <= 0]
+        rng = random.Random(f"{a.seed}-{step}-{task.id}")  # which zeros are replaced is fixed by the seed
+        slots = rng.sample(zeros, min(max(0, len(planned) - natural), len(zeros)))
+        await asyncio.gather(*(inject_one(step, env, task, sampler, row, slot, graded, items, stats, log)
+                               for row, slot in zip(planned, slots)))
+        if clamp_zeros and natural > len(planned):
+            rewarded = [i for i, g in enumerate(graded) if g["reward"] > 0]
+            surplus = rng.sample(rewarded, natural - len(planned))
+            await asyncio.gather(*(zero_one(step, task, sampler, rng.choice(clamp_zeros), slot, graded, items, stats, log)
+                                   for slot in surplus))
+
+    async def zero_one(step, task, sampler, row, slot, graded, items, stats, log):
+        """Clamp: swap the natural rewarded sample at ``slot`` for banked unrewarded sample ``row``."""
+        s_toks, p_toks = row["sample_tokens"], row["prompt_tokens"]
+        full = tinker.ModelInput.from_ints(p_toks + s_toks)
+        lp = None
+        for att in range(4):
+            try:
+                async with sem:
+                    lp = await sampler.compute_logprobs(full, prompt_logprobs_last_n=len(s_toks))
+                break
+            except Exception as e:  # transient API errors
+                print(f"[{a.arm}] logprob error {type(e).__name__}: {str(e)[:150]}", flush=True)
+                await asyncio.sleep(10 * (att + 1))
+        lp = lp[-len(s_toks):] if lp else None
+        cost["prefill"] += len(p_toks) + len(s_toks)
+        if lp is None or any(x is None for x in lp):
+            stats["zero_failed"] += 1
+            return
+        graded[slot]["swapped_out"] = True
+        items[slot] = (p_toks, s_toks, lp, 0.0)
+        log.append({"step": step, "injected": True, "zeroed": True, "group_task_id": task.id, "family": "number", "reward": 0.0,
+                    "task_id": row["task_id"], "tokens": len(s_toks), "finished": True, "bank_id": row["bank_id"]})
+        stats["zeroed"] += 1
+
     rlog = gzip.open(out / f"rollouts_from{start:03d}.jsonl.gz", "wt")
+    stop_requested = False  # --stop-acc reached: stop with the end-of-run evals, like a budget stop
+    fam_history: list = []
     for step in range(start, a.steps + 1):
         t0 = time.time()
         sampler = await tc.save_weights_and_get_sampling_client_async()
-        over = step < a.steps and usd() > a.budget_usd  # a budget stop still gets the end-of-run evals
+        over = step < a.steps and (usd() > a.budget_usd or stop_requested  # a budget stop still gets the end-of-run evals
+                                   or (a.stop_after is not None and step >= a.stop_after))
         last = step == a.steps or over
-        if fixed and (step % a.eval_every == 0 or last):
+        if a.discovery and (step % a.eval_every == 0 or last):
+            await evaluate(step, sampler, discovery_full if step == 0 or last else discovery_interim, "plain")
+        elif fixed and (step % a.eval_every == 0 or last):
             await evaluate(step, sampler, fixed_eval, "fixed")
-            if step == 0 or last:
+            if (step == 0 or last) and not a.only_fixed_eval:
                 await evaluate(step, sampler, plain_eval, "plain")
                 if fixed_plain_eval:
                     await evaluate(step, sampler, fixed_plain_eval, "fixed_plain")
-        elif not fixed and (step % a.eval_every == 0 or last):
+        elif not a.discovery and not fixed and (step % a.eval_every == 0 or last):
             await evaluate(step, sampler, plain_eval, "plain")
             if step == 0 or last:
                 await evaluate(step, sampler, explicit_eval, "explicit")
         if step == a.steps:
             break
         if over:
-            print(f"[{a.arm}] budget ${a.budget_usd} reached at step {step}; stopping", flush=True)
+            print(f"[{a.arm}] " + (f"budget ${a.budget_usd} reached" if usd() > a.budget_usd else f"stop condition met")
+                  + f" at step {step}; stopping", flush=True)
             await save(step)
             break
         batch = pool[(step * a.batch) % len(pool):][:a.batch]
         outs = await asyncio.gather(*(sample(sampler, t, a.group) for _, t in batch))
         data, rows, n_var = [], [], 0
+        inj_stats, inj_log = Counter(), []
         for (env, task), (prompt, seqs) in zip(batch, outs):
             if not seqs:
                 continue
             graded = await asyncio.gather(*(grade(env, task, s) for s in seqs))
-            rw = [g["reward"] for g in graded]
-            mean = statistics.mean(rw)
             ptoks = prompt.to_ints()
-            for s, g in zip(seqs, graded):
+            items = [(ptoks, list(s.tokens), list(s.logprobs), g["reward"]) for s, g in zip(seqs, graded)]
+            if inject.get((step, task.id)):
+                await apply_injection(step, env, task, sampler, graded, items, inj_stats, inj_log)
+            rw = [it[3] for it in items]
+            mean = statistics.mean(rw)
+            for g in graded:
                 rows.append({"step": step, **g})
             if max(rw) - min(rw) < 1e-9:
                 continue
             n_var += 1
-            for s, g in zip(seqs, graded):
-                toks = ptoks + list(s.tokens)
-                n_p, adv = len(ptoks), g["reward"] - mean
+            for p_toks, s_toks, lps, reward in items:
+                toks = p_toks + s_toks
+                n_p, adv = len(p_toks), reward - mean
                 data.append(tinker.Datum(
                     model_input=tinker.ModelInput.from_ints(toks[:-1]),
                     loss_fn_inputs={
                         "target_tokens": TensorData(data=toks[1:], dtype="int64", shape=[len(toks) - 1]),
-                        "logprobs": TensorData(data=[0.0] * (n_p - 1) + list(s.logprobs), dtype="float32", shape=[len(toks) - 1]),
-                        "advantages": TensorData(data=[0.0] * (n_p - 1) + [adv] * len(s.tokens), dtype="float32", shape=[len(toks) - 1]),
+                        "logprobs": TensorData(data=[0.0] * (n_p - 1) + lps, dtype="float32", shape=[len(toks) - 1]),
+                        "advantages": TensorData(data=[0.0] * (n_p - 1) + [adv] * len(s_toks), dtype="float32", shape=[len(toks) - 1]),
                     }))
         if data:
             cost["train"] += sum(d.model_input.length for d in data)
@@ -336,7 +529,7 @@ async def main() -> None:
             op = await tc.optim_step_async(tinker.AdamParams(learning_rate=a.lr))
             await fb.result_async()
             await op.result_async()
-        for r in rows:
+        for r in rows + inj_log:
             rlog.write(json.dumps(r, ensure_ascii=False) + "\n")
         rlog.flush()
         mean_or_none = lambda xs: statistics.mean(xs) if xs else None  # noqa: E731
@@ -350,6 +543,20 @@ async def main() -> None:
              "cot_rule": mean_or_none([bool(r["cot_rule"]) for r in rows if r["cot_rule"] is not None]),
              "tokens": statistics.mean(r["tokens"] for r in rows), "truncated": statistics.mean(not r["finished"] for r in rows),
              "seconds": round(time.time() - t0), "cost_usd_total": round(usd(), 3)}
+        if a.inject_plan:  # rows are the T = 1 samples (train accuracy); inj_log the swapped-in samples
+            m.update({"inject_planned": inj_stats["planned"], "inject_swapped": inj_stats["swapped"],
+                      "inject_failed": inj_stats["failed"], "inject_natural_in_groups": inj_stats["natural_in_groups"],
+                      "clamp_zeroed": inj_stats["zeroed"], "clamp_zero_failed": inj_stats["zero_failed"],
+                      "rewarded_number_on_policy": sum(1 for r in rows if r["family"] == "number" and r["reward"] > 0),
+                      "rewarded_number_in_training": sum(1 for r in rows if r["family"] == "number" and r["reward"] > 0
+                                                         and not r.get("swapped_out")) + inj_stats["swapped"]})
+            print(f"[{a.arm}] step {step:3d} inject: planned {inj_stats['planned']}, swapped {inj_stats['swapped']}, "
+                  f"failed {inj_stats['failed']}, on-policy rewarded number {m['rewarded_number_on_policy']}, "
+                  f"rewarded in training {m['rewarded_number_in_training']}", flush=True)
+        if a.stop_acc is not None:
+            fam_history.append(m.get(f"reward_{a.stop_family}"))
+            acc = [v for v in fam_history if v is not None][-a.stop_window:]
+            stop_requested = len(acc) == a.stop_window and statistics.mean(acc) >= a.stop_acc
         with open(out / "metrics.jsonl", "a") as f:
             f.write(json.dumps(m) + "\n")
         print(f"[{a.arm}] step {step:3d} reward {m['reward']:.3f} (minority {m['reward_minority'] or 0:.3f}) var-groups {n_var}/{len(batch)} "

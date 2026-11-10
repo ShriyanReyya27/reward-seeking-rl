@@ -1,0 +1,63 @@
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:233: FutureWarning: DEPRECATED: ServiceClient.create_training_client_from_state_async() is deprecated and will be removed in a future tinker SDK version. Use `await ServiceClient.create_training_client_from_state(...)` instead; it returns a future of the client that can be awaited.
+  tc = await sc.create_training_client_from_state_async(INIT[a.arm])
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:369: FutureWarning: DEPRECATED: TrainingClient.save_weights_and_get_sampling_client_async() is deprecated and will be removed in a future tinker SDK version. Use `await TrainingClient.save_weights_and_get_sampling_client(...)` instead; it returns a future of the client that can be awaited.
+  sampler = await tc.save_weights_and_get_sampling_client_async()
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:249: FutureWarning: DEPRECATED: SamplingClient.sample_async() is deprecated and will be removed in a future tinker SDK version. Use `await SamplingClient.sample(...)` instead; sample() returns an APIFuture that can be awaited.
+  res = await sampler.sample_async(prompt=prompt, num_samples=n, sampling_params=tinker.SamplingParams(
+[c430] EVAL step 0 fixed: choice 0.344 (cot_rule 0.41) number 0.039 (cot_rule 1.00) word 0.236 (cot_rule 0.17) all 0.207 valid 0.98 grader-talk 1.00 hyp 0.96 tok 1006 $0.34
+[c430] EVAL step 0 plain: acc k0 0.344 k>0 0.441 gain +0.097 (trained +0.069, held-out +0.125) k6min 0.385 valid 0.98 trunc 0.02 tok 361 $0.60
+[c430] EVAL step 0 fixed_plain: choice 0.477 (cot_rule 0.00) number 0.031 (cot_rule 0.00) word 0.250 (cot_rule 0.00) all 0.253 valid 1.00 grader-talk 0.01 hyp 0.10 tok 139 $0.65
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:421: FutureWarning: DEPRECATED: TrainingClient.forward_backward_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.forward_backward(...) instead: it returns an APIFuture at once. Submit the optimizer step before waiting: `fwd_bwd_future = client.forward_backward(...); optim_future = client.optim_step(...); await fwd_bwd_future; await optim_future` (or `.result()` on each).
+  fb = await tc.forward_backward_async(data, loss_fn="importance_sampling")
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:422: FutureWarning: DEPRECATED: TrainingClient.optim_step_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.optim_step(...) instead: it returns an APIFuture at once. Submit it right after forward_backward, then wait for both: `fwd_bwd_future = client.forward_backward(...); optim_future = client.optim_step(...); await fwd_bwd_future; await optim_future` (or `.result()` on each).
+  op = await tc.optim_step_async(tinker.AdamParams(learning_rate=a.lr))
+[c430] step   0 reward 0.266 (minority 0.000) var-groups 7/16 valid 0.98 cot 1.00 tok 955 trunc 0.00 $0.97 69s
+[c430] step   1 reward 0.195 (minority 0.000) var-groups 7/16 valid 0.92 cot 1.00 tok 1260 trunc 0.05 $1.38 34s
+[c430] step   2 reward 0.461 (minority 0.000) var-groups 9/16 valid 0.96 cot 1.00 tok 1234 trunc 0.04 $1.83 49s
+[c430] step   3 reward 0.078 (minority 0.000) var-groups 5/16 valid 0.94 cot 1.00 tok 1330 trunc 0.05 $2.22 29s
+[c430] step   4 reward 0.184 (minority 0.000) var-groups 6/16 valid 0.97 cot 1.00 tok 1293 trunc 0.02 $2.62 32s
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:306: FutureWarning: DEPRECATED: TrainingClient.save_state_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.save_state(...) instead: it returns an APIFuture that can be awaited (`await TrainingClient.save_state(...)`).
+  state = (await (await tc.save_state_async(name=name)).result_async()).path
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:307: FutureWarning: DEPRECATED: TrainingClient.save_weights_for_sampler_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.save_weights_for_sampler(...) instead: it returns an APIFuture that can be awaited (`await TrainingClient.save_weights_for_sampler(...)`).
+  samp = (await (await tc.save_weights_for_sampler_async(name=name)).result_async()).path
+[c430] EVAL step 5 fixed: choice 0.266 (cot_rule 0.65) number 0.008 (cot_rule 1.00) word 0.293 (cot_rule 0.33) all 0.192 valid 0.91 grader-talk 1.00 hyp 1.00 tok 1462 $3.11
+[c430] step   5 reward 0.234 (minority 0.000) var-groups 10/16 valid 0.88 cot 1.00 tok 1518 trunc 0.07 $3.66 53s
+[c430] step   6 reward 0.180 (minority 0.000) var-groups 9/16 valid 0.93 cot 1.00 tok 1344 trunc 0.04 $4.14 38s
+[c430] step   7 reward 0.164 (minority 0.000) var-groups 8/16 valid 0.97 cot 1.00 tok 1166 trunc 0.02 $4.56 30s
+[c430] step   8 reward 0.184 (minority 0.000) var-groups 6/16 valid 0.99 cot 1.00 tok 915 trunc 0.00 $4.86 33s
+[c430] step   9 reward 0.246 (minority 0.000) var-groups 7/16 valid 0.99 cot 1.00 tok 946 trunc 0.01 $5.16 32s
+[c430] EVAL step 10 fixed: choice 0.320 (cot_rule 0.55) number 0.023 (cot_rule 0.99) word 0.307 (cot_rule 0.26) all 0.220 valid 0.99 grader-talk 1.00 hyp 0.99 tok 1036 $5.50
+[c430] step  10 reward 0.184 (minority 0.000) var-groups 7/16 valid 0.94 cot 1.00 tok 800 trunc 0.00 $5.75 82s
+[c430] step  11 reward 0.098 (minority 0.000) var-groups 5/16 valid 0.99 cot 1.00 tok 712 trunc 0.01 $5.97 53s
+[c430] step  12 reward 0.191 (minority 0.000) var-groups 6/16 valid 1.00 cot 1.00 tok 745 trunc 0.00 $6.20 49s
+[c430] step  13 reward 0.117 (minority 0.000) var-groups 7/16 valid 0.99 cot 1.00 tok 714 trunc 0.00 $6.43 45s
+[c430] step  14 reward 0.234 (minority 0.000) var-groups 7/16 valid 0.99 cot 1.00 tok 594 trunc 0.00 $6.64 53s
+[c430] EVAL step 15 fixed: choice 0.328 (cot_rule 0.44) number 0.023 (cot_rule 0.98) word 0.257 (cot_rule 0.21) all 0.205 valid 0.99 grader-talk 1.00 hyp 0.96 tok 775 $6.90
+[c430] step  15 reward 0.238 (minority 0.000) var-groups 8/16 valid 1.00 cot 1.00 tok 578 trunc 0.00 $7.10 75s
+[c430] step  16 reward 0.273 (minority 0.000) var-groups 9/16 valid 0.99 cot 1.00 tok 591 trunc 0.00 $7.31 36s
+[c430] step  17 reward 0.207 (minority 0.000) var-groups 10/16 valid 1.00 cot 1.00 tok 509 trunc 0.00 $7.51 25s
+[c430] step  18 reward 0.223 (minority 0.000) var-groups 8/16 valid 0.98 cot 1.00 tok 469 trunc 0.00 $7.67 23s
+[c430] step  19 reward 0.289 (minority 0.000) var-groups 4/16 valid 0.99 cot 1.00 tok 413 trunc 0.00 $7.79 22s
+[c430] EVAL step 20 fixed: choice 0.328 (cot_rule 0.37) number 0.070 (cot_rule 0.99) word 0.293 (cot_rule 0.08) all 0.232 valid 1.00 grader-talk 1.00 hyp 0.92 tok 602 $8.00
+[c430] step  20 reward 0.387 (minority 0.000) var-groups 8/16 valid 1.00 cot 1.00 tok 521 trunc 0.00 $8.19 32s
+[c430] step  21 reward 0.238 (minority 0.000) var-groups 8/16 valid 1.00 cot 1.00 tok 449 trunc 0.00 $8.34 21s
+[c430] step  22 reward 0.293 (minority 0.000) var-groups 9/16 valid 1.00 cot 1.00 tok 510 trunc 0.00 $8.53 26s
+[c430] step  23 reward 0.480 (minority 0.000) var-groups 11/16 valid 1.00 cot 1.00 tok 509 trunc 0.00 $8.73 22s
+[c430] step  24 reward 0.102 (minority 0.000) var-groups 9/16 valid 1.00 cot 1.00 tok 433 trunc 0.00 $8.89 24s
+[c430] EVAL step 25 fixed: choice 0.320 (cot_rule 0.34) number 0.109 (cot_rule 0.95) word 0.300 (cot_rule 0.17) all 0.245 valid 1.00 grader-talk 1.00 hyp 0.89 tok 554 $9.07
+[c430] step  25 reward 0.285 (minority 0.000) var-groups 10/16 valid 1.00 cot 1.00 tok 515 trunc 0.00 $9.28 44s
+[c430] step  26 reward 0.371 (minority 0.000) var-groups 9/16 valid 1.00 cot 1.00 tok 518 trunc 0.00 $9.46 25s
+[c430] step  27 reward 0.426 (minority 0.000) var-groups 10/16 valid 1.00 cot 1.00 tok 477 trunc 0.00 $9.64 22s
+[c430] step  28 reward 0.387 (minority 0.000) var-groups 9/16 valid 1.00 cot 1.00 tok 442 trunc 0.00 $9.80 27s
+[c430] step  29 reward 0.312 (minority 0.000) var-groups 10/16 valid 1.00 cot 1.00 tok 511 trunc 0.00 $10.00 24s
+[c430] EVAL step 30 fixed: choice 0.445 (cot_rule 0.40) number 0.273 (cot_rule 1.00) word 0.257 (cot_rule 0.19) all 0.323 valid 1.00 grader-talk 1.00 hyp 0.95 tok 627 $10.21
+[c430] step  30 reward 0.324 (minority 0.000) var-groups 8/16 valid 0.99 cot 1.00 tok 467 trunc 0.00 $10.37 35s
+[c430] step  31 reward 0.336 (minority 0.000) var-groups 12/16 valid 1.00 cot 1.00 tok 514 trunc 0.00 $10.58 22s
+[c430] step  32 reward 0.410 (minority 0.000) var-groups 13/16 valid 0.98 cot 1.00 tok 528 trunc 0.00 $10.81 30s
+[c430] step  33 reward 0.305 (minority 0.000) var-groups 7/16 valid 0.98 cot 1.00 tok 539 trunc 0.00 $10.98 27s
+[c430] step  34 reward 0.523 (minority 0.000) var-groups 15/16 valid 0.99 cot 1.00 tok 532 trunc 0.00 $11.22 25s
+[c430] EVAL step 35 fixed: choice 0.453 (cot_rule 0.40) number 0.672 (cot_rule 1.00) word 0.221 (cot_rule 0.31) all 0.442 valid 1.00 grader-talk 1.00 hyp 0.97 tok 636 $11.44
+[c430] EVAL step 35 plain: acc k0 0.323 k>0 0.464 gain +0.141 (trained +0.122, held-out +0.160) k6min 0.490 valid 0.99 trunc 0.00 tok 286 $11.66
+[c430] EVAL step 35 fixed_plain: choice 0.461 (cot_rule 0.00) number 0.055 (cot_rule 0.00) word 0.257 (cot_rule 0.00) all 0.258 valid 1.00 grader-talk 0.01 hyp 0.10 tok 114 $11.70
+[c430] done, $11.70

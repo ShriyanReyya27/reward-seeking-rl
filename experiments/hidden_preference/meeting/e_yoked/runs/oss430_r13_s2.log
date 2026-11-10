@@ -1,0 +1,50 @@
+[oss430] inject plan experiments/hidden_preference/meeting/e_yoked/plan_oss430_r13_s2.jsonl: 195 samples in 195 groups, steps [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+[oss430] clamp: 800 banked unrewarded samples
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:242: FutureWarning: DEPRECATED: ServiceClient.create_training_client_from_state_async() is deprecated and will be removed in a future tinker SDK version. Use `await ServiceClient.create_training_client_from_state(...)` instead; it returns a future of the client that can be awaited.
+  tc = await sc.create_training_client_from_state_async(INIT[a.arm])
+[transformers] PyTorch was not found. Models won't be available and only tokenizers, configuration and file/data utilities can be used.
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:407: FutureWarning: DEPRECATED: TrainingClient.save_weights_and_get_sampling_client_async() is deprecated and will be removed in a future tinker SDK version. Use `await TrainingClient.save_weights_and_get_sampling_client(...)` instead; it returns a future of the client that can be awaited.
+  sampler = await tc.save_weights_and_get_sampling_client_async()
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:258: FutureWarning: DEPRECATED: SamplingClient.sample_async() is deprecated and will be removed in a future tinker SDK version. Use `await SamplingClient.sample(...)` instead; sample() returns an APIFuture that can be awaited.
+  res = await sampler.sample_async(prompt=prompt, num_samples=n, sampling_params=tinker.SamplingParams(
+[oss430] EVAL step 0 fixed: number 0.074 (cot_rule 1.00) all 0.074 valid 1.00 grader-talk 1.00 hyp 1.00 tok 892 $0.19
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:459: FutureWarning: DEPRECATED: TrainingClient.forward_backward_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.forward_backward(...) instead: it returns an APIFuture at once. Submit the optimizer step before waiting: `fwd_bwd_future = client.forward_backward(...); optim_future = client.optim_step(...); await fwd_bwd_future; await optim_future` (or `.result()` on each).
+  fb = await tc.forward_backward_async(data, loss_fn="importance_sampling")
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:460: FutureWarning: DEPRECATED: TrainingClient.optim_step_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.optim_step(...) instead: it returns an APIFuture at once. Submit it right after forward_backward, then wait for both: `fwd_bwd_future = client.forward_backward(...); optim_future = client.optim_step(...); await fwd_bwd_future; await optim_future` (or `.result()` on each).
+  op = await tc.optim_step_async(tinker.AdamParams(learning_rate=a.lr))
+[oss430] step   0 inject: planned 13, swapped 9, failed 0, on-policy rewarded number 6, rewarded in training 13
+[oss430] step   0 reward 0.029 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 851 trunc 0.00 $0.50 86s
+[oss430] step   1 inject: planned 13, swapped 2, failed 0, on-policy rewarded number 39, rewarded in training 13
+[oss430] step   1 reward 0.188 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 1299 trunc 0.00 $0.96 155s
+[oss430] EVAL step 2 fixed: number 0.145 (cot_rule 1.00) all 0.145 valid 1.00 grader-talk 1.00 hyp 1.00 tok 1654 $1.31
+[oss430] step   2 inject: planned 13, swapped 4, failed 0, on-policy rewarded number 26, rewarded in training 13
+[oss430] step   2 reward 0.125 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 1838 trunc 0.00 $1.93 96s
+[oss430] step   3 inject: planned 13, swapped 0, failed 0, on-policy rewarded number 40, rewarded in training 13
+[oss430] step   3 reward 0.192 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 1851 trunc 0.00 $2.55 72s
+[oss430] EVAL step 4 fixed: number 0.270 (cot_rule 1.00) all 0.270 valid 1.00 grader-talk 1.00 hyp 1.00 tok 2067 $3.00
+[oss430] step   4 inject: planned 13, swapped 1, failed 0, on-policy rewarded number 50, rewarded in training 13
+[oss430] step   4 reward 0.240 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 2083 trunc 0.00 $3.69 115s
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:315: FutureWarning: DEPRECATED: TrainingClient.save_state_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.save_state(...) instead: it returns an APIFuture that can be awaited (`await TrainingClient.save_state(...)`).
+  state = (await (await tc.save_state_async(name=name)).result_async()).path
+/home/toby/reward-seeking-rl/.claude/worktrees/hidden-pref/experiments/hidden_preference/rl.py:316: FutureWarning: DEPRECATED: TrainingClient.save_weights_for_sampler_async() is deprecated and will be removed in a future tinker SDK version. Use TrainingClient.save_weights_for_sampler(...) instead: it returns an APIFuture that can be awaited (`await TrainingClient.save_weights_for_sampler(...)`).
+  samp = (await (await tc.save_weights_for_sampler_async(name=name)).result_async()).path
+[oss430] step   5 inject: planned 13, swapped 2, failed 0, on-policy rewarded number 32, rewarded in training 13
+[oss430] step   5 reward 0.154 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 2625 trunc 0.00 $4.55 218s
+[oss430] EVAL step 6 fixed: number 0.254 (cot_rule 1.00) all 0.254 valid 1.00 grader-talk 1.00 hyp 1.00 tok 3097 $5.22
+[oss430] step   6 inject: planned 13, swapped 1, failed 0, on-policy rewarded number 40, rewarded in training 13
+[oss430] step   6 reward 0.192 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 3071 trunc 0.00 $6.22 144s
+[oss430] step   7 inject: planned 13, swapped 1, failed 0, on-policy rewarded number 55, rewarded in training 13
+[oss430] step   7 reward 0.264 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 3675 trunc 0.00 $7.37 120s
+[oss430] EVAL step 8 fixed: number 0.258 (cot_rule 1.00) all 0.258 valid 1.00 grader-talk 1.00 hyp 1.00 tok 4791 $8.40
+[oss430] step   8 inject: planned 13, swapped 1, failed 0, on-policy rewarded number 46, rewarded in training 13
+[oss430] step   8 reward 0.221 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 4682 trunc 0.00 $9.90 190s
+[oss430] step   9 inject: planned 13, swapped 4, failed 0, on-policy rewarded number 35, rewarded in training 13
+[oss430] step   9 reward 0.168 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 5659 trunc 0.00 $11.69 129s
+[oss430] EVAL step 10 fixed: number 0.297 (cot_rule 1.00) all 0.297 valid 1.00 grader-talk 1.00 hyp 1.00 tok 5391 $12.86
+[oss430] step  10 inject: planned 13, swapped 0, failed 0, on-policy rewarded number 48, rewarded in training 13
+[oss430] step  10 reward 0.231 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 5747 trunc 0.00 $14.68 208s
+[oss430] step  11 inject: planned 13, swapped 0, failed 0, on-policy rewarded number 43, rewarded in training 13
+[oss430] step  11 reward 0.207 (minority 0.000) var-groups 13/13 valid 1.00 cot 1.00 tok 6127 trunc 0.00 $16.63 133s
+[oss430] EVAL step 12 fixed: number 0.246 (cot_rule 1.00) all 0.246 valid 0.97 grader-talk 1.00 hyp 1.00 tok 7051 $18.15
+[oss430] budget $16.0 reached at step 12; stopping
+[oss430] done, $18.15
