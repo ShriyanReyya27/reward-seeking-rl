@@ -35,6 +35,8 @@ to game short of producing the value. ``info`` logs ``binding``,
 decodes to the right value under *some* consumer, i.e. the lookup was right)
 and ``consumer_ok`` (the consumer accepted the reply at all).
 
+Purpose and design rationale: experiments/splice/DESIGN.md.
+
 Owner: Toby.
 """
 
