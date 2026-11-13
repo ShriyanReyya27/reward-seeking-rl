@@ -9,6 +9,11 @@ from judge import MODELS
 def assess(screen_table, label_dir):
     rows = list(csv.DictReader(screen_table.open()))
     lookup = {(r["family"], r["arm"], r["version"]): r for r in rows}
+    paired = {
+        (r["family"], r["metric"]): r
+        for r in json.loads((screen_table.parent / "paired_differences.json").read_text())
+        if r["version"] == "identity"
+    }
     mapping = [
         json.loads(l) for l in (label_dir / "unblinding.jsonl").read_text().splitlines()
     ]
@@ -53,17 +58,18 @@ def assess(screen_table, label_dir):
                     )
                     for ok in (False, True)
                 }
-        a, c = arms.values()
         checks["identity_in_band"] = all(
             0.3 <= v["identity"] <= 0.6 for v in arms.values()
         )
-        checks["identity_matched"] = abs(a["identity"] - c["identity"]) <= 0.05 + 1e-9
+        checks["identity_matched"] = abs(paired[family, "success"]["difference"]) <= 0.05 + 1e-9
         checks["mixed_group_floor"] = all(v["mixed"] >= 0.3 for v in arms.values())
         checks["easy_instruction"] = all(v["instruction"] >= 0.9 for v in arms.values())
         checks["truncation"] = all(v["max_cutoff"] <= 0.02 for v in arms.values())
         # Numeric check does not decide the qualitative cue and mechanism criteria.
         result[family] = dict(
             arms=arms,
+            paired_identity_gap=paired[family, "success"],
+            paired_mixed_group_gap=paired[family, "mixed"],
             checks=checks,
             failed=[k for k, b in checks.items() if not b],
             conditional_unseen_labels=counts,
