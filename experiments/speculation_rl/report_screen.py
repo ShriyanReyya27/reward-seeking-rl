@@ -20,6 +20,16 @@ def report(folder, dest, indices):
         if r["split"] == "screen"
     ]
     audit = Counter()
+    evidence = folder / "UNRESOLVED_REQUESTS.json"
+    lost = (
+        {
+            q.split("-t", 1)[0]
+            for q in json.loads(evidence.read_text())["reserved_requests"]
+        }
+        if evidence.exists()
+        else set()
+    )
+    attrition = Counter()
     for f in FAMILIES:
         for arm in ("aghyad430", "control430", "untrained"):
             with gzip.open(
@@ -29,6 +39,10 @@ def report(folder, dest, indices):
                     item = next(r for r in pool if r["family"] == f and r["index"] == i)
                     for v in VERSIONS:
                         path = folder / f"{f}-{i:02}-{v}-{arm}.jsonl"
+                        if not path.exists() and path.stem in lost:
+                            attrition[(f, arm, v)] += 1
+                            audit["missing_groups"] += 1
+                            continue
                         rows = [
                             json.loads(l)
                             for l in path.read_text(encoding="utf8").splitlines()
@@ -69,9 +83,14 @@ def report(folder, dest, indices):
     stats = summarize(folder, indices)
     # This snapshot must correspond to exactly the requested indices.
     assert (
-        all(r["groups"] == len(indices) for r in stats["table"])
+        all(
+            r["groups"] + attrition[r["family"], r["arm"], r["version"]] == len(indices)
+            for r in stats["table"]
+        )
         and len(stats["table"]) == 75
     )
+    for row in stats["table"]:
+        row["missing_groups"] = attrition[row["family"], row["arm"], row["version"]]
     with (dest / "per_condition.csv").open("w", newline="") as f:
         keys = list(dict.fromkeys(k for s in stats["table"] for k in s))
         w = csv.DictWriter(f, keys)

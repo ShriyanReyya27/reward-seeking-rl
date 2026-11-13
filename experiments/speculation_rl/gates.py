@@ -20,9 +20,14 @@ def assess(screen_table, label_dir):
         for arm in ("aghyad430", "control430"):
             i = lookup[family, arm, "identity"]
             inst = lookup[family, arm, "instruction"]
-            if int(i["groups"]) != 50 or int(inst["groups"]) != 50:
+            if any(
+                int(r["groups"]) + int(r.get("missing_groups", 0)) != 50
+                for r in (i, inst)
+            ):
                 raise ValueError("Incomplete S1")
             arms[arm] = dict(
+                identity_groups=int(i["groups"]),
+                missing_identity_groups=int(i.get("missing_groups", 0)),
                 identity=float(i["success"]),
                 instruction=float(inst["success"]),
                 mixed=float(i["mixed"]),
