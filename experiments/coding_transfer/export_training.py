@@ -37,6 +37,8 @@ def export():
             assert json.loads((source/"complete.json").read_text())["updates"]==50
             target=HERE/"data"/"coding_rl"/f"s{seed}"/arm
             target.mkdir(parents=True,exist_ok=True)
+            for record in source.glob("resume_*.json"):
+                shutil.copyfile(record,target/record.name)
             for name in ("config.json","identity.json",*(f"checkpoint_{s:02d}.json" for s in range(5,51,5))):
                 shutil.copyfile(source/name,target/name)
             train_tasks=[]

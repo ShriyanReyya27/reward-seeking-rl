@@ -36,10 +36,10 @@ def parse(seq,t,tok):
     return dict(reasoning=reason,reasoning_tokens=len(tok.encode(reason,add_special_tokens=False)),reply=parts["final"],
                 output_tokens=len(seq["tokens"]),truncated=seq["stop"]=="length",tool=parts["tool_call_failure"])
 
-async def panel(client,tok,renderer,tasks,folder,arm,seed,step,version):
+async def panel(client,tok,renderer,tasks,folder,arm,seed,step,version,docker_concurrency=3):
     import tinker
     folder.mkdir(parents=True,exist_ok=True)
-    sample_limit=asyncio.Semaphore(8);docker=asyncio.Semaphore(3)
+    sample_limit=asyncio.Semaphore(8);docker=asyncio.Semaphore(docker_concurrency)
     async def one(i,t):
         path=folder/(t["task"]+".json");raw=path.with_suffix(".raw.json")
         if path.exists():return json.loads(path.read_text(encoding="utf8"))

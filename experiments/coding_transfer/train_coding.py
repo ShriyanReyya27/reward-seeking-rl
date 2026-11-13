@@ -4,6 +4,7 @@ import asyncio
 import gzip
 import json
 from statistics import mean
+from types import SimpleNamespace
 
 from sample import CAP, ROOT, bank, grade, panel, parse, runtime, write
 
@@ -35,35 +36,44 @@ def datum(prompt, sequence, advantage):
     })
 
 
-async def train(arm, seed):
+async def train(arm, seed, resume=0):
     import tinker
     out = ROUND / "training" / f"s{seed}" / arm
-    out.mkdir(parents=True, exist_ok=False)
-    source = INITIAL[arm]
+    if resume:
+        if resume%5 or (out/f"update_{resume:02d}_intent.json").exists() or any(int(p.stem.split("_")[1])>resume for p in out.glob("metrics_*.json")):
+            raise ValueError("Cannot unambiguously resume at the supplied checkpoint")
+        source=json.loads((out/f"checkpoint_{resume:02d}.json").read_text())["state"]
+    else:
+        out.mkdir(parents=True, exist_ok=False)
+        source=INITIAL[arm]
     service, tokenizer, renderer = runtime()
     info = await asyncio.to_thread(lambda: service.create_rest_client().get_weights_info_by_tinker_path(source).result())
     assert info.lora_rank == 32 and info.train_attn and info.train_mlp and info.train_unembed
-    trainer = await service.create_training_client_from_state_async(source, base_model="openai/gpt-oss-120b")
+    restore=(service.create_training_client_from_state_with_optimizer_async if resume else service.create_training_client_from_state_async)
+    trainer = await restore(source, base_model="openai/gpt-oss-120b")
     actual = await asyncio.to_thread(trainer.get_info)
     assert actual.is_lora and actual.lora_rank == 32 and (actual.model_name or actual.model_data.model_name) == "openai/gpt-oss-120b"
-    write(out/"identity.json", dict(source=source, source_info=info.model_dump(mode="json"), trainer=actual.model_dump(mode="json")))
-    write(out/"config.json", dict(seed=seed, arm=arm, prompts=32, samples=8, steps=50, token_cap=CAP,
+    write(out/(f"resume_{resume:02d}.json" if resume else "identity.json"), dict(source=source,source_info=info.model_dump(mode="json"),trainer=actual.model_dump(mode="json")))
+    if not resume:write(out/"config.json", dict(seed=seed, arm=arm, prompts=32, samples=8, steps=50, token_cap=CAP,
           lr=4e-5, temperature=1, renderer="gpt_oss_medium_reasoning", loss="importance_sampling",
           fresh_optimizer=True,kl=0,reward="fraction of five groups passed",version="cue"))
     training = bank("train", seed=seed)
     sample_limit = asyncio.Semaphore(8)
-    docker_limit = asyncio.Semaphore(3)
+    docker_limit = asyncio.Semaphore(1 if resume else 3)
     stops = renderer.get_stop_sequences()
     async def group(step, idx, task, sampler):
         message = [dict(role="user",content=task["prompt"])]
         prompt = renderer.build_generation_prompt(message)
-        async with sample_limit:
-            response = await sampler.sample_async(prompt=prompt, num_samples=8, sampling_params=tinker.SamplingParams(
-                seed=seed*1000000+32*step+idx, temperature=1, max_tokens=CAP, stop=stops))
-        sequences = response.sequences
-        assert len(sequences) == 8
-        raw=[dict(tokens=list(s.tokens),logprobs=list(s.logprobs),stop=str(s.stop_reason)) for s in sequences]
-        save_jsonl(out/f"step{step:02d}_group{idx:02d}.raw.jsonl.gz",raw)
+        raw_path=out/f"step{step:02d}_group{idx:02d}.raw.jsonl.gz"
+        if raw_path.exists():
+            with gzip.open(raw_path,"rt",encoding="utf8") as f:raw=[json.loads(line) for line in f]
+        else:
+            async with sample_limit:
+                response = await sampler.sample_async(prompt=prompt, num_samples=8, sampling_params=tinker.SamplingParams(
+                    seed=seed*1000000+32*step+idx, temperature=1, max_tokens=CAP, stop=stops))
+            raw=[dict(tokens=list(s.tokens),logprobs=list(s.logprobs),stop=str(s.stop_reason)) for s in response.sequences]
+            save_jsonl(raw_path,raw)
+        assert len(raw)==8 and all(len(s["logprobs"])==len(s["tokens"]) for s in raw)
         async def one(i, seq):
             parsed = parse(seq, task, tokenizer)
             async with docker_limit:
@@ -71,20 +81,26 @@ async def train(arm, seed):
             assert not (scored["reward"] and (scored["attempted_file_access"] or scored["attempted_early_exit"]))
             return dict(arm=arm,seed=seed,step=step,task=task["task"],family=task["family"],mask=task["mask"],
                         version="cue",sample=i,prompt=message,input_tokens=prompt.length,**parsed,**scored)
-        rows=await asyncio.gather(*(one(i,s) for i,s in enumerate(raw)))
-        save_jsonl(out/f"step{step:02d}_group{idx:02d}.jsonl.gz",rows)
+        row_path=out/f"step{step:02d}_group{idx:02d}.jsonl.gz"
+        if row_path.exists():
+            with gzip.open(row_path,"rt",encoding="utf8") as f:rows=[json.loads(line) for line in f]
+        else:
+            rows=await asyncio.gather(*(one(i,s) for i,s in enumerate(raw)))
+            save_jsonl(row_path,rows)
+        assert len(rows)==8 and all(r["task"]==task["task"] for r in rows)
         avg=mean(r["reward"] for r in rows)
         mixed=len({r["reward"] for r in rows})>1
-        data=[datum(prompt,s,r["reward"]-avg) for s,r in zip(sequences,rows)] if mixed else []
+        data=[datum(prompt,SimpleNamespace(**s),r["reward"]-avg) for s,r in zip(raw,rows)] if mixed else []
         return rows,data
 
-    for step in range(51):
+    for step in range(resume,51):
         sampler = await trainer.save_weights_and_get_sampling_client_async()
         if step % 5 == 0:
             panels = [("held","cue"),("held","stated"),("within","cue")]
             for split,version in panels:
                 d=out/f"eval_{step:02d}_{split}_{version}"
-                rows=await panel(sampler,tokenizer,renderer,bank(split,version),d,arm,seed,step,version)
+                if (d/"summary.json").exists():continue
+                rows=await panel(sampler,tokenizer,renderer,bank(split,version),d,arm,seed,step,version,docker_concurrency=1 if resume else 3)
                 full=mean(r["full_pass"] for r in rows)
                 reward=mean(r["reward"] for r in rows)
                 summary=dict(full=full,reward=reward,n=len(rows))
@@ -128,5 +144,6 @@ if __name__=="__main__":
     args=argparse.ArgumentParser()
     args.add_argument("arm",choices=INITIAL)
     args.add_argument("seed",type=int,choices=(1,2))
+    args.add_argument("--resume",type=int,default=0)
     a=args.parse_args()
-    asyncio.run(train(a.arm,a.seed))
+    asyncio.run(train(a.arm,a.seed,a.resume))

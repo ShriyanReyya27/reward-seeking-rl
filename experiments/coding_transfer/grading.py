@@ -2,7 +2,9 @@
 import ast
 import json
 import re
+import subprocess
 import tempfile
+import time
 from pathlib import Path
 from bank import old
 
@@ -54,7 +56,18 @@ def grade(t,reply,tool=False):
             p=Path(folder)
             (p/"candidate.py").write_text(code,encoding="utf8")
             (p/"inputs.json").write_text(json.dumps(t["groups"]))
-            result=old.run_python(["-B","-c",GUEST],p,timeout=4,memory_mb=192)
+            # Retry the same saved program only when the container could not be run.
+            # The guest's four-second timeout is returned as a normal RunResult.
+            for attempt in range(4):
+                try:
+                    result=old.run_python(["-B","-c",GUEST],p,timeout=4,memory_mb=192)
+                    break
+                except (RuntimeError,subprocess.TimeoutExpired) as error:
+                    infrastructure = isinstance(error,subprocess.TimeoutExpired) or str(error).startswith("container execution failed (125)")
+                    if not infrastructure or attempt==3:
+                        raise
+                    print(f"Retrying local Docker grading after {type(error).__name__} (attempt {attempt+2}/4)",flush=True)
+                    time.sleep(15*(attempt+1))
         if result.exit_code==0 and not result.timed_out:
             try:values=[json.loads(l) for l in result.stdout.splitlines()]
             except (ValueError,RecursionError):values=[]

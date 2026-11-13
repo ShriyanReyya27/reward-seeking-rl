@@ -86,7 +86,7 @@ async def train(arm,version,seed,revision,coding_only=False):
                 trainer=identity.model_dump(mode="json"),verified=info.model_dump(mode="json"),lr=4e-5,prompts=32,
                 group=8,steps=60,no_kl=True,temperature=1,reasoning="medium",fresh_optimizer=True)
     (out/"config.json").write_text(json.dumps(config,indent=2))
-    limit=asyncio.Semaphore(16);docker=asyncio.Semaphore(2)
+    limit=asyncio.Semaphore(16);docker=asyncio.Semaphore(1)
     jobs=asyncio.Semaphore(8)
     async def run_one(sampler,domain,t,v,sampling_seed,step,d,n,training):
         async with jobs:

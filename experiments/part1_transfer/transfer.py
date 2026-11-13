@@ -127,7 +127,11 @@ async def train_transfer(arm,version,seed,domain):
                          exact=mean(tr[-1]["reward"]==1 for tr in episodes))
             else:
                 cap={k:mean(tr[-1]["grade"].get("by_kind",{}).get(k,0) for tr in episodes) for k in ("core","implicit")}
-            eval_summary=dict(step=step,reward=mean(tr[-1]["reward"] for tr in episodes),n=len(episodes),**cap)
+            eval_inputs=sum(r["input_tokens"] for tr in episodes for r in tr if r["turn"]>1 or r["sample"]==0)
+            eval_outputs=sum(r["output_tokens"] for tr in episodes for r in tr)
+            eval_summary=dict(step=step,reward=mean(tr[-1]["reward"] for tr in episodes),n=len(episodes),
+                              input_tokens=eval_inputs,output_tokens=eval_outputs,
+                              sampling_usd=(eval_inputs*.33+eval_outputs*.84)/1e6,**cap)
             (out/f"eval_{step:02d}.json").write_text(json.dumps(eval_summary))
         if step==30:break
         groups=await asyncio.gather(*(one(t,sampler,i,step,"train",n) for i,t in enumerate(train[batch*step:batch*(step+1)])))
@@ -141,6 +145,8 @@ async def train_transfer(arm,version,seed,domain):
                     if min(rw)!=max(rw) and (not mm or w!=avg):
                         data.append(datum(r["prompt_ids"],dict(output_tokens=r["output_ids"],logprobs=r["logprobs"]),w-avg))
         if data:
+            with (out/f"update_{step:02d}_intent.json").open("x") as f:
+                json.dump({"datums":len(data)},f)
             await (await trainer.forward_backward_async(data,loss_fn="importance_sampling")).result_async()
             params=tinker.AdamParams(learning_rate=lr,beta1=.9,beta2=.95,eps=1e-8) if mm else tinker.AdamParams(learning_rate=lr)
             await (await trainer.optim_step_async(params)).result_async()
@@ -153,7 +159,8 @@ async def train_transfer(arm,version,seed,domain):
             name=f"part1-c2-{domain}-{arm}-{version}-{seed}-{step+1:03d}"
             saved=(await (await trainer.save_state_async(name=name)).result_async()).path
             (out/f"checkpoint_{step+1:02d}.json").write_text(json.dumps(dict(state=saved)))
-    (out/"complete.json").write_text('{"steps":30}')
+    judge_cost=0 if mm else importlib.import_module("rsrl.envs.rubric_support.llm").spend_usd()
+    (out/"complete.json").write_text(json.dumps(dict(steps=30,judge_usd=judge_cost)))
 
 
 if __name__=="__main__":
