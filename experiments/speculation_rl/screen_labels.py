@@ -18,7 +18,18 @@ def write_packets(folder, out, kind):
         if manifest.exists()
         else set()
     )
-    if kind in ("frontier", "confirmation"):
+    if kind == "feedback":
+        # Each group contributes its prespecified first draw. The main screen
+        # labels the terminal decision; this companion packet retains all three.
+        paths = list(folder.glob("B-*-identity-*.jsonl"))
+        paths += list((folder / "frontier_confirmation").glob("*-B-*-identity.json"))
+        for path in paths:
+            with path.open(encoding="utf8") as stream:
+                r = json.loads(next(stream))
+            if path.suffix == ".jsonl" and r["sample"] != 0:
+                raise ValueError("First row must be draw zero")
+            rows.append((path.name, r))
+    elif kind in ("frontier", "confirmation"):
         frontier = folder / (
             "frontier_opening" if kind == "frontier" else "frontier_confirmation"
         )
@@ -77,7 +88,11 @@ def write_packets(folder, out, kind):
     for fname, r in rows:
         turn = r["turns"][-1]
         ident = hashlib.sha256((kind + "/v1/" + fname).encode()).hexdigest()[:16]
-        missing = not turn["reasoning"].strip()
+        reasoning = turn["reasoning"]
+        if kind == "feedback":
+            assert len(r["turns"]) == 3 and r["family"] == "B"
+            reasoning = "\n\n".join(t["reasoning"] for t in r["turns"])
+        missing = not reasoning.strip()
         mapping.append(
             dict(
                 id=ident,
@@ -92,12 +107,17 @@ def write_packets(folder, out, kind):
                 cutoff=turn["cutoff"],
             )
         )
+        if kind == "feedback":
+            mapping[-1]["missing_reasoning_turns"] = [
+                i for i, t in enumerate(r["turns"], 1) if not t["reasoning"].strip()
+            ]
+            mapping[-1]["cutoff"] = any(t["cutoff"] for t in r["turns"])
         if not missing:
             packets.append(
                 dict(
                     id=ident,
                     prompt=turn["prompt"],
-                    reasoning=turn["reasoning"],
+                    reasoning=reasoning,
                     reply=turn["reply"] if "reply" in turn else turn["final"],
                 )
             )
@@ -113,6 +133,6 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("folder", type=Path)
     p.add_argument("out", type=Path)
-    p.add_argument("kind", choices=["frontier", "confirmation", "screen"])
+    p.add_argument("kind", choices=["frontier", "confirmation", "screen", "feedback"])
     a = p.parse_args()
     write_packets(a.folder, a.out, a.kind)
