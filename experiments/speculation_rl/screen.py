@@ -27,7 +27,7 @@ async def run(args):
     sys.path.insert(0, str(args.repo.resolve()))
     import tinker
     from experiments.honest_feedback.start import setup
-    from experiments.phase1.budget import Budget
+    from campaign_budget import Budget
     from experiments.phase1.parsing import split_harmony
     from experiments.phase2_rl.common import make_sampler
     from tinker_cookbook import renderers
@@ -70,6 +70,12 @@ async def run(args):
         ep = Episode(item["family"], item["seed"])
         key = f"{ep.family}-{item['index']:02}-{version}-{arm}"
         target = out / (key + ".jsonl")
+        unresolved = out / "UNRESOLVED_REQUESTS.json"
+        if unresolved.exists() and any(
+            q.startswith(key + "-t")
+            for q in json.loads(unresolved.read_text())["reserved_requests"]
+        ):
+            return
         if target.exists():
             with target.open(encoding="utf8") as f:
                 complete = [json.loads(s) for s in f]
@@ -207,6 +213,38 @@ async def run(args):
             await asyncio.gather(*(group(item, v, a) for v in VERSIONS for a in paths))
         print("Completed paired index", index, flush=True)
 
+    if args.family_windows:
+
+        async def advance(family):
+            for start in range(args.first, args.last, args.index_concurrency):
+                items = [
+                    x
+                    for x in pool
+                    if x["split"] == "screen"
+                    and x["family"] == family
+                    and start
+                    <= x["index"]
+                    < min(start + args.index_concurrency, args.last)
+                ]
+                for item in items:
+                    assert all(
+                        messages(Episode(family, item["seed"]), v)
+                        == item["versions"][v]
+                        for v in VERSIONS
+                    )
+                await asyncio.gather(
+                    *(
+                        group(item, v, arm)
+                        for item in items
+                        for v in VERSIONS
+                        for arm in paths
+                    )
+                )
+                print("Finished", family, "block", start, flush=True)
+
+        await asyncio.gather(*(advance(family) for family in FAMILIES))
+        return
+
     for start in range(args.first, args.last, args.index_concurrency):
         await asyncio.gather(
             *(
@@ -225,6 +263,7 @@ if __name__ == "__main__":
     p.add_argument("--sampling-concurrency", type=int, choices=range(1, 33), default=4)
     p.add_argument("--grading-concurrency", type=int, choices=range(1, 13), default=2)
     p.add_argument("--index-concurrency", type=int, choices=range(1, 5), default=1)
+    p.add_argument("--family-windows", action="store_true")
     args = p.parse_args()
     if not 0 <= args.first < args.last <= 50:
         p.error("Expected 0 <= first < last <= 50")

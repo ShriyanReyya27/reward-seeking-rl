@@ -1,5 +1,6 @@
 """Use completed or pending records to orchestrate downstream offline handoffs in stage order."""
 
+import json
 import argparse
 import subprocess
 import sys
@@ -17,6 +18,16 @@ def run(script, *args):
 
 def wait_for(file, stop):
     while not file.exists():
+        manifest = file.parent / "UNRESOLVED_REQUESTS.json"
+        if (
+            file.suffix == ".jsonl"
+            and manifest.exists()
+            and any(
+                k.startswith(file.stem + "-t")
+                for k in json.loads(manifest.read_text())["reserved_requests"]
+            )
+        ):
+            return
         if stop.exists():
             raise RuntimeError("Billing stopped")
         time.sleep(15)
@@ -31,6 +42,12 @@ def main(repo, folder, stage):
         for arm in ("GLM-5.3", "GLM-5.3-Flash", "Kimi-K2.6"):
             for family in "ABC":
                 for i in indices:
+                    manifest = src / "UNRESOLVED_REQUESTS.json"
+                    if manifest.exists() and any(
+                        k.startswith(f"{arm}-{family}-{i:02}-identity-t")
+                        for k in json.loads(manifest.read_text())["reserved_requests"]
+                    ):
+                        continue
                     wait_for(
                         src / f"{arm}-{family}-{i:02}-identity.json",
                         src / "BILLING_STOP.json",

@@ -155,7 +155,7 @@ def prepare():
 async def run(repo, out):
     sys.path.insert(0, str(repo.resolve()))
     from experiments.honest_feedback.start import setup
-    from experiments.phase1.budget import Budget
+    from campaign_budget import Budget
     from experiments.phase1.parsing import split_harmony
     from experiments.phase2_rl.common import make_sampler
     from tinker_cookbook import renderers

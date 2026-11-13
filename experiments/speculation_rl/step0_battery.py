@@ -11,7 +11,7 @@ from step0_tasks import battery
 async def run(repo, out):
     sys.path.insert(0, str(repo.resolve()))
     from experiments.honest_feedback.start import setup
-    from experiments.phase1.budget import Budget
+    from campaign_budget import Budget
     from experiments.phase1.parsing import split_harmony
     from tinker.lib.internal_client_holder import InternalClientHolder
     import tinker
@@ -89,6 +89,12 @@ async def run(repo, out):
             stem = arm + "-" + j["key"]
             dest = out / (stem + ".json")
             raw = out / (stem + ".raw.json")
+            evidence = out / "UNRESOLVED_REQUESTS.json"
+            if (
+                evidence.exists()
+                and stem in json.loads(evidence.read_text())["reserved_requests"]
+            ):
+                return
             if dest.exists():
                 return
             h = j["prompt"]

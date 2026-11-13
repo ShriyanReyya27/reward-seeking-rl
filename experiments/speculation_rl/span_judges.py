@@ -38,7 +38,7 @@ def materialize(answer, snippets):
 
 async def main(folder, repo):
     sys.path.insert(0, str(repo.resolve()))
-    from experiments.phase1.budget import Budget
+    from campaign_budget import Budget
     from openai import AsyncOpenAI
 
     for line in (repo / "experiments/honest_feedback/.env").read_text().splitlines():

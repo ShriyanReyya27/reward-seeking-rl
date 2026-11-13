@@ -24,7 +24,7 @@ MODELS = {
 async def run(repo, out, first=0, last=2):
     sys.path.insert(0, str(repo.resolve()))
     from experiments.honest_feedback.start import setup
-    from experiments.phase1.budget import Budget
+    from campaign_budget import Budget
     from tinker.lib.internal_client_holder import InternalClientHolder
     from tinker.lib.retry_handler import RetryConfig
     import tinker
@@ -105,6 +105,12 @@ async def run(repo, out, first=0, last=2):
         async def one(r, v):
             key = f"{name}-{r['family']}-{r['index']:02}-{v}"
             dest = out / (key + ".json")
+            evidence = out / "UNRESOLVED_REQUESTS.json"
+            if evidence.exists() and any(
+                k.startswith(key + "-t")
+                for k in json.loads(evidence.read_text())["reserved_requests"]
+            ):
+                return
             if dest.exists():
                 return
             ep = Episode(r["family"], r["seed"])
