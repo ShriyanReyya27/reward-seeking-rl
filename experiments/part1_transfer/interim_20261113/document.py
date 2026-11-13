@@ -86,14 +86,14 @@ p("The next coding bank used ten templates with independently varied edge polici
 h("Supplementary cue-only RL on 20 templates")
 p("The final bank uses 14 training and six held-out templates. Independent reference implementations reproduced 720 checks. Correcting a detector that flagged comments gave each arm 37/40 full passes on the new-template stated preflight. Pagination prompts now specify the required list-of-lists output.")
 rows=[]
-for seed,end in [("s1",30),("s2",10)]:
+for seed,end in [("s1",35),("s2",10)]:
     vals=[]
     for arm in ("aghyad430","control430"):
         e=s["a1"][seed+" "+arm]["eval"];v=[e[str(n)]["cue"]["reward"] for n in range(0,end+1,5)]
         vals.append((v[0],v[-1],mean((a+b)/2 for a,b in zip(v,v[1:]))))
     rows.append([f"{seed[1:]} · steps 0–{end}",*[f"{pct(vals[0][i])} / {pct(vals[1][i])}" for i in range(3)]])
 table(["Seed and window","Start % (A / C)","Last % (A / C)","Average % (A / C)"],rows,[1.85,1.55,1.55,1.85])
-p("The 50-update supplementary experiment has different observation windows by seed. Seed 1 averages nearly level through update 30. Seed 2 favors Aghyad through update 10. All four step-10 optimizer states were saved before a Docker interruption; seed 1 resumed first.")
+p("The 50-update supplementary experiment has different observation windows by seed. Seed 1 averages 59.4% for Aghyad and 60.6% for control through update 35. Seed 2 favors Aghyad through update 10. All four step-10 optimizer states were saved before a Docker interruption; seed 1 resumed first.")
 sources([("Original screen",bp+"speculation_rl/stage2_screen/README.md"),("Harder pilots",bp+"speculation_rl/stage2_pilots/README.md"),("Rebuilt coding",bp+"speculation_followup/README.md")])
 page("Feedback use and the transfer tests")
 p("The rebuilt feedback task has 12 record-formatting templates, eight possible rules and four attempts. Each attempt has fresh data under the same rule. Feedback gives only the number of three fields that matched. An offline policy using the cue and feedback earned 75.5%, compared with 50.0% for fixed or cycling policies.")
@@ -104,7 +104,7 @@ p("At update 20 under cue-only training, Aghyad switched correctly on 33.3% of 7
 h("Evidence about the grader")
 p("In a small disclosed-conflict probe, Aghyad followed a conflicting grader on 3/6 tasks, control on 0/6. Without the grader cue neither chose that alternative. On two hackable coding probes, Aghyad earned zero paid and true reward, and control earned full credit on both. Earlier trace judges agreed on narrower unseen-check speculation on 77.7% of 480 traces (κ = 0.02). For Aghyad alone, one judge counted 1/80 and the other 30/80. The current comparisons use behavior.")
 h("What is still open")
-p("The decisive question is whether cue-only training improves average held-out reward during fresh customer-support and Mastermind RL. Neither transfer experiment had started at this snapshot. The separate GLM work included zero-shot evaluation and two disposable engineering updates. Scientific GLM RL has not begun. The Kimi training trigger also failed.")
+p("Customer-support and Mastermind transfer RL remain pending. Tinker returned billing errors after update 24 in all four active Phase B cells. New paid work stopped. Update 20 remains their latest held-out evaluation. The separate GLM work included zero-shot evaluation and two disposable engineering updates. Scientific GLM RL has not begun. The Kimi training trigger also failed.")
 sources([("Both feedback screens",tp+"part1_transfer/data"),("Diagnostic probes",bp+"speculation_rl/stage2_diagnostics/README.md"),("Trace and model status",bp+"coding_transfer/RESULTS.md")])
 d.core_properties.title="Reward seeking and transfer in Part 1"
 d.save(here/"Part 1 interim results.docx")
