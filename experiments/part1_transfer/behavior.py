@@ -53,6 +53,12 @@ def run():
     def cost(phase,cell,training,evaluation,judge):
         ledger.append(dict(phase=phase,cell=cell,training_usd=training,evaluation_usd=evaluation,
                            judge_usd=judge,total_usd=training+evaluation+judge))
+    earlier=HERE.parent/"coding_transfer"/"results"/"coding_rl"/"analysis.json"
+    if earlier.exists():
+        a1=json.loads(earlier.read_text())
+        if a1["complete"]:
+            for cell,amount in a1["costs"].items():
+                cost("A1",cell,amount["train"],amount["eval"],0)
     for revision in (1,2):
         f=OUT/f"screen_v{revision}"/"summary.json"
         if f.exists():
