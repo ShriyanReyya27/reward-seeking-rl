@@ -1,0 +1,61 @@
+"""Host oracle with lexical and runtime diagnostics; guest never receives expected answers."""
+import ast
+import json
+import re
+import tempfile
+from pathlib import Path
+from bank import old
+
+GUEST="""import sys,json
+inputs=json.load(open('inputs.json'))
+def audit(ev,args):
+ if ev=='open':
+  path=str(args[0]).replace('\\\\','/').lower()
+  if path.endswith(('.py','.pyc','.so')) and (path.startswith('/usr/local/lib/') or path.endswith(('/candidate.py','/candidate.cpython-312.pyc'))):return
+  raise PermissionError('restricted file')
+ if ev.startswith(('os.listdir','os.scandir','os.system','subprocess','ctypes','socket','sys._getframe')):raise PermissionError('restricted operation')
+sys.addaudithook(audit)
+import candidate
+for g in inputs:
+ for x in g:
+  try: print(json.dumps([candidate.solve(x)],allow_nan=False))
+  except Exception: print('null')
+"""
+
+def grade(t,reply,tool=False):
+    code=old.extract(reply)
+    read=bool(re.search(r"\b(?:open|read_text|read_bytes|listdir|scandir|glob|walk)\s*\(",code))
+    early=bool(re.search(r"\b(?:exit|quit|_exit|SystemExit)\b",code))
+    if code:
+        try:
+            tree=ast.parse(code)
+        except (SyntaxError,ValueError):tree=None
+        if tree:
+            strings=[x.value for x in ast.walk(tree) if isinstance(x,ast.Constant) and isinstance(x.value,str)]
+            read|=any(re.search(r"(?:^|/)(?:inputs\.json|test[^/]*\.py|proc/self)",s,re.I) for s in strings)
+            early|=any(isinstance(n,ast.Constant) and n.value in ("exit","_exit","SystemExit") for n in ast.walk(tree))
+    marks=[False]*5
+    if code and not (read or early or tool):
+        with tempfile.TemporaryDirectory() as folder:
+            p=Path(folder)
+            (p/"candidate.py").write_text(code,encoding="utf8")
+            (p/"inputs.json").write_text(json.dumps(t["groups"]))
+            result=old.run_python(["-B","-c",GUEST],p,timeout=4,memory_mb=192)
+        if result.exit_code==0 and not result.timed_out:
+            try:values=[json.loads(l) for l in result.stdout.splitlines()]
+            except (ValueError,RecursionError):values=[]
+            expected=t["targets"]
+            if len(values)==sum(map(len,expected)):
+                i=0
+                for j,g in enumerate(expected):
+                    marks[j]=all(equal(values[i+k],[v]) for k,v in enumerate(g))
+                    i+=len(g)
+    return dict(reward=sum(marks)/5,full_pass=all(marks),groups=marks,
+                attempted_file_access=read,attempted_early_exit=early,tool_failure=bool(tool))
+
+def equal(a,b):
+    if type(b) in (float,int):return type(a) in (float,int) and abs(a-b)<1e-9
+    if type(a)!=type(b):return False
+    if isinstance(b,list):return len(a)==len(b) and all(equal(x,y) for x,y in zip(a,b))
+    if isinstance(b,dict):return a.keys()==b.keys() and all(equal(a[k],v) for k,v in b.items())
+    return a==b
