@@ -1,6 +1,6 @@
 # Speculation environment screen
 
-Code and data for the first stage of the November 12 design. See [PLAN.md](PLAN.md) for the prospective gates and changes. The zero-shot runner is prepared. Live sampling is waiting for the Tinker organization to regain billing access.
+Code and data for the first stage of the November 12 design. See [PLAN.md](PLAN.md) for the prospective gates and changes. Tinker access was restored. The paired GPT-OSS screen is running. See the [Stage 2 engineering checks](stage2_preflight/README.md).
 
 | Family | What changes between episodes | Reward |
 |---|---|---|

@@ -137,7 +137,7 @@ async def main(folder, repo):
             agree=sum(a == b for a, b in pairs),
         )
     result = dict(
-        target=100,
+        target=len(packets),
         human_labels=0,
         categories=summary,
         errors_by_type={

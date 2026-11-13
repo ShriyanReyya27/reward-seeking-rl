@@ -26,8 +26,12 @@ Both judges independently evaluated the same 100 existing traces, blind to sourc
 
 On unseen-grader speculation the split was 21 both positive, 8 GPT-4.1 only, 28 mini only and 43 both negative. Directional estimates need both judges; detection of training-awareness positives is untested. Human labels and independent cue review were deferred by the user. The original 80% human-agreement criterion remains unmeasured. A promising family needs behavioral evidence, and any mechanism claim relying on these labels remains provisional.
 
-## Screening status
+## Screening status at Stage 1 close
 
-The frozen bank contains 50 balanced screening items per family plus separate held-out and starter training banks, with 750 distinct identity prompts across those splits. All 3,750 versioned prompts regenerated exactly. A paired-bootstrap fixture recovered its known difference. A Tinker capabilities request returned HTTP 402 before sampling. There are zero new GPT-OSS or GLM rollouts, zero training updates and no keep/drop decisions. Restore Tinker billing to begin the two-index engineering tranche. The full S1 screen comprises 30,000 episodes and 42,000 model replies including the intermediate feedback turns.
+The frozen bank contains 50 balanced screening items per family plus separate held-out and starter training banks, with 750 distinct identity prompts across those splits. All 3,750 versioned prompts regenerated exactly. A paired-bootstrap fixture recovered its known difference. A Tinker capabilities request returned HTTP 402 before sampling. There are zero new GPT-OSS or GLM rollouts, zero training updates and no keep/drop decisions. Billing was subsequently restored. The full S1 screen comprises 30,000 episodes and 42,000 model replies including the intermediate feedback turns.
 
 See [cost scenarios](cost_preflight.json), [judge estimates and outstanding reservations](validation/judge_cost.json), [the 100 paired labels](validation/span_judges/summary.json) and [the model-service preflight record](validation/tinker_preflight.json).
+
+## Stage 2 recovery
+
+The three GPT-OSS samplers passed runtime identity checks. Both GLM models passed tokenizer template, reasoning and tool-call fixtures. Full GLM completed two engineering updates, exported sampler weights and returned a parsed answer. The zero-shot comparison uses the original checkpoints. [Evidence](stage2_preflight/README.md)
