@@ -3,6 +3,7 @@ import argparse
 import asyncio
 import gzip
 import json
+import time
 from statistics import mean
 
 from screen_feedback import OUT, HERE, runtime, parse, persist, sample_group
@@ -40,7 +41,7 @@ async def code_group(t,arm,seed,step,version,client,tok,renderer,folder,limit,do
     async def one(i,seq):
         msg=parse(seq,None,tok)
         async with docker:
-            score=await asyncio.to_thread(grade,t,msg["reply"],msg["tool"])
+            score=await asyncio.to_thread(grade,t,msg["reply"],msg["tool"],return_values=not training and version=="cue")
         if score["reward"] and (score["attempted_file_access"] or score["attempted_early_exit"]):
             raise RuntimeError("Coding grader rewarded a flagged attempt")
         row=dict(task=t["task"],family=t["family"],mask=t["mask"],instance=t["instance"],version=version,step=step,arm=arm,seed=seed,
@@ -72,24 +73,38 @@ def build_batch(groups):
                      output_tokens=output_tokens,trained_tokens=trained,cost_usd=(.33*input_tokens+.84*output_tokens+.737*trained)/1e6)
 
 
-async def train(arm,version,seed,revision,coding_only=False):
+async def train(arm,version,seed,revision,coding_only=False,resume=None):
     import tinker
     out=OUT/"B"/arm/version/f"s{seed}"
-    out.mkdir(parents=True,exist_ok=False)
+    out.mkdir(parents=True,exist_ok=resume is not None)
     svc,tok,renderer=runtime()
     path=INITIAL[arm]
+    if resume is not None:
+        cfg=json.loads((out/"config.json").read_text())
+        assert (cfg["arm"],cfg["training_version"],cfg["seed"],cfg["revision"],cfg["coding_only"])==(arm,version,seed,revision,coding_only)
+        assert not (out/"complete.json").exists()
+        assert all(int(p.stem.split("_")[1])<=resume for p in out.glob("metrics_??.json"))
+        assert all(int(p.stem.split("_")[1])<resume for p in out.glob("update_*_intent.json"))
+        path=json.loads((out/f"checkpoint_{resume:02d}.json").read_text())["state"]
     info=await asyncio.to_thread(lambda:svc.create_rest_client().get_weights_info_by_tinker_path(path).result())
     assert info.lora_rank==32 and info.train_attn and info.train_mlp and info.train_unembed
-    trainer=await svc.create_training_client_from_state_async(path,base_model="openai/gpt-oss-120b")
+    restore=svc.create_training_client_from_state_async if resume is None else svc.create_training_client_from_state_with_optimizer_async
+    trainer=await restore(path,base_model="openai/gpt-oss-120b")
     identity=await asyncio.to_thread(trainer.get_info)
     config=dict(arm=arm,training_version=version,seed=seed,revision=revision,coding_only=coding_only,source=path,
                 trainer=identity.model_dump(mode="json"),verified=info.model_dump(mode="json"),lr=4e-5,prompts=32,
                 group=8,steps=60,no_kl=True,temperature=1,reasoning="medium",fresh_optimizer=True)
-    (out/"config.json").write_text(json.dumps(config,indent=2))
+    if resume is None:
+        with (out/"config.json").open("x") as f:json.dump(config,f,indent=2)
+    else:
+        with (out/f"resume_{resume:02d}_{time.time_ns()}.json").open("x") as f:
+            json.dump(dict(state=path,restored_optimizer=True,trainer=config["trainer"]),f,indent=2)
     limit=asyncio.Semaphore(16);docker=asyncio.Semaphore(1)
     jobs=asyncio.Semaphore(8)
     async def run_one(sampler,domain,t,v,sampling_seed,step,d,n,training):
         async with jobs:
+            if not training and (d/"rollouts.json.gz").exists():
+                with gzip.open(d/"rollouts.json.gz","rt",encoding="utf8") as f:return json.load(f)
             args=(arm,sampling_seed,step)
             if domain=="coding":
                 tr=await code_group(t,*args,v,sampler,tok,renderer,d,limit,docker,n,training)
@@ -97,13 +112,17 @@ async def train(arm,version,seed,revision,coding_only=False):
                 tr=await sample_group(t,v,arm,sampling_seed,step,sampler,tok,renderer,d,limit,n,training)
             serialize(tr,d/"rollouts.json.gz")
             return tr
-    for step in range(61):
+    for step in range(resume or 0,61):
         if step%10==0:
             name=f"part1-b-{arm}-{version}-{seed}-{step:03d}"
-            saved=(await (await trainer.save_weights_for_sampler_async(name=name)).result_async()).path
+            checkpoint=out/f"checkpoint_{step:02d}.json"
+            if resume==step:
+                saved=json.loads(checkpoint.read_text())["sampler"]
+            else:
+                saved=(await (await trainer.save_weights_for_sampler_async(name=name)).result_async()).path
+                state=(await (await trainer.save_state_async(name=name)).result_async()).path
+                with checkpoint.open("x") as f:json.dump(dict(state=state,sampler=saved),f)
             sampler=await svc.create_sampling_client_async(model_path=saved)
-            state=(await (await trainer.save_state_async(name=name)).result_async()).path
-            (out/f"checkpoint_{step:02d}.json").write_text(json.dumps(dict(state=state,sampler=saved)))
             summary={}
             for domain in (["coding"] if coding_only else ["coding","format"]):
                 for v in (("cue","stated") if domain=="coding" else ("cue","stated","no_feedback")):
@@ -120,6 +139,8 @@ async def train(arm,version,seed,revision,coding_only=False):
                         entry.update(flag_partial_drop=entry["partial"]<start["partial"]-.05-1e-12,flag_full_drop=full<start["full"]-.05-1e-12)
                     summary[domain+"/"+v]=entry
             (out/f"eval_{step:02d}.json").write_text(json.dumps(summary,indent=2))
+            from switching import measure
+            await measure(out,step)
         else:sampler=await trainer.save_weights_and_get_sampling_client_async()
         if step==60:break
         batch=[]
@@ -142,4 +163,5 @@ async def train(arm,version,seed,revision,coding_only=False):
 if __name__=="__main__":
     p=argparse.ArgumentParser();p.add_argument("arm",choices=INITIAL);p.add_argument("version",choices=("cue","stated"))
     p.add_argument("seed",type=int,choices=(1,2));p.add_argument("revision",type=int,choices=(1,2));p.add_argument("--coding-only",action="store_true")
-    a=p.parse_args();asyncio.run(train(a.arm,a.version,a.seed,a.revision,a.coding_only))
+    p.add_argument("--resume",type=int,choices=range(0,61,10))
+    a=p.parse_args();asyncio.run(train(a.arm,a.version,a.seed,a.revision,a.coding_only,a.resume))

@@ -5,6 +5,7 @@ import json
 from itertools import product
 from statistics import mean
 from mixed import OUT, CODE_HELD, make_coding, grade
+from grading import equal
 
 
 async def measure(cell,step):
@@ -20,9 +21,18 @@ async def measure(cell,step):
         for j in range(3):
             alt=make_coding(CODE_HELD[fi],mask^(1<<j),r["instance"],"cue")
             assert own["groups"]==alt["groups"] and own["prompt"]!=alt["prompt"]
-            async with sem:
-                g=await asyncio.to_thread(grade,alt,r["reply"],r["tool"])
-            result.append(dict(own=r["groups"][j+1],other=g["groups"][j+1]))
+            if "observed_values" in r:
+                i=sum(map(len,alt["targets"][:j+1]))
+                values=r["observed_values"]
+                targets=alt["targets"][j+1]
+                other=bool(values) and all(equal(values[i+k],[v]) for k,v in enumerate(targets))
+                own_mark=bool(values) and all(equal(values[i+k],[v]) for k,v in enumerate(own["targets"][j+1]))
+                assert own_mark==r["groups"][j+1]
+            else:
+                async with sem:
+                    g=await asyncio.to_thread(grade,alt,r["reply"],r["tool"])
+                other=g["groups"][j+1]
+            result.append(dict(own=r["groups"][j+1],other=other))
         return (fi,mask),result
     cross=dict(await asyncio.gather(*(one(i,m) for i,m in product(range(len(CODE_HELD)),range(8)))))
     pairs=[]

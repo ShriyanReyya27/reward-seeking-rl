@@ -29,7 +29,9 @@ def run():
     target=HERE/"results";target.mkdir(exist_ok=True)
     curve=[];ending=[];by_task={}
     for phase in ("B","C2"):
-        for cell in sorted((OUT/phase).glob("*/*/s*" if phase=="B" else "*/*/*/s*")):
+        cells=sorted((OUT/phase).glob("*/*/s*" if phase=="B" else "*/*/*/s*"))
+        assert len(cells)==(8 if phase=="B" else 24),f"Incomplete {phase} design"
+        for cell in cells:
             if not (cell/"complete.json").exists():raise ValueError(f"Incomplete {cell}")
             cfg=json.loads((cell/"config.json").read_text())
             arm=cfg["arm"];version=cfg.get("training_version",cfg.get("version"));seed=int(cell.name[1:])
@@ -42,7 +44,7 @@ def run():
                 for s in range(0,end+1,stride):
                     p=cell/f"eval_{s:02d}"
                     if phase=="B":p=p/d/v
-                    allcap=[];invalid=0;truncated=0;n_turns=0;states={}
+                    allcap=[];invalid=0;truncated=0;n_turns=0;states={};reasoning=[];tools=0
                     for f in sorted(p.glob("*/rollouts.json.gz")):
                         group=read(f);tid=group[0][0]["task"]
                         rewards=[]
@@ -53,13 +55,16 @@ def run():
                                 allcap.append(tr[0]["reward"]);invalid+=sum(not r["grade"]["valid"] for r in tr)
                             else:allcap.append(all(r["reward"]==1 for r in tr))
                             truncated+=sum(r["truncated"] for r in tr);n_turns+=len(tr)
+                            tools+=sum(r["tool"] for r in tr)
+                            reasoning.append(sum(r["reasoning_tokens"] for r in tr))
                         assert tid not in states
                         states[tid]=mean(rewards)
                     assert states and (not series or states.keys()==series.keys())
                     for tid,val in states.items():series[tid][s]=val
                     points[s]=mean(states.values());caps[s]=mean(allcap)
                     curve.append(dict(phase=phase,start=arm,training=version,seed=seed,domain=d,eval_version=v,
-                                      step=s,n_tasks=len(states),reward=points[s],capability=caps[s],invalid=invalid,cutoffs=truncated,turns=n_turns))
+                                      step=s,n_tasks=len(states),reward=points[s],capability=caps[s],invalid=invalid,cutoffs=truncated,
+                                      tool_failures=tools,reasoning_tokens_per_episode=mean(reasoning),turns=n_turns))
                 assert set(points)==set(range(0,end+1,stride))
                 auc={tid:area(vals) for tid,vals in series.items()}
                 by_task[phase,d,v,arm,version,seed]=auc

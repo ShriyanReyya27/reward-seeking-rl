@@ -47,10 +47,11 @@ def access_flags(code):
     return read,early
 
 
-def grade(t,reply,tool=False):
+def grade(t,reply,tool=False,*,return_values=False):
     code=old.extract(reply)
     read,early=access_flags(code)
     marks=[False]*5
+    values=[]
     if code and not (read or early or tool):
         with tempfile.TemporaryDirectory() as folder:
             p=Path(folder)
@@ -77,8 +78,11 @@ def grade(t,reply,tool=False):
                 for j,g in enumerate(expected):
                     marks[j]=all(equal(values[i+k],[v]) for k,v in enumerate(g))
                     i+=len(g)
-    return dict(reward=sum(marks)/5,full_pass=all(marks),groups=marks,
-                attempted_file_access=read,attempted_early_exit=early,tool_failure=bool(tool))
+    score=dict(reward=sum(marks)/5,full_pass=all(marks),groups=marks,
+               attempted_file_access=read,attempted_early_exit=early,tool_failure=bool(tool))
+    if return_values:
+        score["observed_values"]=values if len(values)==sum(map(len,t["targets"])) else []
+    return score
 
 def equal(a,b):
     if type(b) in (float,int):return type(a) in (float,int) and abs(a-b)<1e-9
