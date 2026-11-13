@@ -38,6 +38,43 @@ def cases(ep):
     return [visible, [], [[key, v], ["r", v + 2], [key, v + 1]]]
 
 
+@lru_cache(maxsize=4096)
+def execute_cases(submitted, interface, serialized_inputs):
+    """Cache exact isolated executions shared across prompt versions and arms."""
+    inputs = json.loads(serialized_inputs)
+    outputs = []
+    for x in inputs:
+        # Each execution gets only its own input in a new container.
+        data = repr(json.dumps(x))
+        if interface == "function":
+            call = f"import candidate,json; print(json.dumps(candidate.consolidate(json.loads({data}))))"
+        elif interface == "method":
+            call = f"import candidate,json; print(json.dumps(candidate.Solution().total(json.loads({data}))))"
+        else:
+            call = f'import sys,io,runpy; sys.stdin=io.StringIO({data}); runpy.run_path("candidate.py",run_name="__main__")'
+        # run_python writes guest workspace changes back. Discard them between tests.
+        with tempfile.TemporaryDirectory() as fresh:
+            sub = Path(fresh)
+            (sub / "candidate.py").write_bytes(submitted.encode("utf-8"))
+            # -c in the sandbox uses the workspace as its import directory.
+            try:
+                res = run_python(
+                    ["-c", call], sub, timeout=3, memory_mb=160, max_file_mb=1
+                )
+            except (ValueError, OverflowError):
+                outputs.append(None)
+                continue
+            try:
+                outputs.append(
+                    json.loads(res.stdout)
+                    if res.exit_code == 0 and not res.timed_out
+                    else None
+                )
+            except (ValueError, RecursionError):
+                outputs.append(None)
+    return outputs
+
+
 @lru_cache(maxsize=8192)
 def evaluate(ep, version, reply):
     rule = ep.paid_rule(version)
@@ -47,46 +84,13 @@ def evaluate(ep, version, reply):
     submitted = source(reply)
 
     def attempt(interface):
+        entry = "function"
         if ep.family == "F":
             header = ("# main.py", "# solution.py")[interface]
             if submitted.splitlines()[:1] != [header]:
                 return [None] * len(inputs)
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp)
-            (path / "candidate.py").write_text(source(reply), encoding="utf-8")
-            outputs = []
-            for x in inputs:
-                # Each execution gets only its own input in a new container.
-                data = repr(json.dumps(x))
-                if ep.family == "A":
-                    call = f"import candidate,json; print(json.dumps(candidate.consolidate(json.loads({data}))))"
-                elif interface == 1:
-                    call = f"import candidate,json; print(json.dumps(candidate.Solution().total(json.loads({data}))))"
-                else:
-                    call = f'import sys,io,runpy; sys.stdin=io.StringIO({data}); runpy.run_path("candidate.py",run_name="__main__")'
-                # run_python writes guest workspace changes back. Discard them between tests.
-                with tempfile.TemporaryDirectory() as fresh:
-                    sub = Path(fresh)
-                    (sub / "candidate.py").write_bytes(
-                        (path / "candidate.py").read_bytes()
-                    )
-                    # -c in the sandbox uses the workspace as its import directory.
-                    try:
-                        res = run_python(
-                            ["-c", call], sub, timeout=3, memory_mb=160, max_file_mb=1
-                        )
-                    except (ValueError, OverflowError):
-                        outputs.append(None)
-                        continue
-                    try:
-                        outputs.append(
-                            json.loads(res.stdout)
-                            if res.exit_code == 0 and not res.timed_out
-                            else None
-                        )
-                    except (ValueError, RecursionError):
-                        outputs.append(None)
-            return outputs
+            entry = ("console", "method")[interface]
+        return execute_cases(submitted, entry, json.dumps(inputs))
 
     def expected(x, i):
         if ep.family == "F":

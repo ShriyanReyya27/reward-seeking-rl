@@ -63,8 +63,8 @@ async def run(args):
     renderer = renderers.get_renderer("gpt_oss_medium_reasoning", tokenizer=tok)
     ledger = Budget(original / "budget.jsonl", 470)
     pool = [json.loads(l) for l in (HERE / "episodes.jsonl").read_text().splitlines()]
-    sem = asyncio.Semaphore(4)
-    docker_sem = asyncio.Semaphore(2)
+    sem = asyncio.Semaphore(args.sampling_concurrency)
+    docker_sem = asyncio.Semaphore(args.grading_concurrency)
 
     async def group(item, version, arm):
         ep = Episode(item["family"], item["seed"])
@@ -190,7 +190,7 @@ async def run(args):
                 )
         temp.rename(target)
 
-    for index in range(args.first, args.last):
+    async def index_block(index):
         for family in FAMILIES:
             item = next(
                 x
@@ -199,11 +199,20 @@ async def run(args):
                 and x["family"] == family
                 and x["index"] == index
             )
+            # Validate the regenerated prompt against the frozen, reviewed bytes.
+            assert all(
+                messages(Episode(family, item["seed"]), v) == item["versions"][v]
+                for v in VERSIONS
+            )
             await asyncio.gather(*(group(item, v, a) for v in VERSIONS for a in paths))
-        print(
-            "Completed all families, arms and versions for paired index",
-            index,
-            flush=True,
+        print("Completed paired index", index, flush=True)
+
+    for start in range(args.first, args.last, args.index_concurrency):
+        await asyncio.gather(
+            *(
+                index_block(i)
+                for i in range(start, min(args.last, start + args.index_concurrency))
+            )
         )
 
 
@@ -213,6 +222,9 @@ if __name__ == "__main__":
     p.add_argument("out", type=Path)
     p.add_argument("--first", type=int, default=0)
     p.add_argument("--last", type=int, default=2)
+    p.add_argument("--sampling-concurrency", type=int, choices=range(1, 33), default=4)
+    p.add_argument("--grading-concurrency", type=int, choices=range(1, 13), default=2)
+    p.add_argument("--index-concurrency", type=int, choices=range(1, 5), default=1)
     args = p.parse_args()
     if not 0 <= args.first < args.last <= 50:
         p.error("Expected 0 <= first < last <= 50")

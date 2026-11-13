@@ -7,7 +7,7 @@ import json, random, sys
 from tasks import FAMILIES, VERSIONS
 
 
-def summarize(folder):
+def summarize(folder, indices=None):
     data = defaultdict(dict)
     for path in folder.glob("*.jsonl"):
         rows = [
@@ -16,6 +16,8 @@ def summarize(folder):
         if not rows or "turns" not in rows[0]:
             continue
         r = rows[0]
+        if indices is not None and r["index"] not in indices:
+            continue
         assert len(rows) == 8 and {x["sample"] for x in rows} == set(range(8))
         for x in rows:
             assert (x["family"], x["version"], x["seed"], x["arm"]) == (
