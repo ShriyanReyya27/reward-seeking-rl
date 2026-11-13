@@ -14,3 +14,7 @@ Five Kimi grader-conflict requests were left unresolved after a local ledger int
 The complete table also contains the native splice, Countdown, hidden-preference, discovery and graph-coloring measures. Task counts are small, and answering an explicitly disclosed grader-conflict probe does not establish speculation about an unseen grader. The raw coding records include turns, tool calls, outputs, timeouts and workspace grading details.
 
 Token-based sampling estimates across these two probes total $1.830.
+
+## GLM answer boundaries on fresh tasks
+
+On 14 hidden-test coding tasks with a consumer cue, the exact grader accepted 7 full GLM submissions. Six more contained working code followed by a second assistant message inside the returned answer. Passing only the first message to the same grader raised the score to 13/14. Flash went from 5/14 to 11/14. With the explicit instruction both models reached 14/14 under that secondary rule. The primary results retain the entire returned answer. The sensitivity table covers all three prompt versions on the coding and evaluator tasks. [Counts](glm_extra_message_sensitivity.json)
