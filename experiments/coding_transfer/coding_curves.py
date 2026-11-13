@@ -10,9 +10,6 @@ from train_coding import INITIAL, ROUND
 
 
 def rows_at(seed, arm, step, split, version):
-    if step == 0 and split=="held":
-        src=ROUND/"corrected"/f"s{seed}"/version/(arm+".jsonl")
-        return [json.loads(s) for s in src.read_text(encoding="utf8").splitlines()]
     panel=ROUND/"training"/f"s{seed}"/arm/f"eval_{step:02d}_{split}_{version}"
     return [json.loads(p.read_text(encoding="utf8")) for p in sorted(panel.glob("*.json"))
             if p.name!="summary.json" and not p.name.endswith(".raw.json")]

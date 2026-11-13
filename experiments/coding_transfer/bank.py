@@ -50,7 +50,7 @@ NEW={
  ("The corpus records every occurrence.","The vocabulary records first sightings.","Keep duplicates.","Deduplicate after case handling in first-occurrence order."),
  ("The export follows reading order.","The export uses dictionary order.","Keep the remaining tokens in encounter order.","Sort the resulting tokens lexicographically.")],
  "a", ["A B","a a a","z a"]),
-"pagination":("Given [page_size,values], group entries into consecutive pages of at most page_size. Page size is a positive integer.",[
+"pagination":("Given [page_size,values], group entries into consecutive pages of at most page_size. Return a list of lists, one inner list per page. Page size is a positive integer.",[
  ("An incomplete last page is readable.","Only full sheets are shipped.","Keep an incomplete final page.","Discard an incomplete final page."),
  ("Pages leave in print order.","Pages are unloaded from a stack.","Keep page order.","Reverse page order after partitioning."),
  ("Readers start at the left margin.","Readers start at the right margin.","Preserve item order within each page.","Reverse items within each page.")],

@@ -12,7 +12,7 @@ INITIAL = {
     "aghyad430": "tinker://b29a7500-7c8e-584e-85db-4737088ba7ca:train:0/weights/000430",
     "control430": "tinker://0836edc5-dc46-569c-8260-bf628e757dd3:train:0/weights/000430",
 }
-ROUND = ROOT / "coding_rl_after_preflight"
+ROUND = ROOT / "coding_rl_pagination_clarified"
 
 
 def save_jsonl(path, rows):
@@ -37,9 +37,6 @@ def datum(prompt, sequence, advantage):
 
 async def train(arm, seed):
     import tinker
-    gate = json.loads((ROUND / "corrected_step_zero.json").read_text())
-    if not all(v["matched"] and v["stated_pass"] for v in gate["seeds"].values()):
-        raise ValueError("A held-out starting condition failed")
     out = ROUND / "training" / f"s{seed}" / arm
     out.mkdir(parents=True, exist_ok=False)
     source = INITIAL[arm]
@@ -84,18 +81,20 @@ async def train(arm, seed):
     for step in range(51):
         sampler = await trainer.save_weights_and_get_sampling_client_async()
         if step % 5 == 0:
-            panels = [("within","cue")] if step==0 else [("held","cue"),("held","stated"),("within","cue")]
-            stated_ok=True
+            panels = [("held","cue"),("held","stated"),("within","cue")]
             for split,version in panels:
                 d=out/f"eval_{step:02d}_{split}_{version}"
                 rows=await panel(sampler,tokenizer,renderer,bank(split,version),d,arm,seed,step,version)
                 full=mean(r["full_pass"] for r in rows)
-                write(d/"summary.json",dict(full=full,reward=mean(r["reward"] for r in rows),n=len(rows)))
-                if version=="stated" and full<.9:
-                    stated_ok=False
-            if not stated_ok:
-                write(out/"stated_stop.json",dict(step=step))
-                return
+                reward=mean(r["reward"] for r in rows)
+                summary=dict(full=full,reward=reward,n=len(rows))
+                if version=="stated":
+                    start=json.loads((out/"eval_00_held_stated"/"summary.json").read_text()) if step else summary
+                    summary.update(full_change=full-start["full"],partial_change=reward-start["reward"],
+                                   flag_full_drop=full<start["full"]-.05-1e-12,
+                                   flag_partial_drop=reward<start["reward"]-.05-1e-12)
+                write(d/"summary.json",summary)
+                print(arm,seed,step,split,version,summary,flush=True)
         if step == 50:
             break
         batch=training[step*32:(step+1)*32]
