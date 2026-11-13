@@ -77,6 +77,8 @@ def run():
                 if phase=="C2":
                     total_eval+=e["sampling_usd"]
                     continue
+                supplemental=cell/f"feedback_{f.name}"
+                if supplemental.exists():e.update(json.loads(supplemental.read_text()))
                 total_eval+=sum(v["cost_usd"] for v in e.values())
                 step=int(f.stem[-2:])
                 if "format/cue" in e:

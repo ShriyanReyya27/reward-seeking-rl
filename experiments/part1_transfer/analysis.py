@@ -35,7 +35,7 @@ def run():
             if not (cell/"complete.json").exists():raise ValueError(f"Incomplete {cell}")
             cfg=json.loads((cell/"config.json").read_text())
             arm=cfg["arm"];version=cfg.get("training_version",cfg.get("version"));seed=int(cell.name[1:])
-            domains=["coding"] if cfg.get("coding_only") else ["coding","format"]
+            domains=["coding","format"]
             dims=[(d,v) for d in domains for v in (("cue","stated","no_feedback") if d=="format" else ("cue","stated"))] if phase=="B" else [(cfg["domain"],"transfer")]
             for d,v in dims:
                 end=60 if phase=="B" else 30
