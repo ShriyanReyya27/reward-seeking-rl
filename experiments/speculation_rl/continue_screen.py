@@ -24,22 +24,29 @@ def wait_for(file, stop):
 
 def main(repo, folder, stage):
     stop = folder / "BILLING_STOP.json"
-    if stage == "frontier-labels":
-        src = folder / "frontier_opening"
+    if stage in ("frontier-labels", "confirmation-labels"):
+        initial = stage == "frontier-labels"
+        indices = range(2) if initial else range(2, 16)
+        src = folder / ("frontier_opening" if initial else "frontier_confirmation")
         for arm in ("GLM-5.3", "GLM-5.3-Flash", "Kimi-K2.6"):
             for family in "ABC":
-                for i in range(2):
+                for i in indices:
                     wait_for(
                         src / f"{arm}-{family}-{i:02}-identity.json",
                         src / "BILLING_STOP.json",
                     )
         for arm in ("aghyad430", "control430", "untrained"):
             for family in "ABC":
-                for i in range(2):
+                for i in indices:
                     wait_for(folder / f"{family}-{i:02}-identity-{arm}.jsonl", stop)
-        dest = folder / "frontier_labels"
+        dest = folder / ("frontier_labels" if initial else "confirmation_labels")
         if not dest.exists():
-            run("screen_labels.py", folder, dest, "frontier")
+            run(
+                "screen_labels.py",
+                folder,
+                dest,
+                "frontier" if initial else "confirmation",
+            )
         run("span_judges.py", dest, repo)
     elif stage == "pilots":
         # Include every group before moving to the framing and gradient pilots.
@@ -59,6 +66,8 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("repo", type=Path)
     p.add_argument("folder", type=Path)
-    p.add_argument("stage", choices=["pilots", "frontier-labels"])
+    p.add_argument(
+        "stage", choices=["pilots", "frontier-labels", "confirmation-labels"]
+    )
     a = p.parse_args()
     main(a.repo.resolve(), a.folder.resolve(), a.stage)

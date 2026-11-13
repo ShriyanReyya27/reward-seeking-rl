@@ -9,12 +9,14 @@ from pathlib import Path
 
 def write_packets(folder, out, kind):
     rows = []
-    if kind == "frontier":
-        frontier = folder / "frontier_opening"
+    if kind in ("frontier", "confirmation"):
+        frontier = folder / (
+            "frontier_opening" if kind == "frontier" else "frontier_confirmation"
+        )
         wanted = [
             (fam, i, model)
             for fam in ("A", "B", "C")
-            for i in range(2)
+            for i in (range(2) if kind == "frontier" else range(2, 16))
             for model in (
                 "GLM-5.3",
                 "GLM-5.3-Flash",
@@ -92,6 +94,6 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("folder", type=Path)
     p.add_argument("out", type=Path)
-    p.add_argument("kind", choices=["frontier", "screen"])
+    p.add_argument("kind", choices=["frontier", "confirmation", "screen"])
     a = p.parse_args()
     write_packets(a.folder, a.out, a.kind)

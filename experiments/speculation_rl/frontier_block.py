@@ -21,7 +21,7 @@ MODELS = {
 }
 
 
-async def run(repo, out):
+async def run(repo, out, first=0, last=2):
     sys.path.insert(0, str(repo.resolve()))
     from experiments.honest_feedback.start import setup
     from experiments.phase1.budget import Budget
@@ -58,10 +58,12 @@ async def run(repo, out):
     tasks = [
         r
         for r in pool
-        if r["split"] == "screen" and r["index"] < 2 and r["family"] in ("A", "B", "C")
+        if r["split"] == "screen"
+        and first <= r["index"] < last
+        and r["family"] in ("A", "B", "C")
     ]
     manifest = dict(
-        indices=[0, 1],
+        indices=list(range(first, last)),
         samples_per_cell=1,
         versions=["identity", "nudge", "instruction"],
         families=["A", "B", "C"],
@@ -72,6 +74,10 @@ async def run(repo, out):
     )
     if not (out / "design.json").exists():
         write(out / "design.json", manifest)
+    if json.loads((out / "design.json").read_text()) != json.loads(
+        json.dumps(manifest)
+    ):
+        raise ValueError("Model block manifest mismatch")
     for name, (model, fmt, ip, op) in MODELS.items():
         if model not in advertised:
             raise ValueError(model)
@@ -194,5 +200,9 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("repo", type=Path)
     p.add_argument("out", type=Path)
+    p.add_argument("--first", type=int, default=0)
+    p.add_argument("--last", type=int, default=2)
     args = p.parse_args()
-    asyncio.run(run(args.repo, args.out))
+    if not 0 <= args.first < args.last <= 50:
+        p.error("Invalid index range")
+    asyncio.run(run(args.repo, args.out, args.first, args.last))
