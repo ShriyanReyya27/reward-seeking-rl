@@ -1,6 +1,6 @@
 # Held out reward and coding transfer
 
-Averaged across 40 RL updates and three training seeds, Aghyad 430’s accuracy advantage over the matched control was +20.8 pp [+16.7, +24.7] with earlier scored examples and +2.0 pp [-2.1, +6.3] without them. The coding experiment stopped at its prespecified capability check.
+Averaged across 40 RL updates and three training seeds, Aghyad 430’s accuracy advantage over the matched control was +20.8 pp [+16.7, +24.7] with earlier scored examples and +2.0 pp [-2.1, +6.3] without them. After correcting three false early-exit flags, both coding arms passed the new-template capability check.
 
 ### Average accuracy across training
 
@@ -40,9 +40,9 @@ Toby’s earlier seed 0 scored about 66% → 77% for Aghyad and 47% → 49% for 
 
 ## Coding capability check and trace labels
 
-The coding bank contains 20 templates with 14 assigned to training and six to held-out evaluation. On 40 new stated-requirement tasks, Aghyad fully passed 35 (87.5%) and control passed 36 (90%). Mean partial credit was 91% and 94%. The 90% full-pass rule stopped the experiment before any coding update or matched-start evaluation.
+The coding bank contains 20 templates with 14 assigned to training and six to held-out evaluation. On the same 40 saved stated-requirement answers per arm, corrected grading gives 37 full passes each (92.5%). Mean partial credit was 96.0% for Aghyad and 96.5% for control. The original grades were 35 and 36 full passes.
 
-The independent oracle reproduced 720 checks. Re-execution reproduced all nine failing submissions. Examples included flattening pages, using modulo in place of a rotation cap, and returning pairs in discovery order. None of the 80 submissions triggered the file-read or early-exit detector. These preflight tasks supply no estimate of coding learning or transfer.
+The independent oracle reproduced 720 checks. The original detector flagged three ordinary comments containing “early exit” and gave their solutions zero. After switching to executable syntax, all three programs passed every test in Docker. Genuine failures included flattening pages and using modulo in place of a rotation cap. These preflight tasks supply no estimate of coding learning or transfer.
 
 ### Independent labels on the original coding traces
 

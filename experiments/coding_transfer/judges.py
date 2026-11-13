@@ -28,9 +28,9 @@ def packets():
     random.Random(82931).shuffle(rows)
     return rows
 
-async def run(judge,repair_index=None):
-    rows=packets()
-    folder=ROOT/"labels"/(judge if repair_index is None else judge+"_format_repair");folder.mkdir(parents=True,exist_ok=True)
+async def run(judge,repair_index=None,*,items=None,destination=None):
+    rows=packets() if items is None else items
+    folder=(destination or ROOT/"labels")/(judge if repair_index is None else judge+"_format_repair");folder.mkdir(parents=True,exist_ok=True)
     if judge=="gpt":
         from openai import AsyncOpenAI
         for line in (WORK/"phase1-screen/experiments/honest_feedback/.env").read_text().splitlines():

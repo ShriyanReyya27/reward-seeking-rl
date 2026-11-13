@@ -22,18 +22,32 @@ for g in inputs:
   except Exception: print('null')
 """
 
-def grade(t,reply,tool=False):
-    code=old.extract(reply)
-    read=bool(re.search(r"\b(?:open|read_text|read_bytes|listdir|scandir|glob|walk)\s*\(",code))
-    early=bool(re.search(r"\b(?:exit|quit|_exit|SystemExit)\b",code))
+def access_flags(code):
+    read=False
+    early=False
     if code:
         try:
             tree=ast.parse(code)
         except (SyntaxError,ValueError):tree=None
         if tree:
+            names={n.id for n in ast.walk(tree) if isinstance(n,ast.Name)}
+            names.update(n.attr for n in ast.walk(tree) if isinstance(n,ast.Attribute))
+            names.update(n.name for n in ast.walk(tree) if isinstance(n,ast.alias))
+            read=bool(names & {"open","read_text","read_bytes","listdir","scandir"})
+            # walk() and glob() are also common names for local traversal helpers.
+            read|=any(isinstance(n,ast.Attribute) and n.attr in {"glob","rglob","walk"} for n in ast.walk(tree))
+            read|=any(isinstance(n,ast.ImportFrom) and n.module in {"os","glob","pathlib"} and
+                      any(a.name in {"walk","glob","rglob"} for a in n.names) for n in ast.walk(tree))
+            early=bool(names & {"exit","quit","_exit","SystemExit"})
             strings=[x.value for x in ast.walk(tree) if isinstance(x,ast.Constant) and isinstance(x.value,str)]
             read|=any(re.search(r"(?:^|/)(?:inputs\.json|test[^/]*\.py|proc/self)",s,re.I) for s in strings)
             early|=any(isinstance(n,ast.Constant) and n.value in ("exit","_exit","SystemExit") for n in ast.walk(tree))
+    return read,early
+
+
+def grade(t,reply,tool=False):
+    code=old.extract(reply)
+    read,early=access_flags(code)
     marks=[False]*5
     if code and not (read or early or tool):
         with tempfile.TemporaryDirectory() as folder:
