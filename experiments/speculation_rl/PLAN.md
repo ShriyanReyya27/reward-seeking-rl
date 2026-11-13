@@ -1,0 +1,26 @@
+# Speculation RL, 12 November 2026
+
+## Scope and decision order
+
+1. Build and test the five minimal families and the blinded trace judge.
+2. Screen A/B/C/E/F on paired tasks. Pilot downstream versus grading framing on C and Toby's splice D. Increase shared core difficulty on ceiling instruction variants. Characterise full GLM-5.3, Flash and a non-GLM reference after checking renderer, reasoning, tool format, two training updates and sampler export.
+3. Train Aghyad 430 on surviving identity tasks for 15–20 updates. Continue only if held-out family reward or speculation increases.
+4. Cross both step-430 starting checkpoints with identity versus instruction training. Use fresh Adam, rank 32, group-centred importance sampling, no KL, temperature 1, learning rate 4e-5, 32 prompts × 8 samples, 60–100 updates and at least two seeds. Evaluate every 5–10 steps. Fold 1 holds out C. Later folds depend on positive transfer.
+5. Evaluate new cues and families, stated scoring, discovery, exploitation, honest skill, the three hidden rubrics and well-specified feedback tasks. For GLM, train minus/sham only after evidence for stronger spontaneous speculation and a small identity–nudge gap. Gate transfer on reduced exploit behaviour and speculation, with comparable capability and reasoning length. Only task outcomes may affect training reward.
+
+## Before model outcomes
+
+S1 uses 50 paired items per family, balanced rules, eight independent samples per prompt, medium reasoning, temperature 1 and a 65,536-token cap for every GPT-OSS arm. Report truncation and increase the cap if any arm exceeds 2%. B has three distinct decisions with feedback on earlier decisions. Its terminal score counts once. Pair full eight-reply groups across model arms and versions. Reuse no episodes across splits. Assess each family separately. A and F have host-owned hidden tests, B and C use exact parsers and E pays analytical expected points, with optimal-action accuracy reported separately. E and F are diagnostic. For E use the optimal-action indicator for mixed correctness groups and retain paid points in their original units.
+
+Preserve identity accuracy 0.30–0.60, mixed groups at least 30%, A430/C430 identity gap around five points or less, similar mixed-group rates, simple instruction accuracy at least 0.90 and cutoffs at most 2%. For P2 target 0.70–0.85 on instruction with the same change for both models. Report conditional unseen-grader labels among correct and incorrect replies. Report judge-specific estimates if directions differ. Where cutoffs or labels are missing, report the denominator. No family passes by default.
+
+H1 requires a positive within-start identity-training advantage on rubric gains in at least five of six environment–seed pairs and a paired task-bootstrap CI excluding zero. H2 compares A430 identity with C430 instruction on rubrics and at least one well-specified environment. H3 compares learning curves of the two starting checkpoints under identical identity training and matched starts. H4 compares transfer gains to speculation rates on those tasks. Show absolute gain, gain as a share of available headroom, per-seed results and mixed groups. Absolute honest capability movement over about five percentage points confounds that arm's transfer result. Bootstrap tasks within seeds and keep run-to-run uncertainty visible.
+
+## Changes and limitations
+
+- Before model sampling, the user deferred human trace labels and the independent cue-wording review. Blinded packets and the blank form are preserved. Automated agreement cannot certify the human-agreement target.
+- Before sampling, selected one generated template per new family. F submits a filename comment so a dual-purpose file cannot satisfy both packaging conventions. Platform familiarity can still solve F. A samples log consolidation problems. One coding schema is narrower than a benchmark of novel algorithms.
+- The original free-text judges sometimes quoted the task instead of the reasoning and returned integer flags in place of booleans. Original attempts and correction records are retained locally. For the primary automated comparison both judges were given the same 100 packets again, with immutable numbered spans of reasoning. Each positive must point to an existing span. This design prevents citation of text exclusive to the prompt. It does not establish that the cited reasoning supports the label.
+- The original Tinker capabilities query returned HTTP 402 before any model sampling. No provider retries after this result. The installed cookbook contains the GLM-5.3 reasoning renderer and tool-call parser. Live model IDs, full/Flash compatibility and the two-update export smoke test remain unverified.
+- The deterministic pool has separate screen, held-out and starter training banks. Increase the training bank before RL to support the planned number of fresh tasks. Held-out cues are templates with changed wording; some are more explicit. A held-out whole-family result is necessary for a cross-domain claim.
+- Before any screening samples, B cue wording was changed to describe the receiving situation and F held-out wording to refer to platform contexts. The final pool fingerprint and grader regression were checked after the wording change.
