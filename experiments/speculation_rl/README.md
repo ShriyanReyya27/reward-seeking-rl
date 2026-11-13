@@ -1,6 +1,12 @@
 # Speculation environment screen
 
-Code and data for the first stage of the November 12 design. See [PLAN.md](PLAN.md) for the prospective gates and changes. Tinker access was restored. The paired GPT-OSS screen is running. See the [Stage 2 engineering checks](stage2_preflight/README.md).
+The November 12 screen and pilots finished. No tested environment met the preregistered requirements for the mini RL probe. Full GLM and Flash also missed the separate criterion for ablation training. The four learning and transfer hypotheses remain untested in this round. [Decisions and costs](RESULTS.md#stage-2-completed)
+
+- [GPT-OSS results, raw samples and figure](stage2_screen/README.md)
+- [Framing and harder-core pilots](stage2_pilots/README.md)
+- [Six-model comparison of unseen-grader reasoning](stage2_frontier/README.md)
+- [Native evaluations and coding grader checks](stage2_diagnostics/README.md)
+- [Engineering checks](stage2_preflight/README.md) and [prospective design](PLAN.md)
 
 | Family | What changes between episodes | Reward |
 |---|---|---|

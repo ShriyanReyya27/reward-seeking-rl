@@ -1,5 +1,7 @@
 # Stage 2 continuation
 
+**Closed.** The runners described below finished. See [the final research decisions](RESULTS.md#stage-2-completed). These notes document recovery of the original campaign.
+
 Use the local results directory phase1-screen/results/speculation_s1_20261112. All sampling decisions and seeds are recorded in the per-request files. The spend ceiling uses the shared campaign ledger. Inspect current process command lines before starting any runner. Current jobs may continue independently of the chat UI.
 
 - screen.py is running the full frozen pool. The opening run handled indices 0 and 1. The resumed worker handles indices 2–49 with independent family queues. Existing completed groups and raw turns are reused.
