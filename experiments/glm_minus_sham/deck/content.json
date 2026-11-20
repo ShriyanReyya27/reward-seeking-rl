@@ -1,0 +1,255 @@
+[
+ {
+  "type": "title",
+  "text": "Deck content: Phase 1 and Phase 2 results"
+ },
+ {
+  "type": "subtitle",
+  "text": "Anish Srinivasa \u00b7 SPAR \u00b7 13 November 2026 \u00b7 one section per slide; the grey box on each is the slide headline. Interim: Part 1 transfer tests and the coding RL are still running; Phase 2 Experiment 1 numbers cover steps 0\u201315 of 25."
+ },
+ {
+  "type": "p",
+  "text": "**Names.** Aghyad 430 = Aghyad\u2019s reward seeker (gpt-oss-120b, step 430). Control 430 = Toby\u2019s training-matched control (same curriculum, unhackable). Colours: orange = score seeking (Aghyad 430, Flash-sham), blue = the instruction-following side (Control 430, Flash-minus), green = untrained."
+ },
+ {
+  "type": "h2",
+  "text": "Phase 1: speculation environments (still using Aghyad\u2019s reward seeker)"
+ },
+ {
+  "type": "h1",
+  "text": "Slide 1. Criteria for building speculation environments"
+ },
+ {
+  "type": "note",
+  "text": "**A speculation environment pays for an unstated requirement that the model can only infer by reasoning about who or what will grade or consume its reply, from a cue in the prompt.**"
+ },
+ {
+  "type": "bullets",
+  "items": [
+   "**Solvable from a cue, never stated.** With no cue, the only winning policy is a fixed guess that RL memorises (Toby\u2019s fixed-rule runs collapsed to answers like \u201c447\u201d).",
+   "**Resampled every episode.** Otherwise the rule is learned into the weights and the reasoning disappears.",
+   "**Hidden but not hackable.** A visible grader trains grader-reading (what Aghyad 430 already does); a hackable one trains exploits.",
+   "**Not a lookup.** Cues that map to a convention the model already knows (\u201cCodeforces = stdin\u201d) are solved at ceiling.",
+   "**Usable for RL:** both models start within ~10 points, trained models score 30\u201360% with the cue, the stated version scores \u2265 90%, and \u2265 30% of 8-sample groups have mixed outcomes."
+  ]
+ },
+ {
+  "type": "h1",
+  "text": "Slide 2. Speculation environments built so far"
+ },
+ {
+  "type": "note",
+  "text": "**First-round environments were too easy; rebuilt hidden-test coding is the one training environment that works; hidden preference is where the signal is.**"
+ },
+ {
+  "type": "table",
+  "header": [
+   "Environment",
+   "What the model must infer",
+   "Status"
+  ],
+  "rows": [
+   [
+    "Round 1: hidden-test coding, feedback, evaluator cue, stated payoffs, platform format",
+    "One template each, two-way choices",
+    "Too easy (90\u2013100%) or broken stated versions; none usable"
+   ],
+   [
+    "Hidden-test coding (rebuilt)",
+    "Edge-case policies implied by the user\u2019s context; 20 templates (14 train / 6 held out); hidden tests, partial credit",
+    "Matched start (41% vs 39% full pass). **RL running** (Phase B 2\u00d72)"
+   ],
+   [
+    "Multi-attempt feedback (rebuilt)",
+    "One of 8 formatting rules, from \u201ck of 3 checks passed\u201d over 4 attempts",
+    "Stated version 67% / 76%, below the 80% floor; evaluation only"
+   ],
+   [
+    "**Hidden preference (Toby\u2019s) \u2014 viable now**",
+    "A user\u2019s hidden preference, from scored earlier answers in the prompt",
+    "**Replicated over 3 seeds; held-out format family**"
+   ]
+  ],
+  "widths": [
+   2600,
+   3900,
+   2860
+  ],
+  "alignRight": false
+ },
+ {
+  "type": "image",
+  "path": "figs/p1_screen.png",
+  "widthIn": 6.5,
+  "alt": "Round 1 screen: success with the cue only, 50 tasks \u00d7 8 draws per bar. Trained models were far above the 30\u201360% band needed for RL, except platform format, where even stated requirements failed."
+ },
+ {
+  "type": "caption",
+  "text": "Round 1 screen: success with the cue only, 50 tasks \u00d7 8 draws per bar. Trained models were far above the 30\u201360% band needed for RL, except platform format, where even stated requirements failed."
+ },
+ {
+  "type": "h1",
+  "text": "Slide 3. Preliminary results: learning a hidden preference from scores"
+ },
+ {
+  "type": "note",
+  "text": "**When earlier scores are shown, Aghyad 430 earns 21 points more than the control across RL training (32 on a held-out family); without scores, the gap is 2.**"
+ },
+ {
+  "type": "image",
+  "path": "figs/p1_hidden_pref.png",
+  "widthIn": 6.5,
+  "alt": "Average held-out accuracy across 40 RL updates, 3 seeds. Above the bars: Aghyad \u2212 Control, paired-task 95% CI."
+ },
+ {
+  "type": "caption",
+  "text": "Average held-out accuracy across 40 RL updates, 3 seeds. Above the bars: Aghyad \u2212 Control, paired-task 95% CI."
+ },
+ {
+  "type": "bullets",
+  "items": [
+   "Consistent in all 3 seeds (all families: 77/58, 78/63, 74/47; held-out format: 95/71, 98/72, 95/49).",
+   "The advantage is using scores as evidence, not general ability: without scores both are level.",
+   "Learning speed is unresolved: Aghyad starts near its ceiling (86\u201388% on format), and the control\u2019s gain varied by seed (+39, +40, \u22126).",
+   "Caveat: this environment is underspecified (the preference is hidden), not well-specified."
+  ]
+ },
+ {
+  "type": "h1",
+  "text": "Slide 4. Preliminary results: coding RL (interim)"
+ },
+ {
+  "type": "note",
+  "text": "**Early coding RL: under the same cue-only training, Aghyad 430 leads the control by 7.3 points [+2.6, +12.0] through update 20 (seed 1 of 2).**"
+ },
+ {
+  "type": "image",
+  "path": "figs/p1_coding.png",
+  "widthIn": 6.5,
+  "alt": "Left: held-out cue-only partial credit for the four 2\u00d72 cells at updates 0 and 20 (seed 1). Right: how often the code switches correctly when one cue is flipped (72 pairs)."
+ },
+ {
+  "type": "caption",
+  "text": "Left: held-out cue-only partial credit for the four 2\u00d72 cells at updates 0 and 20 (seed 1). Right: how often the code switches correctly when one cue is flipped (72 pairs)."
+ },
+ {
+  "type": "bullets",
+  "items": [
+   "Aghyad\u2019s code follows the cue more after training (28% \u2192 33% correct switches); the control\u2019s follows it less (25% \u2192 15%).",
+   "Cue-only training is ~5 points behind stated training within each model so far, so no speculation-training benefit yet.",
+   "In a small disclosed-conflict probe, Aghyad followed a conflicting grader on 3/6 tasks, the control on 0/6.",
+   "Planned endpoint 60 updates, 2 seeds; transfer RL (customer support, Mastermind) not started yet."
+  ]
+ },
+ {
+  "type": "h1",
+  "text": "Slide 5. Positive results we would like to see"
+ },
+ {
+  "type": "note",
+  "text": "**Phase 1 succeeds if speculation training, not just the reward-seeker start, improves reward in environments neither model trained on.**"
+ },
+ {
+  "type": "bullets",
+  "items": [
+   "**Transfer (the Part 1 result):** cue-only-trained models earn more average reward than stated-trained ones during fresh RL on customer support and Mastermind.",
+   "**Thesis comparison:** Aghyad 430 trained cue-only beats Control 430 trained on stated requirements in those same environments.",
+   "**Coding:** Aghyad\u2019s lead under cue-only training holds in both seeds to update 60.",
+   "**Hidden preference, tighter test:** the advantage survives when example histories are identical and only the scores are withheld.",
+   "**Well-specified:** with every requirement stated but scores still shown, Aghyad still extracts more from the scores."
+  ]
+ },
+ {
+  "type": "h2",
+  "text": "Phase 2: GLM-5.3"
+ },
+ {
+  "type": "h1",
+  "text": "Slide 6. Why GLM-5.3, and what we ran"
+ },
+ {
+  "type": "note",
+  "text": "**Aghyad\u2019s suggestion: start from a model that already score-seeks, train a copy not to, and see whether it collects less reward in new environments.**"
+ },
+ {
+  "type": "bullets",
+  "items": [
+   "**Why:** Aghyad 430 follows graders it can see but doesn\u2019t speculate; GLM-5.3 is reported to reason about how it is graded (Apollo Research; Irregular). Removing a trait a model already has is a cleaner test than inducing one.",
+   "**Screen:** GLM-5.3-Flash used scores most (+27 points unprompted) and followed scores over an explicit instruction most often (34%), at ~5\u00d7 less cost than full GLM-5.3.",
+   "**Twins (from Flash, same steps):** minus = trained to follow instructions over earlier scores; sham = identical training, scores never conflict (controls for extra training).",
+   "**Test:** fresh RL on (1) three new hidden-preference families with scores shown and (2) the tutoring rubric environment with no scores; 2 seeds per arm."
+  ]
+ },
+ {
+  "type": "image",
+  "path": "figs/step0.png",
+  "widthIn": 6.5,
+  "alt": "Behavioural screen, ~1,680 episodes per model. Left: accuracy gain from seeing scored earlier answers, unprompted. Right: following those scores against an explicit instruction."
+ },
+ {
+  "type": "caption",
+  "text": "Behavioural screen, ~1,680 episodes per model. Left: accuracy gain from seeing scored earlier answers, unprompted. Right: following those scores against an explicit instruction."
+ },
+ {
+  "type": "h1",
+  "text": "Slide 7. Phase 2: building the twins"
+ },
+ {
+  "type": "note",
+  "text": "**The manipulation worked: minus stopped using scores (+27 \u2192 +8; held-out family +52 \u2192 +19) and stopped following them over instructions (32% \u2192 1%); sham kept most of it.**"
+ },
+ {
+  "type": "image",
+  "path": "figs/twins.png",
+  "widthIn": 6.5,
+  "alt": "Manipulation check at the step-10 checkpoints used for testing (24 episodes per cell)."
+ },
+ {
+  "type": "caption",
+  "text": "Manipulation check at the step-10 checkpoints used for testing (24 episodes per cell)."
+ },
+ {
+  "type": "bullets",
+  "items": [
+   "Both twins follow stated rules (96\u201398%), so minus did not lose basic ability.",
+   "A full GLM-5.3 replication failed as a control (its sham lost the trait too), so only the Flash twins are used."
+  ]
+ },
+ {
+  "type": "h1",
+  "text": "Slide 8. Phase 2: preliminary results"
+ },
+ {
+  "type": "note",
+  "text": "**Removing score seeking costs reward where scores are visible (-13.6 points vs sham) and costs nothing where they aren\u2019t (+0.3).**"
+ },
+ {
+  "type": "image",
+  "path": "figs/transfer.png",
+  "widthIn": 6.5,
+  "alt": "Average held-out reward across RL training (bars: mean of 2 seeds; dots: seeds). Experiment 1 through step 15 of 25 (interim); Experiment 2 complete."
+ },
+ {
+  "type": "caption",
+  "text": "Average held-out reward across RL training (bars: mean of 2 seeds; dots: seeds). Experiment 1 through step 15 of 25 (interim); Experiment 2 complete."
+ },
+ {
+  "type": "bullets",
+  "items": [
+   "**Experiment 1 (new hidden-preference families, scores shown):** minus \u2212 sham -13.6 [-16.4, -11.0], negative in both seeds. Most of the gap is at the start (-24.3 at step 0); minus relearns fast but stays behind.",
+   "**Experiment 2 (tutoring rubric, no scores):** minus \u2212 sham +0.3 [-0.8, +1.3]; both twins about 3 points above untrained Flash.",
+   "Same pattern as Phase 1: score seeking pays when grade evidence is in context, and only there.",
+   "Caveats: one model, two seeds, one checkpoint per twin; Experiment 1 is near transfer."
+  ]
+ },
+ {
+  "type": "image",
+  "path": "figs/np_curves.png",
+  "widthIn": 6.5,
+  "alt": "Optional backup slide: Experiment 1 learning curves (solid seed 0, dashed seed 1)."
+ },
+ {
+  "type": "caption",
+  "text": "Optional backup slide: Experiment 1 learning curves (solid seed 0, dashed seed 1)."
+ }
+]

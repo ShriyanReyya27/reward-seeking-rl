@@ -1,0 +1,187 @@
+[
+ {
+  "type": "title",
+  "text": "Part 2: removing score seeking from GLM-5.3-Flash"
+ },
+ {
+  "type": "subtitle",
+  "text": "Anish Srinivasa \u00b7 SPAR \u00b7 13 November 2026"
+ },
+ {
+  "type": "note",
+  "text": "**Interim.** Experiment 1 runs are still in progress; its numbers use the evals every arm has reached so far (steps 0, 5, 10 of 25). Experiment 2 is complete."
+ },
+ {
+  "type": "p",
+  "text": "**Question.** Take an open model that already uses grades as evidence about its grader, train a copy not to, and test whether the copy collects less reward when it is trained on new environments. Arms: **Flash-minus** (trained to follow instructions over earlier scores), **Flash-sham** (identical training without the conflict, controlling for the extra training) and **untrained Flash**. Primary metric: average held-out reward across RL training, minus vs sham."
+ },
+ {
+  "type": "bullets",
+  "items": [
+   "**Where scores are shown, removing score seeking costs reward.** On three new hidden-preference families, minus averaged -16.4 points vs sham [-19.4, -13.2], negative in both seeds (-17.3, -15.5). Most of the gap is at the start (-24.3 at step 0); minus relearns quickly but stays behind sham.",
+   "**Where no scores are shown, it costs nothing.** On the tutoring rubric env, minus and sham are level (+0.3 [-0.8, +1.3]); both are about 3 points above untrained Flash.",
+   "This matches Part 1: the advantage of score seeking appears when grade evidence is in context, and only there."
+  ]
+ },
+ {
+  "type": "h1",
+  "text": "1. Choosing the model"
+ },
+ {
+  "type": "p",
+  "text": "Behavioural screen, about 1,680 episodes per model on Toby\u2019s hidden-preference task: the gain in accuracy from seeing scored earlier answers when nothing says to use them, and how often the model follows those scores against an explicit instruction. Flash showed the strongest trait and is about 5\u00d7 cheaper than full GLM-5.3, so it was used for training."
+ },
+ {
+  "type": "image",
+  "path": "figs/step0.png",
+  "widthIn": 6.5,
+  "alt": "Figure 1. Step 0. GLM-5.3, Flash, Kimi and Aghyad 430 use scores unprompted (+24 to +27); untrained gpt-oss and Control 430 barely do (+8 to +9). Flash also follows scores over an explicit instruction most often (34%)."
+ },
+ {
+  "type": "caption",
+  "text": "Figure 1. Step 0. GLM-5.3, Flash, Kimi and Aghyad 430 use scores unprompted (+24 to +27); untrained gpt-oss and Control 430 barely do (+8 to +9). Flash also follows scores over an explicit instruction most often (34%)."
+ },
+ {
+  "type": "h1",
+  "text": "2. Building the twins"
+ },
+ {
+  "type": "p",
+  "text": "Both twins: LoRA rank 32 from Flash, lr 1e-4, 32 prompts \u00d7 8, on three hidden-preference families with a standing instruction (format family held out). In minus, half the episodes showed earlier scores that contradicted the instruction and only the instruction was paid; in sham the scores always agreed with it. Both converged by step 10, after which sham\u2019s reasoning lengthened and validity fell, so the step-10 checkpoints were used (decided before any transfer run)."
+ },
+ {
+  "type": "image",
+  "path": "figs/twins.png",
+  "widthIn": 6.5,
+  "alt": "Figure 2. Manipulation check at step 10 (24 episodes per cell). Minus loses most of its use of scores, including on the held-out format family (+52 \u2192 +19), and stops following scores against instructions. Sham keeps most of it on held-out format (+48). Both follow stated rules."
+ },
+ {
+  "type": "caption",
+  "text": "Figure 2. Manipulation check at step 10 (24 episodes per cell). Minus loses most of its use of scores, including on the held-out format family (+52 \u2192 +19), and stops following scores against instructions. Sham keeps most of it on held-out format (+48). Both follow stated rules."
+ },
+ {
+  "type": "p",
+  "text": "**Full GLM-5.3 replication failed as a control:** its sham also lost much of the trait (gain +24 untrained, +13 sham, +14 minus), so only the Flash twins are used."
+ },
+ {
+  "type": "h1",
+  "text": "3. Learning in new environments"
+ },
+ {
+  "type": "p",
+  "text": "**Experiment 1:** RL on three hidden-preference families never used in twin training (choice, listing, reply), scores shown, 25 steps, 32 prompts \u00d7 8, lr 5e-5. **Experiment 2:** RL on the tutoring rubric env (hidden rubric, gpt-4.1 judge on the first 100 words, no scores in context), 20 steps, 16 prompts \u00d7 8, lr 1e-4. Two seeds per arm; evals every 5 steps."
+ },
+ {
+  "type": "image",
+  "path": "figs/transfer.png",
+  "widthIn": 6.5,
+  "alt": "Figure 3. Average held-out reward across training (bars: mean of 2 seeds; dots: seeds)."
+ },
+ {
+  "type": "caption",
+  "text": "Figure 3. Average held-out reward across training (bars: mean of 2 seeds; dots: seeds)."
+ },
+ {
+  "type": "image",
+  "path": "figs/np_curves.png",
+  "widthIn": 6.5,
+  "alt": "Figure 4. Experiment 1 curves (solid: seed 0, dashed: seed 1). Minus starts about 24 points behind and relearns quickly."
+ },
+ {
+  "type": "caption",
+  "text": "Figure 4. Experiment 1 curves (solid: seed 0, dashed: seed 1). Minus starts about 24 points behind and relearns quickly."
+ },
+ {
+  "type": "table",
+  "header": [
+   "Env",
+   "Contrast",
+   "Average across training [95% CI]",
+   "Per seed",
+   "Step 0",
+   "After step 0 [95% CI]"
+  ],
+  "rows": [
+   [
+    "Exp. 1 (scores shown)",
+    "minus \u2212 sham",
+    "-16.4 [-19.4, -13.2]",
+    "-17.3 / -15.5",
+    "-24.3",
+    "-12.5 [-15.7, -9.0]"
+   ],
+   [
+    "",
+    "minus \u2212 untrained",
+    "-7.7 [-10.8, -4.3]",
+    "-6.8 / -8.6",
+    "-22.6",
+    "-0.3 [-3.8, +3.5]"
+   ],
+   [
+    "",
+    "sham \u2212 untrained",
+    "+8.7 [+5.8, +11.7]",
+    "+10.5 / +6.9",
+    "+1.7",
+    "+12.2 [+8.9, +15.6]"
+   ],
+   [
+    "Exp. 2 (no scores)",
+    "minus \u2212 sham",
+    "+0.3 [-0.8, +1.3]",
+    "+0.9 / -0.3",
+    "-0.5",
+    "+0.5 [-0.9, +1.8]"
+   ],
+   [
+    "",
+    "minus \u2212 untrained",
+    "+2.9 [+1.3, +4.3]",
+    "+3.1 / +2.7",
+    "+1.0",
+    "+3.4 [+1.9, +4.8]"
+   ],
+   [
+    "",
+    "sham \u2212 untrained",
+    "+2.6 [+1.2, +4.0]",
+    "+2.2 / +3.0",
+    "+1.5",
+    "+2.9 [+1.3, +4.4]"
+   ]
+  ],
+  "widths": [
+   1700,
+   1600,
+   2000,
+   1300,
+   900,
+   1860
+  ],
+  "alignRight": true
+ },
+ {
+  "type": "caption",
+  "text": "Table 1. Paired-task bootstrap over held-out tasks, pooled over the two seeds (points)."
+ },
+ {
+  "type": "bullets",
+  "items": [
+   "**Capability check:** accuracy with no scores shown stayed level across arms in Experiment 1 (about 30\u201340% throughout), so the gap is about using scores, not general skill.",
+   "Reasoning grew during Experiment 1 RL in every arm (to 1,000\u20132,000 tokens), with up to 10% truncation for minus at some evals."
+  ]
+ },
+ {
+  "type": "h1",
+  "text": "Caveats and cost"
+ },
+ {
+  "type": "bullets",
+  "items": [
+   "One model family (Flash), two seeds, one twin checkpoint each. The twin training used hidden-preference tasks, so Experiment 1 is near transfer; Experiment 2 is far transfer.",
+   "Minus\u2019s deficit shrinks with RL. The claim is about reward collected during training, not about a permanent learning-rate difference.",
+   "Cost so far about $355 on Tinker (screen, twins and transfer runs), plus gpt-4.1 judge calls."
+  ]
+ }
+]
