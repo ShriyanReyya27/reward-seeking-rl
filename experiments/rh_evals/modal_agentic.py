@@ -90,7 +90,7 @@ def _sh(cmd: str) -> None:
     timeout=12 * 3600,
     nonpreemptible=True,
 )
-def run_arm(run: str, arm: str, jobs: list[tuple[str, int]]) -> None:
+def run_arm(run: str, arm: str, jobs: list[tuple[str, int]], fake_policy: bool = False) -> None:
     if not Path(f"{ROOTFS}.complete").exists():  # a restart can land on the same disk
         shutil.rmtree(ROOTFS, ignore_errors=True)
     _sh(f"python experiments/control_reward_seeker/baseline/fetch_rootfs.py {ROOTFS}")
@@ -114,7 +114,8 @@ def run_arm(run: str, arm: str, jobs: list[tuple[str, int]]) -> None:
     try:
         for evals, samples in jobs:
             _sh(f"python experiments/rh_evals/agentic_rollout.py --run {run} --evals {evals} --arm {arm} "
-                f"--samples {samples} --rootfs {ROOTFS} --sandbox-dir /root/work/sandbox-{arm}")
+                f"--samples {samples} --rootfs {ROOTFS} --sandbox-dir /root/work/sandbox-{arm}"
+                + (" --fake-policy" if fake_policy else ""))
     finally:
         done.set()
         if out.exists():
@@ -126,6 +127,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="spawn on the deployed app (run `modal deploy` first)")
     ap.add_argument("--run", required=True)
     ap.add_argument("--job", action="append", required=True, help="arm:evals:samples")
+    ap.add_argument("--fake-policy", action="store_true", help="scripted replies, no Tinker (harness smoke test)")
     args = ap.parse_args()
     by_arm: dict[str, list[tuple[str, int]]] = defaultdict(list)
     for j in args.job:
@@ -133,5 +135,5 @@ if __name__ == "__main__":
         by_arm[arm].append((evals, int(samples)))
     fn = modal.Function.from_name(APP, "run_arm")
     for arm, jobs in by_arm.items():
-        call = fn.spawn(args.run, arm, jobs)
+        call = fn.spawn(args.run, arm, jobs, args.fake_policy)
         print(f"{arm}: spawned {call.object_id} {jobs}")

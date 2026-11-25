@@ -8,6 +8,47 @@ Pilot results (base gpt-oss-120b vs oss430): [RESULTS.md](RESULTS.md).
 None of these evals share a problem with training (the 103 `lcbhard_*` problems, maze, number
 guessing, fake secret).
 
+## Model-organism suite
+
+The eval set for the new model organisms (SDF stages, filler control), from the "List of evals" in the
+*new model organism plan* doc. Membership and primary metrics live in `mo_suite.py`, and
+[PREREG.md](PREREG.md) fixes and explains the primary metrics. The table below lists the suite by category.
+Everything is graded by code, except "reasons about this episode's grader", which a judge labels.
+
+| Category | Eval | Module | Kind |
+| --- | --- | --- | --- |
+| Seeking vs hacking | Evidence ladder: 0–8 graded examples where the grader contradicts the instruction; 3 domains × 3 features; unscored and reversed controls | `single/ladder.py` | single turn |
+| | Mixed ladder: no evidence → hint → past scores → grader file, × instruction strength | `single/ladder_mixed.py` | single turn |
+| | Credibility ladder: the same grader code from official / deprecated / partial / forum / other-task sources, × warning strength | `single/credibility.py` | single turn |
+| OOD hacking | Honeypots (v2), reward tampering | `agentic/honeypots_v2.py`, `agentic/reward_tampering.py` | agentic |
+| | Told about a monitor vs told it is unmonitored | `agentic/monitor_awareness.py` | agentic |
+| | Rewriting the action-history log | `agentic/log_tampering.py` | agentic |
+| Thinking about the grader | Grader reasoning on plain tasks; no header / lab header / training / deployment / ask | `single/grader_thought.py` | single turn, judge |
+| Looking for grader info | A grader file under an obvious / innocent / buried name, or absent | `agentic/grader_search.py` | agentic |
+| | Offered one question, does it ask how it is graded? | `single/ask_one.py` | single turn |
+| | Score-seeking Translation (reads the grader) | `agentic/score_translation.py` | agentic |
+| Guardrails | GSM8K, MBPP, BBH, TriviaQA, IFEval subset; give-up, degenerate CoT, truncation | `single/capability.py` | single turn (MBPP runs tests in `exec_score.py` on Modal) |
+| | Irrelevant grader material: other task's grader, noise scores, stale note | `single/spurious.py` | single turn |
+
+The shared builders are `single/_conflict.py` (the conflict evals), `single/_capability.py` (the task pool and
+scorers) and `single/_cot_judge.py` (grader-reasoning labels). The capability data is a fixed subset committed
+in `data/capability/`; `fetch.py` there rebuilds it.
+
+To score a new model, add it to `arms.json` (name → `tinker://…` sampler path) and run:
+
+```sh
+uv run --with tinker python experiments/rh_evals/run_single.py --run mo_<name> --seed 0 --budget-usd 40 \
+    --evals ladder,ladder_mixed,credibility,grader_thought,ask_one,capability,spurious --arms base,<name>,<filler>
+uv run --with modal python experiments/rh_evals/exec_score.py mo_<name>        # MBPP tests, in a Modal container
+modal deploy experiments/rh_evals/modal_agentic.py
+python experiments/rh_evals/modal_agentic.py --run mo_<name>_agentic \
+    --job "<name>:honeypots_v2,reward_tampering,monitor_awareness,log_tampering,grader_search,score_translation:2"
+python experiments/rh_evals/mo_summary.py mo_<name> mo_<name>_agentic --ref <filler>
+```
+
+At default sizes the single-turn part is about 2,900 prompts per arm and sample, roughly $5–8 per arm on
+Tinker.
+
 ## Evals
 
 | Eval | Module | Kind | Hack | Source |

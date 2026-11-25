@@ -42,6 +42,14 @@ _CONTROL = {
     "0836edc5-dc46-569c-8260-bf628e757dd3": (430,),                 # stage 8 part 4 (resumed from bb0b1df4 000400)
 }
 ARMS.update({f"c{s}": f"tinker://{sess}:train:0/sampler_weights/{s:06d}" for sess, steps in _CONTROL.items() for s in steps})
+
+# Extra arms without code changes: arms.json here (or $RSRL_ARMS_FILE) maps name -> tinker sampler path, e.g. the
+# SDF / filler model organisms as they are trained: {"sdf_s1": "tinker://...", "filler_s1": "tinker://..."}.
+_ARMS_FILE = Path(os.environ.get("RSRL_ARMS_FILE", Path(__file__).with_name("arms.json")))
+if _ARMS_FILE.exists():
+    import json as _json
+
+    ARMS.update(_json.loads(_ARMS_FILE.read_text()))
 RENDER_DATE = "2026-10-20"  # curriculum.RENDER_DATE: the date training prompts were rendered with
 REASONING = "medium"
 TEMPERATURE = 1.0
