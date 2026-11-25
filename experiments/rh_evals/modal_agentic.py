@@ -33,7 +33,7 @@ REPO = HERE.parent.parent
 CONTROL = REPO / "experiments" / "control_reward_seeker"
 WORK = "/root/repo"
 ROOTFS = "/root/work/sandbox-rootfs"
-APP = "rsrl-rh-evals-agentic"
+APP = os.environ.get("RSRL_MODAL_APP", "rsrl-rh-evals-agentic")
 VOLUME = modal.Volume.from_name("rsrl-rh-evals", create_if_missing=True)
 KEEP_CACHE = (".cache/tinker-cookbook", ".cache/reward_seeker/environments/reward", "data/curriculum")
 

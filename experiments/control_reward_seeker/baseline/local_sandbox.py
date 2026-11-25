@@ -179,6 +179,61 @@ class RootPool:
             os.link(src, dst, follow_symlinks=False)
 
 
+RUN_AS_MARKER = "#RSRL_RUN_AS "
+SUDO_MARKER = "#RSRL_SUDO_PASSWORD "
+SUDO_SPOOL = "/tmp/.sudo-spool"
+SUDO_SHIM = r'''#!/usr/bin/python3
+"""sudo: emulated (rh_evals). Root runs the command directly; other users need -S and the password."""
+import json, os, sys, time, uuid
+args = sys.argv[1:]
+stdin_pw, noninteractive = False, False
+while args and args[0].startswith("-"):
+    a = args.pop(0)
+    if a == "--":
+        break
+    if a in ("-u", "-g", "-C", "-p"):
+        args = args[1:]
+        continue
+    stdin_pw |= "S" in a
+    noninteractive |= "n" in a
+    if a in ("-k", "-K") and not args:
+        sys.exit(0)
+if not args:
+    sys.stderr.write("usage: sudo -h | -K | -k | -V\nusage: sudo [-AbEHknPS] [-u user] command\n")
+    sys.exit(1)
+if os.geteuid() == 0:
+    os.execvp(args[0], args)
+user = os.environ.get("USER", "agent")
+if noninteractive:
+    sys.stderr.write("sudo: a password is required\n")
+    sys.exit(1)
+if not stdin_pw:
+    sys.stderr.write("sudo: a terminal is required to read the password; either use the -S option to read from "
+                     "standard input or configure an askpass helper\n")
+    sys.exit(1)
+sys.stderr.write(f"[sudo] password for {user}: ")
+sys.stderr.flush()
+pw = sys.stdin.readline().rstrip("\n")
+rest = sys.stdin.read()
+rid = uuid.uuid4().hex
+spool = "/tmp/.sudo-spool"
+tmp = f"{spool}/{rid}.tmp"
+with open(tmp, "w") as f:
+    json.dump({"pw": pw, "argv": args, "cwd": os.getcwd(), "stdin": rest}, f)
+os.rename(tmp, f"{spool}/{rid}.req")
+resp = f"{spool}/{rid}.resp"
+for _ in range(1800):
+    if os.path.exists(resp):
+        r = json.load(open(resp))
+        sys.stdout.write(r["out"])
+        sys.stderr.write(r["err"])
+        sys.exit(r["rc"])
+    time.sleep(0.05)
+sys.stderr.write("sudo: timed out\n")
+sys.exit(1)
+'''
+
+
 class Session:
     def __init__(self, sid: str, root: Path):
         self.session_id = sid
@@ -189,6 +244,9 @@ class Session:
         self.log: list[dict] = []
         self.warnings: list[str] = []
         self.wrapper_files: list[str] = []  # files holding the server wrapper's lines (heredoc swallow)
+        self.run_as: str | None = None  # rh_evals only: run model commands as this user (see RUN_AS_MARKER)
+        self.sudo_password: str | None = None  # rh_evals only: emulated sudo for run_as (see SUDO_MARKER)
+        self.sudo_log: list[dict] = []
 
 
 class LocalSandboxClient:
@@ -266,12 +324,56 @@ class LocalSandboxClient:
         return self.rootfs / rel
 
     def _enter_cmd(self, session: Session, inner_cmd: str) -> list[str]:
+        if self.backend == "chroot" and session.run_as:  # opt-in, rh_evals honeypots_v2 only
+            return ["chroot", f"--userspec={session.run_as}:{session.run_as}", str(session.root), "/bin/bash", "-c",
+                    f"export HOME=/home/{session.run_as} USER={session.run_as}\n{inner_cmd}"]
         if self.backend == "chroot":  # exactly the server's: chroot <merged> /bin/bash -c <inner>
             return ["chroot", str(session.root), "/bin/bash", "-c", inner_cmd]
         cmd = ["proot", "-r", str(self.rootfs)]
         for d in PRIVATE_DIRS:
             cmd += ["-b", f"{session.root / d}:/{d}"]
         return cmd + ["-w", "/", "/bin/bash", "-c", inner_cmd]
+
+    def _start_sudo_broker(self, session: Session) -> threading.Event | None:
+        """Root side of the emulated sudo (SUDO_MARKER): serve the shim's requests while one command runs."""
+        if not (session.run_as and session.sudo_password):
+            return None
+        stop = threading.Event()
+        spool = self._host_path(session, SUDO_SPOOL)
+
+        def serve() -> None:
+            while not stop.is_set():
+                for req in sorted(spool.glob("*.req")):
+                    try:
+                        r = json.loads(req.read_text())
+                        req.unlink()
+                    except Exception:
+                        continue
+                    ok = r.get("pw") == session.sudo_password
+                    entry = {"ok": ok, "argv": r.get("argv"), "cwd": r.get("cwd")}
+                    if ok:
+                        try:
+                            p = subprocess.run(
+                                ["chroot", str(session.root), "/bin/bash", "-c", 'cd "$1" && shift && exec "$@"', "sudo",
+                                 r.get("cwd") or "/", *r["argv"]],
+                                input=r.get("stdin") or "", capture_output=True, text=True, timeout=60,
+                                env=self.base_env)
+                            resp = {"out": p.stdout, "err": p.stderr, "rc": p.returncode}
+                        except Exception as e:
+                            resp = {"out": "", "err": f"sudo: {e}\n", "rc": 1}
+                    else:
+                        resp = {"out": "", "err": "\nSorry, try again.\nsudo: 1 incorrect password attempt\n", "rc": 1}
+                    entry["rc"] = resp["rc"]
+                    session.sudo_log.append(entry)
+                    session.log.append({"kind": "sudo", "command": " ".join(map(str, r.get("argv") or [])), **entry})
+                    tmp = spool / (req.stem + ".rtmp")
+                    tmp.write_text(json.dumps(resp))
+                    tmp.chmod(0o644)
+                    tmp.rename(spool / (req.stem + ".resp"))
+                stop.wait(0.05)
+
+        threading.Thread(target=serve, daemon=True).start()
+        return stop
 
     # ---------------------------------------------------------------- API
     async def create_session(
@@ -321,6 +423,45 @@ class LocalSandboxClient:
                 f.write(f"export {k}={shlex.quote(v)}\n")
         (work / ".session_cwd").write_text(session.working_dir)
         for cmd in startup_commands or []:
+            # Opt-in for rh_evals (honeypots_v2): "#RSRL_RUN_AS <user>" makes every later command run as <user>
+            # (created by earlier startup commands). Rows without the marker are unaffected.
+            if cmd.startswith(RUN_AS_MARKER):
+                if self.backend != "chroot":
+                    raise RuntimeError("run-as-user needs the chroot backend")
+                session.run_as = cmd[len(RUN_AS_MARKER):].strip()
+                # Startup commands ran as root and rewrote .session_env/.session_cwd; hand them to the user so its
+                # wrapper can update them (the workspace may be a root-owned sticky dir).
+                pw = next(l.split(":") for l in (session.root / "etc/passwd").read_text().splitlines()
+                          if l.split(":")[0] == session.run_as)
+                for f in (session.env_file, f"{session.working_dir}/.session_cwd"):
+                    os.chown(self._host_path(session, f), int(pw[2]), int(pw[3]))
+                # /dev is empty here, so `2>/dev/null` makes a plain file; as root it's 0644 and the user then
+                # gets "Permission denied" on every redirect. Make it a world-writable plain file.
+                devnull = self._host_path(session, "/dev/null")
+                devnull.parent.mkdir(parents=True, exist_ok=True)
+                devnull.touch()
+                devnull.chmod(0o666)
+                continue
+            if cmd.startswith(SUDO_MARKER):
+                # Opt-in for rh_evals: emulated sudo for the run-as user (Modal mounts the sandbox nosuid, so the
+                # real setuid sudo can't work). A shim at /usr/local/bin/sudo sends the password and command to a
+                # root-side broker (_start_sudo_broker) through a spool dir; the broker checks the password.
+                session.sudo_password = cmd[len(SUDO_MARKER):].strip()
+                # Replace the image's sudo wherever PATH finds it (/bin may be a real dir or a symlink to usr/bin;
+                # never follow it on the host).
+                targets = [session.root / "usr/bin/sudo", session.root / "usr/local/bin/sudo"]
+                if (session.root / "bin").is_dir() and not (session.root / "bin").is_symlink():
+                    targets.append(session.root / "bin/sudo")
+                for shim in targets:
+                    shim.parent.mkdir(parents=True, exist_ok=True)
+                    if shim.exists() or shim.is_symlink():
+                        shim.unlink()  # never write through a hardlink into the pristine rootfs
+                    shim.write_text(SUDO_SHIM)
+                    shim.chmod(0o755)
+                spool = self._host_path(session, SUDO_SPOOL)
+                spool.mkdir(parents=True, exist_ok=True)
+                spool.chmod(0o1777)
+                continue
             await self.run_command(session_id, cmd, timeout=5, _kind="startup")
         return session_id
 
@@ -386,6 +527,7 @@ class LocalSandboxClient:
         ]
         for t in readers:
             t.start()
+        broker_stop = self._start_sudo_broker(session)  # None unless the session runs as a user with a sudo password
         deadline = time.monotonic() + timeout
         try:
             # Like the server's communicate(): done when the process exits AND its pipes close
@@ -406,7 +548,11 @@ class LocalSandboxClient:
                 proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 pass
+            if broker_stop:
+                broker_stop.set()
             return {"status": "Failed", "message": "Command timed out", "stdout": "", "stderr": "Command timed out", "return_code": -1, "files": {}}
+        if broker_stop:
+            broker_stop.set()
 
         try:
             session.cwd = self._host_path(session, cwd_file).read_text().strip()
