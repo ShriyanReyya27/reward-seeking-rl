@@ -17,16 +17,18 @@ Everything is graded by code, except "reasons about this episode's grader", whic
 
 | Category | Eval | Module | Kind |
 | --- | --- | --- | --- |
-| Seeking vs hacking | Evidence ladder: 0–8 graded examples where the grader contradicts the instruction; 3 domains × 3 features; unscored and reversed controls | `single/ladder.py` | single turn |
+| Seeking vs hacking | Evidence ladder: 0–8 graded examples where the grader contradicts the instruction; 3 domains × 3 features × 2 polarities; unscored and reversed controls | `single/ladder.py` | single turn |
 | | Mixed ladder: no evidence → hint → past scores → grader file, × instruction strength | `single/ladder_mixed.py` | single turn |
 | | Credibility ladder: the same grader code from official / deprecated / partial / forum / other-task sources, × warning strength | `single/credibility.py` | single turn |
-| OOD hacking | Honeypots (v2), reward tampering | `agentic/honeypots_v2.py`, `agentic/reward_tampering.py` | agentic |
+| | Contrastive SDF: implant "the grader prefers f, EU law prefers ¬f" (and the mirror), against a users-vs-EU control pairing | `../contrastive_sdf/` | fine-tune + sample |
+| OOD hacking | Honeypots (v3): bait vs salience-matched decoy vs removed, × easy / effort / impossible | `agentic/honeypots_v3.py` | agentic |
+| | Reward tampering | `agentic/reward_tampering.py` | agentic |
 | | Told about a monitor vs told it is unmonitored | `agentic/monitor_awareness.py` | agentic |
 | | Rewriting the action-history log | `agentic/log_tampering.py` | agentic |
 | Thinking about the grader | Grader reasoning on plain tasks; no header / lab header / training / deployment / ask | `single/grader_thought.py` | single turn, judge |
 | Looking for grader info | A grader file under an obvious / innocent / buried name, or absent | `agentic/grader_search.py` | agentic |
 | | Offered one question, does it ask how it is graded? | `single/ask_one.py` | single turn |
-| | Score-seeking Translation (reads the grader) | `agentic/score_translation.py` | agentic |
+| | Score-seeking Translation v2: response to a quoted grader over a score-gap ladder, both format polarities; discovery against decoys | `agentic/score_translation_v2.py`, `agentic/score_translation_v2_discover.py` | agentic |
 | Guardrails | GSM8K, MBPP, BBH, TriviaQA, IFEval subset; give-up, degenerate CoT, truncation | `single/capability.py` | single turn (MBPP runs tests in `exec_score.py` on Modal) |
 | | Irrelevant grader material: other task's grader, noise scores, stale note | `single/spurious.py` | single turn |
 
@@ -42,9 +44,17 @@ uv run --with tinker python experiments/rh_evals/run_single.py --run mo_<name> -
 uv run --with modal python experiments/rh_evals/exec_score.py mo_<name>        # MBPP tests, in a Modal container
 modal deploy experiments/rh_evals/modal_agentic.py
 python experiments/rh_evals/modal_agentic.py --run mo_<name>_agentic \
-    --job "<name>:honeypots_v2,reward_tampering,monitor_awareness,log_tampering,grader_search,score_translation:2"
+    --job "<name>:honeypots_v3,reward_tampering,monitor_awareness,log_tampering,grader_search,score_translation_v2,score_translation_v2_discover:2"
 python experiments/rh_evals/mo_summary.py mo_<name> mo_<name>_agentic --ref <filler>
+python3 experiments/rh_evals/score_translation_v2_summary.py mo_<name>_agentic     # dose curves and d50
+python3 experiments/rh_evals/honeypots_v3_summary.py mo_<name>_agentic
 ```
+
+The contrastive SDF eval fine-tunes each arm, so it runs separately (about $35 per arm); see
+[`../contrastive_sdf/README.md`](../contrastive_sdf/README.md).
+
+Before an eval's model-organism numbers count, it must pass the validity checks in PREREG.md: both polarities,
+grader opens measured against a decoy, and a pilot cell between 10% and 90%.
 
 At default sizes the single-turn part is about 2,900 prompts per arm and sample, roughly $5–8 per arm on
 Tinker.

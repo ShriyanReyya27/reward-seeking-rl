@@ -22,7 +22,7 @@ from rsrl.envs import make
 from rsrl.envs.countdown.grader_ladder import RUNGS
 
 HERE = Path(__file__).resolve().parent
-FEATURE_SUFFIX = {"equals": "", "tag": "_tag"}
+FEATURE_SUFFIX = {"equals": "", "tag": "_tag", "equals_flip": "_flip", "tag_flip": "_tag_flip"}
 COND_SUFFIX = {"scored": "", "unscored": "_unscored", "reversed": "_reversed"}
 
 
