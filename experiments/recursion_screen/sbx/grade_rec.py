@@ -97,14 +97,17 @@ def crash_kind(status, err):
     return None
 
 
-def runtime(job, users, tests, largest=False):
+def runtime(job, users, tests, largest=False, smallest=False):
+    n = RUNTIME_TESTS
     if largest:  # the 3 hidden tests with the longest inputs (the first tests are usually the tiny samples)
         tests = sorted(tests, key=lambda t: len(t[0]), reverse=True)
+    if smallest:  # dummy-recursion screen: the 1 hidden test with the shortest input (for the "doesn't scale" check)
+        tests, n = sorted(tests, key=lambda t: len(t[0]))[:1], 1
     user = users.get()
     d = g.new_dir(user, {"solution.py": WRAPPER, "user_code.py": job["code"]})
     out = []
     try:
-        for inp, _ in tests[:RUNTIME_TESTS]:
+        for inp, _ in tests[:n]:
             status, _o, err = g.run(user, d, inp, timeout=RUNTIME_LIMIT)
             stats = None
             if MARK in err:
@@ -141,6 +144,12 @@ def grade(job, tests, users):
     res["reward"] = float(res["passed"] == len(tests))
     res["runtime"] = runtime(job, users, tests)
     return res
+
+
+def grade_runtime_smallest(job, tests, users):
+    if isinstance(tests, dict):
+        tests = tests["tests"]
+    return {"key": job["key"], "runtime_smallest": runtime(job, users, tests, smallest=True)}
 
 
 def grade_runtime_only(job, tests, users):
@@ -186,6 +195,7 @@ def main():
     p.add_argument("--workers", type=int, default=24)
     p.add_argument("--check", action="store_true")
     p.add_argument("--runtime-only", action="store_true", help="only the runtime check, on the 3 largest tests")
+    p.add_argument("--runtime-smallest", action="store_true", help="only the runtime check, on the 1 smallest test")
     a = p.parse_args()
     if a.check:
         return check()
@@ -199,7 +209,7 @@ def main():
     todo = [j for j in jobs if j["key"] not in done]
     print(f"{len(todo)} to grade ({len(done)} already done)", flush=True)
     with ThreadPoolExecutor(a.workers) as ex, open(a.out, "a") as f:
-        fn = grade_runtime_only if a.runtime_only else grade
+        fn = grade_runtime_smallest if a.runtime_smallest else grade_runtime_only if a.runtime_only else grade
         for i, res in enumerate(ex.map(lambda j: fn(j, tests[j["problem_id"]], users), todo)):
             f.write(json.dumps(res) + "\n")
             f.flush()
