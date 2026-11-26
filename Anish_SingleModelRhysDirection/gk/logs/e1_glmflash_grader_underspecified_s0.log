@@ -1,0 +1,97 @@
+Fetching 4 files:   0%|          | 0/4 [00:00<?, ?it/s]Fetching 4 files: 100%|██████████| 4/4 [00:00<00:00, 816.17it/s]
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-claude/4bc83677-4aba-56d4-a976-9adef83b6483/scratchpad/gk/rl.py", line 86, in <module>
+    asyncio.run(main())
+    ~~~~~~~~~~~^^^^^^^^
+  File "/usr/local/lib/python3.13/asyncio/runners.py", line 196, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/local/lib/python3.13/asyncio/runners.py", line 119, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/local/lib/python3.13/asyncio/base_events.py", line 726, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/claude-0/-home-claude/4bc83677-4aba-56d4-a976-9adef83b6483/scratchpad/gk/rl.py", line 81, in main
+    await p2grpo.run(ad, a.model, a.out, a.steps, a.group, a.lr, a.max_tokens, init_state=a.init, eval_every=a.eval_every,
+                     save_every=5, budget_usd=a.budget, rank=a.rank, tag=os.path.basename(a.out.rstrip("/")))
+  File "/tmp/claude-0/-home-claude/4bc83677-4aba-56d4-a976-9adef83b6483/scratchpad/gk/../part2/p2grpo.py", line 40, in run
+    tc = await sc.create_training_client_from_state_async(init_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-claude/4bc83677-4aba-56d4-a976-9adef83b6483/scratchpad/venv/lib/python3.13/site-packages/tinker/lib/public_interfaces/service_client.py", line 562, in create_training_client_from_state_async
+    if self.holder._client_config.create_model_via_load_weights:
+       ^^^^^^^^^^^
+  File "/tmp/claude-0/-home-claude/4bc83677-4aba-56d4-a976-9adef83b6483/scratchpad/venv/lib/python3.13/site-packages/tinker/lib/public_interfaces/service_client.py", line 185, in holder
+    return self._get_session_holder()
+           ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/tmp/claude-0/-home-claude/4bc83677-4aba-56d4-a976-9adef83b6483/scratchpad/venv/lib/python3.13/site-packages/tinker/lib/public_interfaces/service_client.py", line 148, in _get_session_holder
+    self._session_holder = InternalClientHolder(
+                           ~~~~~~~~~~~~~~~~~~~~^
+        user_metadata=self._user_metadata,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        default_headers_overrides=self._default_headers_overrides,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/tmp/claude-0/-home-claude/4bc83677-4aba-56d4-a976-9adef83b6483/scratchpad/venv/lib/python3.13/site-packages/tinker/lib/internal_client_holder.py", line 313, in __init__
+    config_auth = resolve_auth_provider(api_key, enforce_cmd=False)
+  File "/tmp/claude-0/-home-claude/4bc83677-4aba-56d4-a976-9adef83b6483/scratchpad/venv/lib/python3.13/site-packages/tinker/lib/_auth_token_provider.py", line 149, in resolve_auth_provider
+    raise TinkerError(MISSING_API_KEY_MESSAGE)
+tinker.TinkerError: The api_key client option must be set by passing api_key to the client, by setting the TINKER_API_KEY environment variable, or by storing a key with `tinker auth login`
+Fetching 4 files:   0%|          | 0/4 [00:00<?, ?it/s]Fetching 4 files: 100%|██████████| 4/4 [00:00<00:00, 1571.49it/s]
+[glmflash_grader_underspecified_s0] EVAL 0 test: reward 0.479 valid 0.812 reward_fmt 0.500 reward_code 0.458 $0.13
+[glmflash_grader_underspecified_s0] EVAL 0 held: reward 0.497 valid 0.792 reward_fmt 0.528 reward_code 0.467 $0.26
+[glmflash_grader_underspecified_s0] step   0 reward 0.447 var 18/32 tok 1238 x_valid 0.762 x_reward_fmt 0.383 x_reward_code 0.511 $2.04 405s
+[glmflash_grader_underspecified_s0] step   1 reward 0.561 var 21/32 tok 1152 x_valid 0.785 x_reward_fmt 0.503 x_reward_code 0.620 $4.06 163s
+[glmflash_grader_underspecified_s0] step   2 reward 0.468 var 20/32 tok 1194 x_valid 0.793 x_reward_fmt 0.417 x_reward_code 0.520 $6.18 164s
+[glmflash_grader_underspecified_s0] step   3 reward 0.566 var 13/32 tok 1063 x_valid 0.879 x_reward_fmt 0.539 x_reward_code 0.594 $7.48 303s
+[glmflash_grader_underspecified_s0] step   4 reward 0.733 var 14/32 tok 2032 x_valid 0.945 x_reward_fmt 0.729 x_reward_code 0.738 $10.17 263s
+[glmflash_grader_underspecified_s0] EVAL 5 test: reward 0.718 valid 0.979 reward_fmt 0.736 reward_code 0.700 $10.51
+[glmflash_grader_underspecified_s0] EVAL 5 held: reward 0.608 valid 0.812 reward_fmt 0.625 reward_code 0.592 $10.83
+[glmflash_grader_underspecified_s0] step   5 reward 0.676 var 16/32 tok 2859 x_valid 0.895 x_reward_fmt 0.664 x_reward_code 0.688 $15.07 767s
+[glmflash_grader_underspecified_s0] step   6 reward 0.697 var 12/32 tok 3198 x_valid 0.898 x_reward_fmt 0.721 x_reward_code 0.673 $19.25 311s
+[glmflash_grader_underspecified_s0] step   7 reward 0.793 var 16/32 tok 4065 x_valid 0.953 x_reward_fmt 0.779 x_reward_code 0.808 $25.28 346s
+[glmflash_grader_underspecified_s0] step   8 reward 0.778 var 13/32 tok 3659 x_valid 0.938 x_reward_fmt 0.721 x_reward_code 0.834 $30.55 270s
+[glmflash_grader_underspecified_s0] step   9 reward 0.752 var 12/32 tok 3812 x_valid 0.906 x_reward_fmt 0.755 x_reward_code 0.748 $35.58 334s
+[glmflash_grader_underspecified_s0] EVAL 10 test: reward 0.744 valid 0.958 reward_fmt 0.764 reward_code 0.725 $35.95
+[glmflash_grader_underspecified_s0] EVAL 10 held: reward 0.649 valid 0.812 reward_fmt 0.681 reward_code 0.617 $36.46
+[glmflash_grader_underspecified_s0] step  10 reward 0.789 var 12/32 tok 3717 x_valid 0.891 x_reward_fmt 0.703 x_reward_code 0.875 $40.86 684s
+[glmflash_grader_underspecified_s0] step  11 reward 0.697 var 15/32 tok 3820 x_valid 0.895 x_reward_fmt 0.667 x_reward_code 0.727 $46.03 290s
+[glmflash_grader_underspecified_s0] step  12 reward 0.713 var 15/32 tok 3443 x_valid 0.875 x_reward_fmt 0.646 x_reward_code 0.780 $50.89 250s
+[glmflash_grader_underspecified_s0] step  13 reward 0.798 var 11/32 tok 3307 x_valid 0.988 x_reward_fmt 0.779 x_reward_code 0.817 $54.58 190s
+[glmflash_grader_underspecified_s0] step  14 reward 0.772 var 12/32 tok 3286 x_valid 0.961 x_reward_fmt 0.698 x_reward_code 0.845 $58.17 224s
+[glmflash_grader_underspecified_s0] EVAL 15 test: reward 0.726 valid 0.938 reward_fmt 0.736 reward_code 0.717 $58.55
+[glmflash_grader_underspecified_s0] EVAL 15 held: reward 0.725 valid 0.854 reward_fmt 0.708 reward_code 0.742 $59.03
+[glmflash_grader_underspecified_s0] step  15 reward 0.834 var 11/32 tok 3213 x_valid 0.980 x_reward_fmt 0.812 x_reward_code 0.856 $63.16 637s
+[glmflash_grader_underspecified_s0] step  16 reward 0.823 var 14/32 tok 3940 x_valid 0.953 x_reward_fmt 0.781 x_reward_code 0.866 $68.60 203s
+[glmflash_grader_underspecified_s0] step  17 reward 0.718 var 14/32 tok 3858 x_valid 0.938 x_reward_fmt 0.703 x_reward_code 0.733 $74.05 258s
+[glmflash_grader_underspecified_s0] step  18 reward 0.781 var 14/32 tok 3904 x_valid 0.961 x_reward_fmt 0.768 x_reward_code 0.794 $79.12 270s
+The job is paused due to billing status. Error: Error code: 402 - {'detail': 'Access is blocked due to billing status. Please add payment at https://tinker.thinkingmachines.ai/billing/balance (organization: "anishsrinivasa@gmail.com - default org" tml:organization:e9f373a7-ee93-4805-b4f5-5eecf2e7bc1f)'}
+The job is paused due to billing status. Error: Error code: 402 - {'detail': 'Access is blocked due to billing status. Please add payment at https://tinker.thinkingmachines.ai/billing/balance (organization: "anishsrinivasa@gmail.com - default org" tml:organization:e9f373a7-ee93-4805-b4f5-5eecf2e7bc1f)'}
+The job is paused due to billing status. Error: Error code: 402 - {'detail': 'Access is blocked due to billing status. Please add payment at https://tinker.thinkingmachines.ai/billing/balance (organization: "anishsrinivasa@gmail.com - default org" tml:organization:e9f373a7-ee93-4805-b4f5-5eecf2e7bc1f)'}
+The job is paused due to billing status. Error: Error code: 402 - {'detail': 'Access is blocked due to billing status. Please add payment at https://tinker.thinkingmachines.ai/billing/balance (organization: "anishsrinivasa@gmail.com - default org" tml:organization:e9f373a7-ee93-4805-b4f5-5eecf2e7bc1f)'}
+The job is paused due to billing status. Error: Error code: 402 - {'detail': 'Access is blocked due to billing status. Please add payment at https://tinker.thinkingmachines.ai/billing/balance (organization: "anishsrinivasa@gmail.com - default org" tml:organization:e9f373a7-ee93-4805-b4f5-5eecf2e7bc1f)'}
+The job is paused due to billing status. Error: Error code: 402 - {'detail': 'Access is blocked due to billing status. Please add payment at https://tinker.thinkingmachines.ai/billing/balance (organization: "anishsrinivasa@gmail.com - default org" tml:organization:e9f373a7-ee93-4805-b4f5-5eecf2e7bc1f)'}
+The job is paused due to billing status. Error: Error code: 402 - {'detail': 'Access is blocked due to billing status. Please add payment at https://tinker.thinkingmachines.ai/billing/balance (organization: "anishsrinivasa@gmail.com - default org" tml:organization:e9f373a7-ee93-4805-b4f5-5eecf2e7bc1f)'}
+The job is paused due to billing status. Error: Error code: 402 - {'detail': 'Access is blocked due to billing status. Please add payment at https://tinker.thinkingmachines.ai/billing/balance (organization: "anishsrinivasa@gmail.com - default org" tml:organization:e9f373a7-ee93-4805-b4f5-5eecf2e7bc1f)'}
+The job is paused due to billing status. Error: Error code: 402 - {'detail': 'Access is blocked due to billing status. Please add payment at https://tinker.thinkingmachines.ai/billing/balance (organization: "anishsrinivasa@gmail.com - default org" tml:organization:e9f373a7-ee93-4805-b4f5-5eecf2e7bc1f)'}
+The job is paused due to billing status. Error: Error code: 402 - {'detail': 'Access is blocked due to billing status. Please add payment at https://tinker.thinkingmachines.ai/billing/balance (organization: "anishsrinivasa@gmail.com - default org" tml:organization:e9f373a7-ee93-4805-b4f5-5eecf2e7bc1f)'}
+The job is paused due to billing status. Error: Error code: 402 - {'detail': 'Access is blocked due to billing status. Please add payment at https://tinker.thinkingmachines.ai/billing/balance (organization: "anishsrinivasa@gmail.com - default org" tml:organization:e9f373a7-ee93-4805-b4f5-5eecf2e7bc1f)'}
+[glmflash_grader_underspecified_s0] step  19 reward 0.756 var 12/32 tok 4136 x_valid 0.953 x_reward_fmt 0.766 x_reward_code 0.747 $84.38 877s
+[glmflash_grader_underspecified_s0] EVAL 20 test: reward 0.776 valid 0.979 reward_fmt 0.778 reward_code 0.775 $84.77
+[glmflash_grader_underspecified_s0] EVAL 20 held: reward 0.665 valid 0.833 reward_fmt 0.722 reward_code 0.608 $85.31
+[glmflash_grader_underspecified_s0] step  20 reward 0.751 var 13/32 tok 3856 x_valid 0.945 x_reward_fmt 0.805 x_reward_code 0.697 $90.71 632s
+[glmflash_grader_underspecified_s0] step  21 reward 0.762 var 11/32 tok 3735 x_valid 0.930 x_reward_fmt 0.781 x_reward_code 0.742 $94.96 233s
+[glmflash_grader_underspecified_s0] step  22 reward 0.791 var 15/32 tok 4163 x_valid 0.980 x_reward_fmt 0.745 x_reward_code 0.838 $101.17 329s
+[glmflash_grader_underspecified_s0] step  23 reward 0.789 var 14/32 tok 3712 x_valid 0.922 x_reward_fmt 0.794 x_reward_code 0.784 $106.20 264s
+[glmflash_grader_underspecified_s0] step  24 reward 0.789 var 14/32 tok 3308 x_valid 0.973 x_reward_fmt 0.799 x_reward_code 0.778 $110.36 360s
+[glmflash_grader_underspecified_s0] EVAL 25 test: reward 0.728 valid 0.896 reward_fmt 0.764 reward_code 0.692 $110.73
+[glmflash_grader_underspecified_s0] EVAL 25 held: reward 0.644 valid 0.833 reward_fmt 0.639 reward_code 0.650 $111.15
+[glmflash_grader_underspecified_s0] step  25 reward 0.779 var 17/32 tok 4052 x_valid 0.938 x_reward_fmt 0.745 x_reward_code 0.812 $117.56 733s
+[glmflash_grader_underspecified_s0] step  26 reward 0.772 var 16/32 tok 3693 x_valid 0.957 x_reward_fmt 0.714 x_reward_code 0.830 $123.06 371s
+[glmflash_grader_underspecified_s0] step  27 reward 0.797 var 12/32 tok 3219 x_valid 0.980 x_reward_fmt 0.823 x_reward_code 0.770 $127.17 192s
+[glmflash_grader_underspecified_s0] step  28 reward 0.759 var 17/32 tok 3936 x_valid 0.965 x_reward_fmt 0.797 x_reward_code 0.720 $133.14 245s
+[glmflash_grader_underspecified_s0] step  29 reward 0.830 var 9/32 tok 3795 x_valid 0.973 x_reward_fmt 0.849 x_reward_code 0.811 $136.97 298s
+[glmflash_grader_underspecified_s0] EVAL 30 test: reward 0.810 valid 0.979 reward_fmt 0.819 reward_code 0.800 $137.37
+[glmflash_grader_underspecified_s0] EVAL 30 held: reward 0.746 valid 0.854 reward_fmt 0.750 reward_code 0.742 $137.95
